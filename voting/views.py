@@ -3,8 +3,10 @@ from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.utils import timezone
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
+from django.conf import settings
 from pathlib import Path
+import io
 from voting.models import Voting, Subject, UserData, Count, VotingRecord
 from voting.forms import VoterRegistrationForm
 from voting.services import EmailService
@@ -12,8 +14,40 @@ from voting.services import EmailService
 
 def favicon(request):
     """Sirve el favicon.svg"""
-    favicon_path = Path(__file__).parent.parent / 'favicon.svg'
-    return FileResponse(open(favicon_path, 'rb'), content_type='image/svg+xml')
+    favicon_path = settings.BASE_DIR / 'favicon.svg'
+    if favicon_path.exists():
+        with open(favicon_path, 'rb') as f:
+            return FileResponse(f, content_type='image/svg+xml')
+    return HttpResponse(status=404)
+
+
+def serve_media(request, path):
+    """Sirve archivos media"""
+    media_path = settings.MEDIA_ROOT / path
+    
+    # Verificar que la ruta esté dentro de MEDIA_ROOT (seguridad)
+    try:
+        media_path.resolve().relative_to(settings.MEDIA_ROOT.resolve())
+    except ValueError:
+        return HttpResponse(status=403)
+    
+    if media_path.exists() and media_path.is_file():
+        # Determinar el tipo MIME
+        content_type = 'application/octet-stream'
+        if path.endswith('.jpeg') or path.endswith('.jpg'):
+            content_type = 'image/jpeg'
+        elif path.endswith('.png'):
+            content_type = 'image/png'
+        elif path.endswith('.webp'):
+            content_type = 'image/webp'
+        elif path.endswith('.gif'):
+            content_type = 'image/gif'
+        
+        response = FileResponse(open(media_path, 'rb'), content_type=content_type)
+        response['Content-Disposition'] = f'inline; filename="{media_path.name}"'
+        return response
+    
+    return HttpResponse(status=404)
 
 
 def index(request):

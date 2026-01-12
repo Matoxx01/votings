@@ -207,20 +207,22 @@ def voting_statistics(request, voting_id):
     for subject in subjects:
         count = Count.objects.filter(id_subject=subject).first()
         votes = count.number if count else 0
-        percentage = (votes / total_registered * 100) if total_registered > 0 else 0
+        percentage = (votes / total_votes) if total_votes > 0 else 0
+        final_percentage = round(percentage * 100, 2)
         
         stats.append({
             'subject': subject,
             'votes': votes,
-            'percentage': round(percentage, 2),
+            'percentage': final_percentage,
         })
     
     # Agregar opción "Nulo/No voto"
-    no_vote_percentage = (no_votes / total_registered * 100) if total_registered > 0 else 0
+    no_vote_percentage = (no_votes / total_registered) if total_registered > 0 else 0
+    no_final_percentage = round(no_vote_percentage * 100, 2)
     stats.append({
         'subject': type('obj', (object,), {'name': 'Nulo/No voto'})(),
         'votes': no_votes,
-        'percentage': round(no_vote_percentage, 2),
+        'percentage': no_final_percentage,
     })
     
     # Preparar datos para gráfico
@@ -255,20 +257,20 @@ def generate_report(request, voting_id):
     for subject in subjects:
         count = Count.objects.filter(id_subject=subject).first()
         votes = count.number if count else 0
-        percentage = (votes / total_registered * 100) if total_registered > 0 else 0
+        percentage = (votes / total_registered) if total_registered > 0 else 0
         
         stats.append({
             'subject': subject,
             'votes': votes,
-            'percentage': round(percentage, 2),
+            'percentage': round(percentage * 100, 2),
         })
     
     # Agregar opción "Nulo/No voto"
-    no_vote_percentage = (no_votes / total_registered * 100) if total_registered > 0 else 0
+    no_vote_percentage = (no_votes / total_registered) if total_registered > 0 else 0
     stats.append({
         'subject': type('obj', (object,), {'name': 'Nulo/No voto'})(),
         'votes': no_votes,
-        'percentage': round(no_vote_percentage, 2),
+        'percentage': round(no_vote_percentage * 100, 2),
     })
     
     context = {

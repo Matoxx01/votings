@@ -54,12 +54,16 @@
                                 <tr>
                                     <td><strong>{{ stat.subject.name }}</strong></td>
                                     <td>{{ stat.votes }}</td>
-                                    <td>{{ stat.percentage }}%</td>
+                                    <td>{{ stat.percentage|floatformat:1 }}%</td>
                                     <td>
-                                        <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar bg-success" style="width: {{ stat.percentage }}%;">
-                                                {{ stat.percentage }}%
-                                            </div>
+                                        <div class="progress" style="height: 25px; background-color: #e9ecef;">
+                                            {% if stat.percentage > 0 %}
+                                                <div class="progress-bar" style="width: {{ stat.percentage|floatformat:1 }}%; background: linear-gradient(90deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; font-size: 12px;">
+                                                    {{ stat.percentage|floatformat:1 }}%
+                                                </div>
+                                            {% else %}
+                                                <span style="padding: 5px; color: #999; font-size: 12px;">0%</span>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
