@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestionar Administradores - Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Gestionar Administradores</h1>
+        <p class="lead">Maintainers del Sistema</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <h3 class="mb-4">Administradores Activos</h3>
+            
+            {% if maintainers %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Creado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for maintainer in maintainers %}
+                                <tr>
+                                    <td><strong>{{ maintainer.name }} {{ maintainer.lastname }}</strong></td>
+                                    <td>{{ maintainer.mail }}</td>
+                                    <td>{{ maintainer.id_role.name }}</td>
+                                    <td>
+                                        {% if maintainer.is_active %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ maintainer.created_at|date:"d/m/Y" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-warning">
+                    No hay administradores registrados.
+                </div>
+            {% endif %}
+
+            <div class="alert alert-info mt-4">
+                <strong>💡 Nota:</strong> Para añadir nuevos administradores, accede a la sección de administración de Django.
+            </div>
+
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
+                ← Volver al Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

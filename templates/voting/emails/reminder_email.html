@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recordatorio de Votación</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #dc2626 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+        .warning-badge {
+            display: inline-block;
+            background-color: #f59e0b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .info-box {
+            background-color: #f0f4ff;
+            padding: 15px;
+            border-left: 4px solid #1e40af;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #16a34a;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗳️ Recordatorio de Votación</h1>
+        </div>
+
+        <div class="content">
+            <p>Hola <strong>{{ user_name }}</strong>,</p>
+
+            <p>Te recordamos que la votación <strong>{{ voting_title }}</strong> está en curso.</p>
+
+            <div class="warning-badge">⏰ No olvides votar</div>
+
+            <div class="info-box">
+                <strong>📅 Votación Activa</strong>
+                <p>Aún hay tiempo para participar. Dirígete a nuestro sistema de votaciones para emitir tu voto.</p>
+            </div>
+
+            <p>Tu participación es importante y contribuye a la toma de decisiones de nuestra organización.</p>
+
+            <div class="info-box">
+                <strong>🔒 Tu información es segura</strong>
+                <p>Utilizamos protocolos de seguridad de alta calidad para proteger tu privacidad.</p>
+            </div>
+
+            <p>
+                Saludos cordiales,<br>
+                <strong>Equipo de Votaciones Seguras</strong>
+            </p>
+
+            <div class="footer">
+                <p>&copy; 2026 Partido Republicano - Sistema de Votaciones Seguro</p>
+                <p>Este es un correo de recordatorio automático. Por favor, no responder.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

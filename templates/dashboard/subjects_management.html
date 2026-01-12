@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestionar Subjects - {{ voting.title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Gestionar Subjects</h1>
+        <p class="lead">{{ voting.title }}</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Crear Nuevo Subject -->
+            <div class="card shadow-lg mb-5">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Crear Nuevo Subject</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        {% for field in form %}
+                            {% if field.widget.input_type != 'hidden' %}
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ field.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                ✓ Crear Subject
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de Subjects -->
+            <h3 class="mb-4">Subjects Existentes</h3>
+            {% if subjects %}
+                <div class="row">
+                    {% for subject in subjects %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ subject.name }}</h6>
+                                    <p class="card-text text-muted small">{{ subject.description|truncatewords:15 }}</p>
+                                    <span class="badge bg-info">Creado: {{ subject.created_at|date:"d/m" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No hay subjects creados para esta votación.
+                </div>
+            {% endif %}
+
+            <a href="{% url 'dashboard:voting_detail' voting.id %}" class="btn btn-secondary mt-4">
+                ← Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+</script>
+{% endblock %}

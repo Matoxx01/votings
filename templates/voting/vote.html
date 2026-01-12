@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Votar por {{ subject.name }} - Votaciones{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>{{ voting.title }}</h1>
+        <p class="lead">Opción: <strong>{{ subject.name }}</strong></p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-6 mx-auto">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <h3 class="card-title mb-4 text-center">Completa tu Registro</h3>
+                    
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.name.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.lastname.id_for_label }}" class="form-label">{{ form.lastname.label }}</label>
+                            {{ form.lastname }}
+                            {% if form.lastname.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.lastname.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.rut.id_for_label }}" class="form-label">{{ form.rut.label }}</label>
+                            {{ form.rut }}
+                            {% if form.rut.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.rut.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.mail.id_for_label }}" class="form-label">{{ form.mail.label }}</label>
+                            {{ form.mail }}
+                            <small class="form-text text-muted d-block mt-2">
+                                ⚠️ {{ form.mail.help_text }}
+                            </small>
+                            {% if form.mail.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.mail.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {{ form.subject }}
+
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                ✓ Emitir Voto
+                            </button>
+                            <a href="{% url 'voting:voting_detail' voting.id %}" class="btn btn-secondary">
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+
+                    <div class="alert alert-info mt-4" role="alert">
+                        <h6 class="alert-heading">🔒 Tu Información es Segura</h6>
+                        <p class="mb-0">Utilizamos protección CSRF y encriptación para garantizar la seguridad de tus datos.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Validación del formulario
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+</script>
+{% endblock %}

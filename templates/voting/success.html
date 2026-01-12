@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}¡Voto Registrado! - Votaciones{% endblock %}
+
+{% block content %}
+<div class="page-header bg-success">
+    <div class="container">
+        <h1>✓ ¡Voto Registrado Exitosamente!</h1>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-6 mx-auto text-center">
+            <div class="card shadow-lg border-success">
+                <div class="card-body p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    
+                    <h3 class="card-title mb-3">¡Gracias por Tu Participación!</h3>
+                    
+                    <p class="card-text mb-4">
+                        Tu voto ha sido registrado correctamente en el sistema. 
+                        Se ha enviado un correo de confirmación a tu dirección de email.
+                    </p>
+
+                    <div class="alert alert-info mb-4" role="alert">
+                        <strong>📧 Revisa tu email:</strong> 
+                        Recibirás un mensaje de confirmación con los detalles de tu voto.
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'voting:index' %}" class="btn btn-primary btn-lg">
+                            Volver a Votaciones
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <h5 class="text-muted">¿Necesitas ayuda?</h5>
+                <p class="text-muted">Si tienes dudas sobre tu voto, por favor contacta al equipo de soporte.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

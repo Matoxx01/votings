@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ voting.title }} - Detalles{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>{{ voting.title }}</h1>
+        <p class="lead">Detalles de la Votación</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-lg mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Información de la Votación</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Descripción:</strong> {{ voting.description }}</p>
+                    <p><strong>Inicio:</strong> {{ voting.start_date|date:"d/m/Y H:i" }}</p>
+                    <p><strong>Fin:</strong> {{ voting.finish_date|date:"d/m/Y H:i" }}</p>
+                    <p><strong>Estado:</strong> 
+                        {% if voting.is_active %}
+                            <span class="badge bg-success">Activa</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactiva</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <h3 class="mb-3">Opciones de Votación (Subjects)</h3>
+            {% if subjects %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Votos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subject in stats %}
+                                <tr>
+                                    <td><strong>{{ subject.subject.name }}</strong></td>
+                                    <td><span class="badge bg-info">{{ subject.votes }} votos</span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-warning">
+                    No hay subjects creados para esta votación.
+                </div>
+            {% endif %}
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{% url 'dashboard:subjects_management' voting.id %}" class="btn btn-warning">
+                    Gestionar Subjects
+                </a>
+                <a href="{% url 'dashboard:voting_statistics' voting.id %}" class="btn btn-info">
+                    Ver Estadísticas
+                </a>
+                <a href="{% url 'dashboard:report' voting.id %}" class="btn btn-primary">
+                    Generar Reporte
+                </a>
+                <a href="{% url 'dashboard:votings_management' %}" class="btn btn-secondary">
+                    Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

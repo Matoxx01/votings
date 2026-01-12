@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ voting.title }} - Votaciones{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>{{ voting.title }}</h1>
+        <p class="lead">{{ voting.description }}</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    {% if voting.image %}
+        <div class="mb-5 text-center">
+            <img src="{{ voting.image.url }}" alt="{{ voting.title }}" class="img-fluid rounded shadow" style="max-height: 300px; object-fit: cover;">
+        </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h3 class="mb-4">Opciones de Votación</h3>
+            
+            {% if subjects %}
+                <div class="row">
+                    {% for subject in subjects %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ subject.name }}</h5>
+                                    <p class="card-text text-muted">{{ subject.description|truncatewords:15 }}</p>
+                                </div>
+                                <div class="card-footer bg-white border-top">
+                                    <a href="{% url 'voting:vote' subject.id %}" class="btn btn-primary btn-sm w-100">
+                                        Seleccionar y Votar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-warning text-center py-5">
+                    <h4>⚠️ No hay opciones disponibles</h4>
+                    <p>Por favor, intente más tarde.</p>
+                </div>
+            {% endif %}
+
+            <div class="mt-5">
+                <a href="{% url 'voting:index' %}" class="btn btn-secondary">
+                    ← Volver a Votaciones
+                </a>
+                <a href="{% url 'voting:statistics' voting.id %}" class="btn btn-info float-end">
+                    Ver Estadísticas →
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

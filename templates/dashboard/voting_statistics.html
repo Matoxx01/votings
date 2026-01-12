@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Estadísticas - {{ voting.title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Estadísticas Detalladas</h1>
+        <p class="lead">{{ voting.title }}</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Resumen -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Resumen de Votación</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <h3 class="text-primary">{{ total_votes }}</h3>
+                            <p class="text-muted">Total de Votos</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <h3 class="text-success">{{ stats|length }}</h3>
+                            <p class="text-muted">Opciones</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <h3 class="text-info">{% if total_votes > 0 %}{{ total_votes|add:"0" }}{% else %}0{% endif %}</h3>
+                            <p class="text-muted">Participación</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resultados Detallados -->
+            <h3 class="mb-4">Resultados por Opción</h3>
+            {% if stats %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Opción</th>
+                                <th>Votos</th>
+                                <th>Porcentaje</th>
+                                <th>Gráfico</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in stats %}
+                                <tr>
+                                    <td><strong>{{ stat.subject.name }}</strong></td>
+                                    <td>{{ stat.votes }}</td>
+                                    <td>{{ stat.percentage }}%</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" style="width: {{ stat.percentage }}%;">
+                                                {{ stat.percentage }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-warning">
+                    No hay votos registrados aún.
+                </div>
+            {% endif %}
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{% url 'dashboard:report' voting.id %}" class="btn btn-warning">
+                    📊 Generar Reporte
+                </a>
+                <a href="{% url 'dashboard:voting_detail' voting.id %}" class="btn btn-secondary">
+                    ← Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
