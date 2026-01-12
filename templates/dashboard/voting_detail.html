@@ -31,7 +31,7 @@
                 </div>
             </div>
 
-            <h3 class="mb-3">Opciones de Votación (Subjects)</h3>
+            <h3 class="mb-3">Opciones de Votación</h3>
             {% if subjects %}
                 <div class="table-responsive">
                     <table class="table table-hover">
@@ -59,7 +59,7 @@
 
             <div class="mt-4 d-flex gap-2">
                 <a href="{% url 'dashboard:subjects_management' voting.id %}" class="btn btn-warning">
-                    Gestionar Subjects
+                    Agregar Opciones
                 </a>
                 <a href="{% url 'dashboard:voting_statistics' voting.id %}" class="btn btn-info">
                     Ver Estadísticas
@@ -67,6 +67,14 @@
                 <a href="{% url 'dashboard:report' voting.id %}" class="btn btn-primary">
                     Generar Reporte
                 </a>
+                {% if is_admin %}
+                    <form method="POST" action="{% url 'dashboard:delete_voting' voting.id %}" style="display: inline;" onsubmit="return confirm('⚠️ ¿Estás seguro de que deseas eliminar esta votación y todos sus datos? Esta acción no se puede deshacer.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            🗑️ Eliminar Votación
+                        </button>
+                    </form>
+                {% endif %}
                 <a href="{% url 'dashboard:votings_management' %}" class="btn btn-secondary">
                     Volver
                 </a>

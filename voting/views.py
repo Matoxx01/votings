@@ -3,9 +3,17 @@ from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.utils import timezone
+from django.http import FileResponse
+from pathlib import Path
 from voting.models import Voting, Subject, UserData, Count, VotingRecord
 from voting.forms import VoterRegistrationForm
 from voting.services import EmailService
+
+
+def favicon(request):
+    """Sirve el favicon.svg"""
+    favicon_path = Path(__file__).parent.parent / 'favicon.svg'
+    return FileResponse(open(favicon_path, 'rb'), content_type='image/svg+xml')
 
 
 def index(request):
@@ -26,6 +34,12 @@ def voting_detail(request, voting_id):
         messages.error(request, "Esta votación no está disponible en este momento.")
         return redirect('voting:index')
     
+    # Verificar si el usuario ya está registrado en esta votación
+    session_key = f'voter_{voting_id}'
+    if session_key not in request.session:
+        # Redirigir a registro si no está registrado
+        return redirect('voting:register', voting_id=voting_id)
+    
     subjects = voting.subjects.all()
     
     context = {
@@ -36,8 +50,64 @@ def voting_detail(request, voting_id):
 
 
 @require_http_methods(["GET", "POST"])
+def register(request, voting_id):
+    """Vista para registrarse antes de votar"""
+    voting = get_object_or_404(Voting, id=voting_id, is_active=True)
+    
+    if not voting.is_open():
+        messages.error(request, "Esta votación no está disponible en este momento.")
+        return redirect('voting:index')
+    
+    # Si ya está registrado, redirigir a voting_detail
+    session_key = f'voter_{voting_id}'
+    if session_key in request.session:
+        return redirect('voting:voting_detail', voting_id=voting_id)
+    
+    if request.method == 'POST':
+        form = VoterRegistrationForm(request.POST)
+        if form.is_valid():
+            rut = form.cleaned_data.get('rut')
+            mail = form.cleaned_data.get('mail')
+            name = form.cleaned_data.get('name')
+            lastname = form.cleaned_data.get('lastname')
+            
+            # Validar que el RUT existe en user_data
+            try:
+                user_data = UserData.objects.get(id_voting=voting, rut=rut)
+            except UserData.DoesNotExist:
+                messages.error(request, f"El RUT {rut} no está registrado para esta votación.")
+                return redirect('voting:register', voting_id=voting_id)
+            
+            # Validar que el usuario no ha votado
+            if user_data.has_voted:
+                messages.error(request, "Este RUT ya ha votado en esta votación.")
+                return redirect('voting:index')
+            
+            # Guardar datos en sesión
+            request.session[session_key] = {
+                'rut': rut,
+                'mail': mail,
+                'name': name,
+                'lastname': lastname,
+                'user_data_id': user_data.id,
+            }
+            request.session.modified = True
+            
+            messages.success(request, "¡Registro completado! Ahora selecciona una opción para votar.")
+            return redirect('voting:voting_detail', voting_id=voting_id)
+    else:
+        form = VoterRegistrationForm()
+    
+    context = {
+        'form': form,
+        'voting': voting,
+    }
+    return render(request, 'voting/register.html', context)
+
+
+@require_http_methods(["GET", "POST"])
 def vote(request, subject_id):
-    """Vista para registrarse y votar"""
+    """Vista para confirmar y votar"""
     subject = get_object_or_404(Subject, id=subject_id)
     voting = subject.id_voting
     
@@ -45,37 +115,42 @@ def vote(request, subject_id):
         messages.error(request, "Esta votación no está disponible en este momento.")
         return redirect('voting:voting_detail', voting_id=voting.id)
     
+    # Verificar si el usuario está registrado en sesión
+    session_key = f'voter_{voting.id}'
+    if session_key not in request.session:
+        messages.error(request, "Debes registrarte primero para votar.")
+        return redirect('voting:register', voting_id=voting.id)
+    
+    voter_data = request.session.get(session_key, {})
+    
     if request.method == 'POST':
-        form = VoterRegistrationForm(request.POST)
-        if form.is_valid():
-            return process_vote(request, form, voting, subject)
-    else:
-        form = VoterRegistrationForm(initial={'subject': subject.id})
+        return process_vote(request, voting, subject, voter_data)
     
     context = {
-        'form': form,
         'voting': voting,
         'subject': subject,
+        'voter_name': f"{voter_data.get('name')} {voter_data.get('lastname')}",
     }
     return render(request, 'voting/vote.html', context)
 
 
 @transaction.atomic
-def process_vote(request, form, voting, subject):
+def process_vote(request, voting, subject, voter_data):
     """
     Procesa el voto del usuario
     """
-    rut = form.cleaned_data.get('rut')
-    mail = form.cleaned_data.get('mail')
-    name = form.cleaned_data.get('name')
-    lastname = form.cleaned_data.get('lastname')
+    rut = voter_data.get('rut')
+    mail = voter_data.get('mail')
+    name = voter_data.get('name')
+    lastname = voter_data.get('lastname')
+    user_data_id = voter_data.get('user_data_id')
     
-    # Validar que el RUT existe en user_data
+    # Obtener el user_data
     try:
-        user_data = UserData.objects.get(id_voting=voting, rut=rut)
+        user_data = UserData.objects.get(id=user_data_id)
     except UserData.DoesNotExist:
-        messages.error(request, f"El RUT {rut} no está registrado para esta votación.")
-        return redirect('voting:vote', subject_id=subject.id)
+        messages.error(request, "Error: No se encontraron los datos de registro.")
+        return redirect('voting:register', voting_id=voting.id)
     
     # Validar que el usuario no ha votado
     if user_data.has_voted:
@@ -83,13 +158,10 @@ def process_vote(request, form, voting, subject):
         return redirect('voting:voting_detail', voting_id=voting.id)
     
     try:
-        # Registrar el voto
+        # Registrar el voto de forma ANÓNIMA (sin guardar identidad)
         voting_record = VotingRecord.objects.create(
             id_voting=voting,
             id_subject=subject,
-            user_data=user_data,
-            rut=rut,
-            mail=mail,
         )
         
         # Incrementar contador
@@ -101,6 +173,12 @@ def process_vote(request, form, voting, subject):
         user_data.has_voted = True
         user_data.voted_at = timezone.now()
         user_data.save()
+        
+        # Limpiar sesión de registro
+        session_key = f'voter_{voting.id}'
+        if session_key in request.session:
+            del request.session[session_key]
+            request.session.modified = True
         
         # Enviar correo de confirmación
         try:

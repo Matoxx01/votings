@@ -38,9 +38,6 @@ class VoterRegistrationForm(forms.Form):
         }),
         help_text="Es importante proporcionar un correo válido. Se enviará un correo de confirmación."
     )
-    subject = forms.IntegerField(
-        widget=forms.HiddenInput()
-    )
 
     def clean_rut(self):
         """Valida el formato del RUT chileno"""

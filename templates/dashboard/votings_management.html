@@ -58,12 +58,11 @@
                                 <th>Estado</th>
                                 <th>Inicio</th>
                                 <th>Fin</th>
-                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for voting in votings %}
-                                <tr>
+                                <tr style="cursor: pointer;" onclick="window.location='{% url 'dashboard:voting_detail' voting.id %}';">
                                     <td><strong>{{ voting.title }}</strong></td>
                                     <td>
                                         {% if voting.is_active %}
@@ -74,17 +73,6 @@
                                     </td>
                                     <td>{{ voting.start_date|date:"d/m/Y H:i" }}</td>
                                     <td>{{ voting.finish_date|date:"d/m/Y H:i" }}</td>
-                                    <td>
-                                        <a href="{% url 'dashboard:voting_detail' voting.id %}" class="btn btn-sm btn-info">
-                                            Ver
-                                        </a>
-                                        <a href="{% url 'dashboard:subjects_management' voting.id %}" class="btn btn-sm btn-warning">
-                                            Subjects
-                                        </a>
-                                        <a href="{% url 'dashboard:voting_statistics' voting.id %}" class="btn btn-sm btn-primary">
-                                            Estadísticas
-                                        </a>
-                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>

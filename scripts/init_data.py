@@ -18,12 +18,12 @@ print("✓ Roles creados")
 # Crear maintainers
 print("Creando maintainers...")
 maintainer, created = Maintainer.objects.get_or_create(
-    mail="admin@votaciones.com",
+    mail="matias@barrioslira.com",
     defaults={
         "id_role": admin_role,
-        "name": "Admin",
-        "lastname": "Sistema",
-        "password": "admin123",
+        "name": "admin",
+        "lastname": "",
+        "password": "1234",
         "is_active": True,
     }
 )
@@ -95,5 +95,5 @@ for rut in users_data:
 
 print("\n✓ Datos de prueba inicializados correctamente")
 print("\nAcceso al dashboard:")
-print("  Email: admin@votaciones.com")
-print("  Contraseña: admin123")
+print("  Email: matias@barrioslira.com")
+print("  Contraseña: 1234")

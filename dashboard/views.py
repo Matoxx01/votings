@@ -1,14 +1,19 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import make_password, check_password
 from django.views.decorators.http import require_http_methods
 from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
-from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role
-from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm
-from dashboard.decorators import maintainer_login_required
+from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken
+from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm
+from dashboard.decorators import maintainer_login_required, admin_required
 from dashboard.services import ExcelService
+from voting.services import EmailService
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def login_view(request):
@@ -24,8 +29,8 @@ def login_view(request):
             
             try:
                 maintainer = Maintainer.objects.get(mail=mail, is_active=True)
-                # En producción, usar check_password
-                if maintainer.password == password:
+                # Verificar contraseña usando check_password de Django
+                if check_password(password, maintainer.password):
                     request.session['maintainer_id'] = maintainer.id
                     request.session['maintainer_name'] = f"{maintainer.name} {maintainer.lastname}"
                     messages.success(request, f"Bienvenido, {maintainer.name}!")
@@ -100,6 +105,11 @@ def voting_detail(request, voting_id):
     voting = get_object_or_404(Voting, id=voting_id)
     subjects = voting.subjects.all()
     
+    # Verificar si el usuario es administrador
+    maintainer_id = request.session.get('maintainer_id')
+    maintainer = Maintainer.objects.get(id=maintainer_id) if maintainer_id else None
+    is_admin = maintainer and maintainer.id_role.name.lower() == 'administrador' or maintainer.id_role.name.lower() == 'admin'
+    
     stats = []
     total_votes = 0
     
@@ -117,6 +127,7 @@ def voting_detail(request, voting_id):
         'subjects': subjects,
         'stats': stats,
         'total_votes': total_votes,
+        'is_admin': is_admin,
     }
     return render(request, 'dashboard/voting_detail.html', context)
 
@@ -181,24 +192,36 @@ def user_data_management(request):
 
 
 @maintainer_login_required
+@maintainer_login_required
 def voting_statistics(request, voting_id):
     """Vista de estadísticas detalladas de una votación"""
     voting = get_object_or_404(Voting, id=voting_id)
     subjects = voting.subjects.all()
     
-    stats = []
+    # Contar total de RUTs registrados y votos realizados
+    total_registered = UserData.objects.filter(id_voting=voting).count()
     total_votes = VotingRecord.objects.filter(id_voting=voting).count()
+    no_votes = total_registered - total_votes
     
+    stats = []
     for subject in subjects:
         count = Count.objects.filter(id_subject=subject).first()
         votes = count.number if count else 0
-        percentage = (votes / total_votes * 100) if total_votes > 0 else 0
+        percentage = (votes / total_registered * 100) if total_registered > 0 else 0
         
         stats.append({
             'subject': subject,
             'votes': votes,
             'percentage': round(percentage, 2),
         })
+    
+    # Agregar opción "Nulo/No voto"
+    no_vote_percentage = (no_votes / total_registered * 100) if total_registered > 0 else 0
+    stats.append({
+        'subject': type('obj', (object,), {'name': 'Nulo/No voto'})(),
+        'votes': no_votes,
+        'percentage': round(no_vote_percentage, 2),
+    })
     
     # Preparar datos para gráfico
     chart_data = {
@@ -211,6 +234,7 @@ def voting_statistics(request, voting_id):
         'voting': voting,
         'stats': stats,
         'total_votes': total_votes,
+        'total_registered': total_registered,
         'chart_json': chart_json,
     }
     return render(request, 'dashboard/voting_statistics.html', context)
@@ -218,16 +242,40 @@ def voting_statistics(request, voting_id):
 
 @maintainer_login_required
 def generate_report(request, voting_id):
-    """Vista para generar reportes de votaciones"""
+    """Vista para generar reportes de votaciones (solo estadísticas)"""
     voting = get_object_or_404(Voting, id=voting_id)
+    subjects = voting.subjects.all()
     
-    records = VotingRecord.objects.filter(id_voting=voting).select_related(
-        'id_subject', 'user_data'
-    ).order_by('-voted_at')
+    # Contar total de RUTs registrados y votos realizados
+    total_registered = UserData.objects.filter(id_voting=voting).count()
+    total_votes = VotingRecord.objects.filter(id_voting=voting).count()
+    no_votes = total_registered - total_votes
+    
+    stats = []
+    for subject in subjects:
+        count = Count.objects.filter(id_subject=subject).first()
+        votes = count.number if count else 0
+        percentage = (votes / total_registered * 100) if total_registered > 0 else 0
+        
+        stats.append({
+            'subject': subject,
+            'votes': votes,
+            'percentage': round(percentage, 2),
+        })
+    
+    # Agregar opción "Nulo/No voto"
+    no_vote_percentage = (no_votes / total_registered * 100) if total_registered > 0 else 0
+    stats.append({
+        'subject': type('obj', (object,), {'name': 'Nulo/No voto'})(),
+        'votes': no_votes,
+        'percentage': round(no_vote_percentage, 2),
+    })
     
     context = {
         'voting': voting,
-        'records': records,
+        'stats': stats,
+        'total_votes': total_votes,
+        'total_registered': total_registered,
     }
     return render(request, 'dashboard/report.html', context)
 
@@ -238,8 +286,191 @@ def maintainers_management(request):
     maintainers = Maintainer.objects.all().order_by('-created_at')
     roles = Role.objects.all()
     
+    # Verificar si el usuario es administrador
+    maintainer_id = request.session.get('maintainer_id')
+    maintainer = Maintainer.objects.get(id=maintainer_id) if maintainer_id else None
+    is_admin = maintainer and maintainer.id_role.name.lower() == 'administrador' or maintainer.id_role.name.lower() == 'admin'
+    
     context = {
         'maintainers': maintainers,
         'roles': roles,
+        'is_admin': is_admin,
     }
     return render(request, 'dashboard/maintainers_management.html', context)
+
+
+@admin_required
+@admin_required
+def create_maintainer(request):
+    """Vista para crear un nuevo administrador (solo admins)"""
+    if request.method == 'POST':
+        form = MaintainerCreateForm(request.POST)
+        if form.is_valid():
+            maintainer = form.save()
+            messages.success(request, f"Maintainer '{maintainer.name} {maintainer.lastname}' creado correctamente.")
+            return redirect('dashboard:maintainers_management')
+    else:
+        form = MaintainerCreateForm()
+    
+    context = {
+        'form': form,
+        'page_title': 'Crear Nuevo Administrador',
+    }
+    return render(request, 'dashboard/create_maintainer.html', context)
+
+
+@admin_required
+def edit_maintainer(request, maintainer_id):
+    """Vista para editar administrador"""
+    maintainer = get_object_or_404(Maintainer, id=maintainer_id)
+    
+    if request.method == 'POST':
+        form = MaintainerEditForm(request.POST, instance=maintainer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Administrador '{maintainer.name}' actualizado correctamente.")
+            return redirect('dashboard:maintainers_management')
+    else:
+        form = MaintainerEditForm(instance=maintainer)
+    
+    context = {
+        'form': form,
+        'maintainer': maintainer,
+    }
+    return render(request, 'dashboard/edit_maintainer.html', context)
+
+
+@admin_required
+@require_http_methods(["POST"])
+@admin_required
+def send_password_reset_email(request, maintainer_id):
+    """Vista para enviar email de restablecimiento de contraseña"""
+    logger.info(f"Iniciando envío de email de restablecimiento para maintainer_id={maintainer_id}")
+    maintainer = get_object_or_404(Maintainer, id=maintainer_id)
+    logger.info(f"Maintainer encontrado: {maintainer.name} {maintainer.lastname} ({maintainer.mail})")
+    
+    try:
+        # Crear token de recuperación
+        reset_token = PasswordResetToken.create_token(maintainer)
+        
+        # Generar link de recuperación en dashboard (sin login requerido)
+        reset_link = request.build_absolute_uri(f'/dashboard/reset-password/{reset_token.token}/')
+        logger.info(f"Reset link: {reset_link}")
+        
+        logger.info(f"Enviando email a {maintainer.mail}")
+        EmailService.send_password_reset_email(
+            to_email=maintainer.mail,
+            user_name=f"{maintainer.name} {maintainer.lastname}",
+            reset_link=reset_link
+        )
+        logger.info(f"Email enviado exitosamente a {maintainer.mail}")
+        
+        messages.success(request, f"Email de restablecimiento enviado a {maintainer.mail}")
+    except Exception as e:
+        logger.error(f"Error al enviar email: {str(e)}", exc_info=True)
+        messages.error(request, f"Error al enviar email: {str(e)}")
+    
+    return redirect('dashboard:edit_maintainer', maintainer_id=maintainer_id)
+
+
+@admin_required
+@require_http_methods(["POST"])
+def delete_maintainer(request, maintainer_id):
+    """Vista para eliminar un maintainer (solo admins)"""
+    maintainer = get_object_or_404(Maintainer, id=maintainer_id)
+    maintainer_name = f"{maintainer.name} {maintainer.lastname}"
+    
+    # No permitir que se elimine a sí mismo
+    if maintainer.id == request.session.get('maintainer_id'):
+        messages.error(request, "No puedes eliminar tu propia cuenta.")
+        return redirect('dashboard:maintainers_management')
+    
+    # Eliminar completamente el maintainer
+    maintainer.delete()
+    
+    messages.success(request, f"Maintainer '{maintainer_name}' eliminado correctamente.")
+    return redirect('dashboard:maintainers_management')
+
+
+@admin_required
+@require_http_methods(["POST"])
+def delete_voting(request, voting_id):
+    """Vista para eliminar una votación completa (solo admins)"""
+    voting = get_object_or_404(Voting, id=voting_id)
+    voting_title = voting.title
+    
+    try:
+        # Eliminar todos los registros asociados en cascada
+        voting.delete()
+        messages.success(request, f"Votación '{voting_title}' y todos sus datos han sido eliminados correctamente.")
+    except Exception as e:
+        messages.error(request, f"Error al eliminar la votación: {str(e)}")
+    
+    return redirect('dashboard:votings_management')
+
+def reset_password(request, token):
+    """Vista pública para cambiar la contraseña usando un token válido (SIN LOGIN REQUERIDO)"""
+    try:
+        reset_token = PasswordResetToken.objects.get(token=token)
+    except PasswordResetToken.DoesNotExist:
+        messages.error(request, "El link de recuperación es inválido o ha expirado.")
+        return redirect('dashboard:login')
+    
+    # Validar que el token sea válido
+    if not reset_token.is_valid():
+        messages.error(request, "El link de recuperación ha expirado. Solicita uno nuevo.")
+        return redirect('dashboard:login')
+    
+    if request.method == 'POST':
+        password = request.POST.get('password', '')
+        password_confirm = request.POST.get('password_confirm', '')
+        
+        if not password or len(password) < 6:
+            messages.error(request, "La contraseña debe tener al menos 6 caracteres.")
+            return render(request, 'dashboard/reset_password.html', {'token': token})
+        
+        if password != password_confirm:
+            messages.error(request, "Las contraseñas no coinciden.")
+            return render(request, 'dashboard/reset_password.html', {'token': token})
+        
+        # Actualizar contraseña
+        maintainer = reset_token.maintainer
+        maintainer.password = make_password(password)
+        maintainer.save()
+        
+        # Marcar token como usado
+        reset_token.used = True
+        reset_token.save()
+        
+        messages.success(request, "Tu contraseña ha sido actualizada correctamente. Inicia sesión.")
+        return redirect('dashboard:login')
+    
+    return render(request, 'dashboard/reset_password.html', {'token': token})
+
+
+def request_password_reset(request):
+    """Vista pública para solicitar un reset de contraseña (SIN LOGIN REQUERIDO)"""
+    if request.method == 'POST':
+        mail = request.POST.get('mail', '').strip()
+        
+        try:
+            maintainer = Maintainer.objects.get(mail=mail, is_active=True)
+            # Crear token de recuperación
+            reset_token = PasswordResetToken.create_token(maintainer)
+            
+            # Enviar email con link de recuperación
+            reset_link = request.build_absolute_uri(f'/dashboard/reset-password/{reset_token.token}/')
+            EmailService.send_password_reset_email(
+                to_email=maintainer.mail,
+                user_name=maintainer.name,
+                reset_link=reset_link
+            )
+            
+            messages.success(request, f"Se ha enviado un link de recuperación a {mail}. Revisa tu bandeja de entrada.")
+        except Maintainer.DoesNotExist:
+            # No revelar si el email existe o no por seguridad
+            messages.info(request, "Si el correo existe, recibirás un email con instrucciones.")
+        
+        return redirect('dashboard:request_password_reset')
+    
+    return render(request, 'dashboard/request_password_reset.html')

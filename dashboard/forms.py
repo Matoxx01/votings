@@ -1,5 +1,6 @@
 from django import forms
-from voting.models import Voting, Subject
+from django.contrib.auth.hashers import make_password
+from voting.models import Voting, Subject, Maintainer
 
 
 class MaintainerLoginForm(forms.Form):
@@ -75,3 +76,60 @@ class UserDataUploadForm(forms.Form):
             choices=[(v.id, v.title) for v in Voting.objects.all()],
             attrs={'class': 'form-control'}
         )
+
+
+class MaintainerEditForm(forms.ModelForm):
+    """Formulario para editar administradores (sin cambiar contraseña)"""
+    class Meta:
+        model = Maintainer
+        fields = ['name', 'lastname', 'mail', 'id_role', 'is_active']
+        labels = {
+            'name': 'Nombre',
+            'lastname': 'Apellido',
+            'mail': 'Correo Electrónico',
+            'id_role': 'Rol',
+            'is_active': 'Activo',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'lastname': forms.TextInput(attrs={'class': 'form-control'}),
+            'mail': forms.EmailInput(attrs={'class': 'form-control'}),
+            'id_role': forms.Select(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class MaintainerCreateForm(forms.ModelForm):
+    """Formulario para crear nuevos administradores"""
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        label='Contraseña',
+        help_text='La contraseña será almacenada de forma segura.'
+    )
+    
+    class Meta:
+        model = Maintainer
+        fields = ['name', 'lastname', 'mail', 'id_role', 'password', 'is_active']
+        labels = {
+            'name': 'Nombre',
+            'lastname': 'Apellido',
+            'mail': 'Correo Electrónico',
+            'id_role': 'Rol',
+            'is_active': 'Activo',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'lastname': forms.TextInput(attrs={'class': 'form-control'}),
+            'mail': forms.EmailInput(attrs={'class': 'form-control'}),
+            'id_role': forms.Select(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+    
+    def save(self, commit=True):
+        maintainer = super().save(commit=False)
+        # Hashear la contraseña usando make_password de Django
+        maintainer.password = make_password(self.cleaned_data['password'])
+        if commit:
+            maintainer.save()
+        return maintainer
+

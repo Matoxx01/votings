@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils import timezone
+import secrets
+import datetime
 
 
 class Role(models.Model):
@@ -127,12 +129,9 @@ class UserData(models.Model):
 
 
 class VotingRecord(models.Model):
-    """Modelo para registrar los votos realizados"""
+    """Modelo para registrar los votos realizados (ANÓNIMO)"""
     id_voting = models.ForeignKey(Voting, on_delete=models.CASCADE)
     id_subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    user_data = models.ForeignKey(UserData, on_delete=models.CASCADE)
-    rut = models.CharField(max_length=20)
-    mail = models.EmailField()
     voted_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -140,4 +139,37 @@ class VotingRecord(models.Model):
         verbose_name_plural = "Voting Records"
 
     def __str__(self):
-        return f"{self.rut} votó por {self.id_subject.name}"
+        return f"Voto por {self.id_subject.name} en {self.id_voting.title}"
+
+class PasswordResetToken(models.Model):
+    """Modelo para tokens de recuperación de contraseña de maintainers"""
+    maintainer = models.ForeignKey('Maintainer', on_delete=models.CASCADE, related_name='reset_tokens')
+    token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = "Password Reset Token"
+        verbose_name_plural = "Password Reset Tokens"
+    
+    def __str__(self):
+        return f"Token para {self.maintainer.mail}"
+    
+    def is_valid(self):
+        """Verifica si el token es válido (no expirado y no usado)"""
+        return not self.used and timezone.now() <= self.expires_at
+    
+    @staticmethod
+    def create_token(maintainer):
+        """Crea un nuevo token de recuperación"""
+        # Generar token único
+        token = secrets.token_urlsafe(32)
+        # Expiración en 24 horas
+        expires_at = timezone.now() + datetime.timedelta(hours=24)
+        
+        return PasswordResetToken.objects.create(
+            maintainer=maintainer,
+            token=token,
+            expires_at=expires_at
+        )

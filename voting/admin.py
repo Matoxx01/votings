@@ -59,7 +59,7 @@ class UserDataAdmin(admin.ModelAdmin):
 
 @admin.register(VotingRecord)
 class VotingRecordAdmin(admin.ModelAdmin):
-    list_display = ['rut', 'id_voting', 'id_subject', 'voted_at']
+    list_display = ['id_voting', 'id_subject', 'voted_at']
     list_filter = ['id_voting', 'id_subject', 'voted_at']
-    search_fields = ['rut', 'mail', 'id_voting__title']
-    readonly_fields = ['voted_at']
+    search_fields = ['id_voting__title', 'id_subject__name']
+    readonly_fields = ['voted_at', 'id_voting', 'id_subject']

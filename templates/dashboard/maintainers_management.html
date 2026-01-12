@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
-{% block title %}Gestionar Administradores - Dashboard{% endblock %}
+{% block title %}Gestionar Maintainers - Dashboard{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div class="container">
-        <h1>Gestionar Administradores</h1>
+        <h1>Gestionar Maintainers</h1>
         <p class="lead">Maintainers del Sistema</p>
     </div>
 </div>
@@ -13,7 +13,14 @@
 <div class="container py-5">
     <div class="row">
         <div class="col-lg-10 mx-auto">
-            <h3 class="mb-4">Administradores Activos</h3>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="mb-0">Maintainers Activos</h3>
+                {% if is_admin %}
+                    <a href="{% url 'dashboard:create_maintainer' %}" class="btn btn-success">
+                        ➕ Crear Maintainer
+                    </a>
+                {% endif %}
+            </div>
             
             {% if maintainers %}
                 <div class="table-responsive">
@@ -29,7 +36,7 @@
                         </thead>
                         <tbody>
                             {% for maintainer in maintainers %}
-                                <tr>
+                                <tr onclick="window.location='{% url 'dashboard:edit_maintainer' maintainer.id %}'" style="cursor: pointer;">
                                     <td><strong>{{ maintainer.name }} {{ maintainer.lastname }}</strong></td>
                                     <td>{{ maintainer.mail }}</td>
                                     <td>{{ maintainer.id_role.name }}</td>
@@ -48,13 +55,9 @@
                 </div>
             {% else %}
                 <div class="alert alert-warning">
-                    No hay administradores registrados.
+                    No hay maintainers registrados.
                 </div>
             {% endif %}
-
-            <div class="alert alert-info mt-4">
-                <strong>💡 Nota:</strong> Para añadir nuevos administradores, accede a la sección de administración de Django.
-            </div>
 
             <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
                 ← Volver al Dashboard

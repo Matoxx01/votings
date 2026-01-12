@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
-{% block title %}Gestionar Subjects - {{ voting.title }}{% endblock %}
+{% block title %}Gestionar Opciones - {{ voting.title }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div class="container">
-        <h1>Gestionar Subjects</h1>
+        <h1>Gestionar Opciones</h1>
         <p class="lead">{{ voting.title }}</p>
     </div>
 </div>
@@ -13,10 +13,10 @@
 <div class="container py-5">
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <!-- Crear Nuevo Subject -->
+            <!-- Crear Nueva Opción -->
             <div class="card shadow-lg mb-5">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Crear Nuevo Subject</h5>
+                    <h5 class="mb-0">Crear Nueva Opción</h5>
                 </div>
                 <div class="card-body">
                     <form method="post" class="needs-validation" novalidate>
@@ -38,15 +38,15 @@
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">
-                                ✓ Crear Subject
+                                ✓ Crear Opción
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Lista de Subjects -->
-            <h3 class="mb-4">Subjects Existentes</h3>
+            <!-- Lista de Opciones -->
+            <h3 class="mb-4">Opciones Existentes</h3>
             {% if subjects %}
                 <div class="row">
                     {% for subject in subjects %}
@@ -63,7 +63,7 @@
                 </div>
             {% else %}
                 <div class="alert alert-info">
-                    No hay subjects creados para esta votación.
+                    No hay opciones creadas para esta votación.
                 </div>
             {% endif %}
 

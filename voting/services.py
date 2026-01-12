@@ -66,3 +66,32 @@ class EmailService:
             html_message=html_message,
             fail_silently=False,
         )
+
+    @staticmethod
+    def send_password_reset_email(to_email, user_name, reset_link):
+        """
+        Envía un correo para restablecimiento de contraseña
+        
+        Args:
+            to_email: Correo del administrador
+            user_name: Nombre del administrador
+            reset_link: Enlace para resetear contraseña
+        """
+        subject = "Restablecimiento de Contraseña - Sistema de Votaciones"
+        
+        context = {
+            'user_name': user_name,
+            'reset_link': reset_link,
+        }
+        
+        html_message = render_to_string('voting/emails/password_reset_email.html', context)
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject,
+            plain_message,
+            settings.EMAIL_HOST_USER,
+            [to_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
