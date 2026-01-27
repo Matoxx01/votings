@@ -3,6 +3,41 @@
 {% block title %}Votar - {{ voting.title }}{% endblock %}
 
 {% block content %}
+<style>
+    .privacy-note {
+        background: #f0fdf4;
+        border-left: 4px solid #10b981;
+        padding: 1rem;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: #1f2937;
+    }
+    
+    .code-inline {
+        background: #1f2937;
+        color: #e5e7eb;
+        padding: 0.75rem;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        margin: 0.5rem 0;
+        overflow-x: auto;
+    }
+    
+    @media (max-width: 576px) {
+        .privacy-note {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .code-inline {
+            font-size: 0.75rem;
+            padding: 0.5rem;
+        }
+    }
+</style>
+
 <div class="page-header">
     <div class="container text-center">
         <h1>{{ voting.title }}</h1>
@@ -12,16 +47,16 @@
 <div class="container py-5">
     <div class="row">
         <div class="col-lg-6 mx-auto">
-            <div class="card shadow-lg">
-                <div class="card-body p-5">
+            <div class="card shadow-lg mb-4">
+                <div class="card-body p-4 p-sm-5">
                     <h3 class="card-title mb-4 text-center">Confirmar Voto</h3>
                     
-                    <div class="alert alert-info">
-                        <p><strong>Votante:</strong> {{ voter_name }}</p>
-                        <p><strong>Opción:</strong> {{ subject.name }}</p>
+                    <div class="alert alert-info mb-4">
+                        <p class="mb-0"><strong>Votante:</strong> {{ voter_name }}</p>
+                        <p class="mb-0"><strong>Opción:</strong> {{ subject.name }}</p>
                     </div>
                     
-                    <p class="text-center text-muted mb-4">
+                    <p class="text-center text-muted mb-3">
                         Por favor confirma tu voto. Esta acción no puede ser desecha.
                     </p>
                     
@@ -34,6 +69,22 @@
                             </button>
                             <a href="{% url 'voting:voting_detail' voting.id %}" class="btn btn-secondary">
                                 Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Información de Privacidad -->
+            <div class="privacy-note">
+                <p>🔒 <strong>Tu voto es completamente anónimo</strong> <br /> Se registra qué votaste, pero nunca quién votó. Solo se guardan 3 datos: la votación, la opción elegida y la hora. Tu RUT, email y nombre <strong>NUNCA</strong> se vinculan con tu voto. El código que procesa tu voto es:</p>
+                <div class="code-inline">VotingRecord.objects.create(
+    id_voting = votación,
+    id_subject = opción
+)</div>
+                <p style="margin-bottom: 0; font-size: 0.9rem; color: #6b7280;">Tu identidad se verifica solo para evitar duplicados, pero está completamente separada de tu voto. Es técnicamente imposible saber quién votó por cada opción.</p>
+            </div>
+
                             </a>
                         </div>
                     </form>
