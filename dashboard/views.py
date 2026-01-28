@@ -7,7 +7,7 @@ from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
 from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken
 from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm
-from dashboard.decorators import maintainer_login_required, admin_required
+from dashboard.decorators import maintainer_login_required, admin_required, no_auditor
 from dashboard.services import ExcelService
 from voting.services import EmailService
 import json
@@ -62,6 +62,27 @@ def logout_view(request):
 @maintainer_login_required
 def dashboard(request):
     """Vista principal del dashboard"""
+    # Verificar si es auditor
+    maintainer_id = request.session.get('maintainer_id')
+    maintainer = Maintainer.objects.get(id=maintainer_id)
+    is_auditor = maintainer.id_role.name.lower() == 'auditor'
+    
+    if is_auditor:
+        # Vista limitada para auditores
+        from django.db.models import Count as DbCount
+        votings = Voting.objects.select_related('id_region').annotate(
+            vote_count=DbCount('votingrecord')
+        ).order_by('-start_date')
+        total_votes = VotingRecord.objects.count()
+        
+        context = {
+            'votings': votings,
+            'total_votes': total_votes,
+            'now': timezone.now(),
+        }
+        return render(request, 'dashboard/auditor_dashboard.html', context)
+    
+    # Vista completa para administradores
     total_votings = Voting.objects.count()
     active_votings = Voting.objects.filter(
         start_date__lte=timezone.now(),
@@ -79,6 +100,7 @@ def dashboard(request):
 
 
 @maintainer_login_required
+@no_auditor
 def votings_management(request):
     """Vista para gestionar votaciones"""
     votings = Voting.objects.all().order_by('-created_at')
@@ -100,6 +122,7 @@ def votings_management(request):
 
 
 @maintainer_login_required
+@no_auditor
 def voting_detail(request, voting_id):
     """Vista de detalle de una votación en el dashboard"""
     voting = get_object_or_404(Voting, id=voting_id)
@@ -133,6 +156,7 @@ def voting_detail(request, voting_id):
 
 
 @maintainer_login_required
+@no_auditor
 def subjects_management(request, voting_id):
     """Vista para gestionar subjects de una votación"""
     voting = get_object_or_404(Voting, id=voting_id)
@@ -162,12 +186,14 @@ def subjects_management(request, voting_id):
 
 
 @maintainer_login_required
+@no_auditor
 def user_data_management(request):
     """Vista principal de gestión de usuarios - muestra opciones"""
     return render(request, 'dashboard/user_data_management.html')
 
 
 @maintainer_login_required
+@no_auditor
 def user_data_upload(request):
     """Vista para cargar datos de usuarios desde Excel"""
     if request.method == 'POST':
@@ -195,6 +221,7 @@ def user_data_upload(request):
 
 
 @maintainer_login_required
+@no_auditor
 def militante_invite(request):
     """Vista para enviar invitaciones de registro a militantes desde Excel"""
     if request.method == 'POST':
@@ -239,7 +266,7 @@ def militante_invite(request):
 
 
 @maintainer_login_required
-@maintainer_login_required
+@no_auditor
 def voting_statistics(request, voting_id):
     """Vista de estadísticas detalladas de una votación"""
     voting = get_object_or_404(Voting, id=voting_id)
@@ -290,6 +317,7 @@ def voting_statistics(request, voting_id):
 
 
 @maintainer_login_required
+@no_auditor
 def generate_report(request, voting_id):
     """Vista para generar reportes de votaciones (solo estadísticas)"""
     voting = get_object_or_404(Voting, id=voting_id)
@@ -330,6 +358,7 @@ def generate_report(request, voting_id):
 
 
 @maintainer_login_required
+@no_auditor
 def maintainers_management(request):
     """Vista para gestionar maintainers"""
     maintainers = Maintainer.objects.all().order_by('-created_at')
@@ -348,7 +377,6 @@ def maintainers_management(request):
     return render(request, 'dashboard/maintainers_management.html', context)
 
 
-@admin_required
 @admin_required
 def create_maintainer(request):
     """Vista para crear un nuevo administrador (solo admins)"""
@@ -391,7 +419,6 @@ def edit_maintainer(request, maintainer_id):
 
 @admin_required
 @require_http_methods(["POST"])
-@admin_required
 def send_password_reset_email(request, maintainer_id):
     """Vista para enviar email de restablecimiento de contraseña"""
     logger.info(f"Iniciando envío de email de restablecimiento para maintainer_id={maintainer_id}")

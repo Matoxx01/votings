@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Auditor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1>📊 Panel de Auditoría</h1>
+                <p class="lead mb-0">Bienvenido, {{ request.session.maintainer_name }}</p>
+            </div>
+            <a href="{% url 'dashboard:logout' %}" class="btn btn-outline-light">
+                🚪 Cerrar Sesión
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">🗳️ Resumen de Votaciones</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Votación</th>
+                                    <th>Región</th>
+                                    <th>Estado</th>
+                                    <th>Fecha Inicio</th>
+                                    <th>Fecha Término</th>
+                                    <th class="text-center">Total Votos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for voting in votings %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ voting.title }}</strong>
+                                    </td>
+                                    <td>{{ voting.id_region.name|default:"-" }}</td>
+                                    <td>
+                                        {% if voting.is_active and voting.start_date <= now and voting.finish_date >= now %}
+                                            <span class="badge bg-success">Activa</span>
+                                        {% elif voting.finish_date < now %}
+                                            <span class="badge bg-secondary">Finalizada</span>
+                                        {% elif voting.start_date > now %}
+                                            <span class="badge bg-warning text-dark">Pendiente</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactiva</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ voting.start_date|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ voting.finish_date|date:"d/m/Y H:i" }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info fs-6">{{ voting.vote_count }}</span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        No hay votaciones registradas.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Total: {{ votings|length }} votaciones</span>
+                        <span class="text-muted">{{ total_votes }} votos emitidos en total</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

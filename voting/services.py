@@ -2,6 +2,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
+from django.utils import timezone
 import time
 
 
@@ -21,10 +22,15 @@ class EmailService:
         """
         subject = f"Confirmación de Voto - {voting_title}"
         
+        # Formatear fecha y hora actual
+        now = timezone.localtime(timezone.now())
+        timestamp = now.strftime("%d/%m/%Y a las %H:%M hrs")
+        
         context = {
             'user_name': user_name,
             'voting_title': voting_title,
             'subject_name': subject_name,
+            'timestamp': timestamp,
         }
         
         html_message = render_to_string('voting/emails/confirmation_email.html', context)
