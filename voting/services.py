@@ -2,6 +2,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
+import time
 
 
 class EmailService:
@@ -95,3 +96,107 @@ class EmailService:
             html_message=html_message,
             fail_silently=False,
         )
+
+    @staticmethod
+    def send_militante_registration_email(to_email, nombre, registration_link):
+        """
+        Envía un correo de invitación para registro de militante
+        
+        Args:
+            to_email: Correo del militante
+            nombre: Nombre del militante
+            registration_link: Enlace para registrarse
+        """
+        subject = "Invitación para Registro - Sistema de Votaciones"
+        
+        context = {
+            'nombre': nombre,
+            'registration_link': registration_link,
+        }
+        
+        html_message = render_to_string('voting/emails/militante_registration_email.html', context)
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject,
+            plain_message,
+            settings.EMAIL_HOST_USER,
+            [to_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+    @staticmethod
+    def send_militante_password_reset_email(to_email, nombre, reset_link):
+        """
+        Envía un correo para restablecimiento de contraseña de militante
+        
+        Args:
+            to_email: Correo del militante
+            nombre: Nombre del militante
+            reset_link: Enlace para resetear contraseña
+        """
+        subject = "Restablecimiento de Contraseña - Sistema de Votaciones"
+        
+        context = {
+            'nombre': nombre,
+            'reset_link': reset_link,
+        }
+        
+        html_message = render_to_string('voting/emails/militante_password_reset_email.html', context)
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject,
+            plain_message,
+            settings.EMAIL_HOST_USER,
+            [to_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+    @staticmethod
+    def send_bulk_registration_emails(users_data, base_url, delay=1):
+        """
+        Envía correos de registro masivamente con delay
+        
+        Args:
+            users_data: Lista de diccionarios con {nombre, rut, mail, token}
+            base_url: URL base del sitio
+            delay: Segundos entre cada envío (default 1)
+            
+        Returns:
+            dict: {sent: int, failed: int, errors: list}
+        """
+        from voting.models import MilitanteRegistrationToken
+        
+        results = {'sent': 0, 'failed': 0, 'errors': []}
+        
+        for i, user in enumerate(users_data):
+            try:
+                # Crear token de registro
+                token_obj = MilitanteRegistrationToken.create_token(
+                    nombre=user['nombre'],
+                    rut=user['rut'],
+                    mail=user['mail']
+                )
+                
+                registration_link = f"{base_url}/registro-militante/{token_obj.token}/"
+                
+                EmailService.send_militante_registration_email(
+                    to_email=user['mail'],
+                    nombre=user['nombre'],
+                    registration_link=registration_link
+                )
+                
+                results['sent'] += 1
+                
+                # Delay entre correos (excepto el último)
+                if i < len(users_data) - 1:
+                    time.sleep(delay)
+                    
+            except Exception as e:
+                results['failed'] += 1
+                results['errors'].append(f"{user['mail']}: {str(e)}")
+        
+        return results

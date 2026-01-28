@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Invitar Militantes - Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Envío de Correos a Militantes</h1>
+        <p class="lead">Enviar invitaciones de registro desde archivo Excel</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">📧 Importar y Enviar Invitaciones</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <strong>📋 Formato del archivo Excel:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Columna A:</strong> RUT (se formatea automáticamente a 12345678-K)</li>
+                            <li><strong>Columna B:</strong> Nombre completo</li>
+                            <li><strong>Columna C:</strong> Correo electrónico</li>
+                        </ul>
+                        <hr>
+                        <small class="text-muted">
+                            ⚠️ Los correos se envían con un intervalo de 1 segundo entre cada uno.
+                            Los militantes ya registrados serán omitidos.
+                        </small>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.file.id_for_label }}" class="form-label">{{ form.file.label }}</label>
+                            {{ form.file }}
+                            {% if form.file.help_text %}
+                                <small class="form-text text-muted">{{ form.file.help_text }}</small>
+                            {% endif %}
+                            {% if form.file.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.file.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                📧 Enviar Invitaciones
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a href="{% url 'dashboard:user_data_management' %}" class="btn btn-secondary">
+                    ← Volver a Gestión de Usuarios
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+</script>
+{% endblock %}

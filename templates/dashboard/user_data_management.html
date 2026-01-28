@@ -1,58 +1,47 @@
 {% extends 'base.html' %}
 
-{% block title %}Cargar Usuarios - Dashboard{% endblock %}
+{% block title %}Gestionar Usuarios - Dashboard{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div class="container">
         <h1>Gestionar Usuarios</h1>
-        <p class="lead">Cargar datos de usuarios desde archivo Excel</p>
+        <p class="lead">Opciones de gestión de usuarios del sistema</p>
     </div>
 </div>
 
 <div class="container py-5">
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <div class="card shadow-lg">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">Importar Usuarios desde Excel</h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info mb-4">
-                        <strong>📋 Formato del archivo:</strong>
-                        <p class="mb-2">El archivo Excel debe tener una columna llamada <code>rut</code> con los RUTs de los usuarios.</p>
-                        <p class="mb-0"><strong>Ejemplo:</strong> 12345678-K, 23456789-5, etc.</p>
+            <!-- Opciones de gestión -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 shadow">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <span class="display-4">📤</span>
+                            </div>
+                            <h5 class="card-title">Carga de Usuarios desde Excel</h5>
+                            <p class="card-text text-muted">Importar RUTs de votantes para una votación específica.</p>
+                            <a href="{% url 'dashboard:user_data_upload' %}" class="btn btn-primary">
+                                Cargar Usuarios
+                            </a>
+                        </div>
                     </div>
-
-                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.voting_id.id_for_label }}" class="form-label">{{ form.voting_id.label }}</label>
-                            {{ form.voting_id }}
-                            {% if form.voting_id.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.voting_id.errors }}
-                                </div>
-                            {% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 shadow">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <span class="display-4">📧</span>
+                            </div>
+                            <h5 class="card-title">Envío de Correos a Militantes</h5>
+                            <p class="card-text text-muted">Enviar invitaciones de registro a militantes desde Excel.</p>
+                            <a href="{% url 'dashboard:militante_invite' %}" class="btn btn-success">
+                                Enviar Invitaciones
+                            </a>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.file.id_for_label }}" class="form-label">{{ form.file.label }}</label>
-                            {{ form.file }}
-                            {% if form.file.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.file.errors }}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-success btn-lg">
-                                📤 Importar Usuarios
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
 
@@ -64,22 +53,4 @@
         </div>
     </div>
 </div>
-
-<script>
-    (function () {
-        'use strict';
-        window.addEventListener('load', function () {
-            var forms = document.querySelectorAll('.needs-validation');
-            Array.prototype.slice.call(forms).forEach(function (form) {
-                form.addEventListener('submit', function (event) {
-                    if (!form.checkValidity()) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                    form.classList.add('was-validated');
-                }, false);
-            });
-        }, false);
-    })();
-</script>
 {% endblock %}

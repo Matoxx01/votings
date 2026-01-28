@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
 from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken
-from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm
+from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm
 from dashboard.decorators import maintainer_login_required, admin_required
 from dashboard.services import ExcelService
 from voting.services import EmailService
@@ -163,7 +163,13 @@ def subjects_management(request, voting_id):
 
 @maintainer_login_required
 def user_data_management(request):
-    """Vista para gestionar datos de usuarios (carga desde Excel)"""
+    """Vista principal de gestión de usuarios - muestra opciones"""
+    return render(request, 'dashboard/user_data_management.html')
+
+
+@maintainer_login_required
+def user_data_upload(request):
+    """Vista para cargar datos de usuarios desde Excel"""
     if request.method == 'POST':
         form = UserDataUploadForm(request.POST, request.FILES)
         if form.is_valid():
@@ -174,7 +180,7 @@ def user_data_management(request):
                 voting = Voting.objects.get(id=voting_id)
                 count_imported = ExcelService.import_user_data(voting, excel_file)
                 messages.success(request, f"{count_imported} usuarios importados correctamente.")
-                return redirect('dashboard:user_data_management')
+                return redirect('dashboard:user_data_upload')
             except Voting.DoesNotExist:
                 messages.error(request, "Votación no encontrada.")
             except Exception as e:
@@ -182,13 +188,54 @@ def user_data_management(request):
     else:
         form = UserDataUploadForm()
     
-    votings = Voting.objects.all()
+    context = {
+        'form': form,
+    }
+    return render(request, 'dashboard/user_data_upload.html', context)
+
+
+@maintainer_login_required
+def militante_invite(request):
+    """Vista para enviar invitaciones de registro a militantes desde Excel"""
+    if request.method == 'POST':
+        form = MilitanteInviteForm(request.POST, request.FILES)
+        if form.is_valid():
+            excel_file = request.FILES.get('file')
+            
+            try:
+                # Importar datos del Excel
+                users_data = ExcelService.import_militantes_from_excel(excel_file)
+                
+                if not users_data:
+                    messages.warning(request, "No se encontraron usuarios válidos para invitar.")
+                    return redirect('dashboard:militante_invite')
+                
+                # Obtener URL base
+                base_url = request.build_absolute_uri('/')[:-1]  # Quitar trailing slash
+                
+                # Enviar correos con delay
+                results = EmailService.send_bulk_registration_emails(users_data, base_url)
+                
+                messages.success(
+                    request, 
+                    f"Proceso completado: {results['sent']} correos enviados, {results['failed']} fallidos."
+                )
+                
+                if results['errors']:
+                    for error in results['errors'][:5]:  # Mostrar máximo 5 errores
+                        messages.warning(request, error)
+                
+                return redirect('dashboard:militante_invite')
+                
+            except Exception as e:
+                messages.error(request, f"Error al procesar: {str(e)}")
+    else:
+        form = MilitanteInviteForm()
     
     context = {
         'form': form,
-        'votings': votings,
     }
-    return render(request, 'dashboard/user_data_management.html', context)
+    return render(request, 'dashboard/militante_invite.html', context)
 
 
 @maintainer_login_required

@@ -4,6 +4,20 @@ import secrets
 import datetime
 
 
+class Region(models.Model):
+    """Modelo para las regiones de Chile"""
+    id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        verbose_name = "Region"
+        verbose_name_plural = "Regiones"
+        ordering = ['id']
+
+    def __str__(self):
+        return self.name
+
+
 class Role(models.Model):
     """Modelo para los roles de los maintainers"""
     name = models.CharField(max_length=100, unique=True)
@@ -57,6 +71,7 @@ class Voting(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     image = models.ImageField(upload_to='votings/', null=True, blank=True)
+    id_region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True, related_name='votings')
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField()
     is_active = models.BooleanField(default=True)
@@ -170,6 +185,91 @@ class PasswordResetToken(models.Model):
         
         return PasswordResetToken.objects.create(
             maintainer=maintainer,
+            token=token,
+            expires_at=expires_at
+        )
+
+
+class Militante(models.Model):
+    """Modelo para militantes registrados que pueden votar"""
+    nombre = models.CharField(max_length=200)
+    rut = models.CharField(max_length=20, unique=True)
+    mail = models.EmailField(unique=True)
+    password = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Militante"
+        verbose_name_plural = "Militantes"
+    
+    def __str__(self):
+        return f"{self.nombre} ({self.rut})"
+
+
+class MilitanteRegistrationToken(models.Model):
+    """Modelo para tokens de registro de militantes"""
+    nombre = models.CharField(max_length=200)
+    rut = models.CharField(max_length=20)
+    mail = models.EmailField()
+    token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = "Militante Registration Token"
+        verbose_name_plural = "Militante Registration Tokens"
+    
+    def __str__(self):
+        return f"Token de registro para {self.mail}"
+    
+    def is_valid(self):
+        """Verifica si el token es válido (no expirado y no usado)"""
+        return not self.used and timezone.now() <= self.expires_at
+    
+    @staticmethod
+    def create_token(nombre, rut, mail):
+        """Crea un nuevo token de registro"""
+        token = secrets.token_urlsafe(32)
+        expires_at = timezone.now() + datetime.timedelta(hours=72)  # 72 horas para registrarse
+        
+        return MilitanteRegistrationToken.objects.create(
+            nombre=nombre,
+            rut=rut,
+            mail=mail,
+            token=token,
+            expires_at=expires_at
+        )
+
+
+class MilitantePasswordResetToken(models.Model):
+    """Modelo para tokens de recuperación de contraseña de militantes"""
+    militante = models.ForeignKey('Militante', on_delete=models.CASCADE, related_name='reset_tokens')
+    token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = "Militante Password Reset Token"
+        verbose_name_plural = "Militante Password Reset Tokens"
+    
+    def __str__(self):
+        return f"Token para {self.militante.mail}"
+    
+    def is_valid(self):
+        """Verifica si el token es válido (no expirado y no usado)"""
+        return not self.used and timezone.now() <= self.expires_at
+    
+    @staticmethod
+    def create_token(militante):
+        """Crea un nuevo token de recuperación"""
+        token = secrets.token_urlsafe(32)
+        expires_at = timezone.now() + datetime.timedelta(hours=24)
+        
+        return MilitantePasswordResetToken.objects.create(
+            militante=militante,
             token=token,
             expires_at=expires_at
         )

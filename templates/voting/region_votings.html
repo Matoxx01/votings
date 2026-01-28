@@ -1,47 +1,23 @@
 {% extends 'base.html' %}
 
-{% block title %}Votaciones - Sistema de Votaciones{% endblock %}
+{% block title %}{{ region.name }} - Votaciones{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div class="container text-center">
-        <h1>Sistema de Votaciones</h1>
+        <h1>{{ region.name }}</h1>
+        <p class="lead">Votaciones disponibles en esta región</p>
     </div>
 </div>
 
 <div class="container py-5">
-    {% if regions or votings_without_region %}
+    <a href="{% url 'voting:index' %}" class="btn btn-secondary mb-4">
+        ← Volver a Regiones
+    </a>
+    
+    {% if votings %}
         <div class="row">
-            <!-- Regiones -->
-            {% for region in regions %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100">
-                        <div class="card-img-top bg-primary d-flex align-items-center justify-content-center" style="height: 200px;">
-                            <span class="text-white fs-1">🗺️</span>
-                        </div>
-                        
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title">{{ region.name }}</h5>
-                            <p class="card-text text-muted flex-grow-1">
-                                Ver votaciones disponibles en esta región.
-                            </p>
-                            
-                            <div class="d-flex gap-2 mb-3 flex-wrap">
-                                <span class="badge bg-info">Región</span>
-                            </div>
-                        </div>
-                        
-                        <div class="card-footer bg-white border-top">
-                            <a href="{% url 'voting:region_votings' region.id %}" class="btn btn-primary btn-sm w-100">
-                                Ver Votaciones
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-            
-            <!-- Votaciones sin región (S/Region) -->
-            {% for voting in votings_without_region %}
+            {% for voting in votings %}
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100">
                         {% if voting.image %}
@@ -87,7 +63,7 @@
         </div>
     {% else %}
         <div class="alert alert-info text-center py-5">
-            <h4>📋 No hay votaciones disponibles</h4>
+            <h4>📋 No hay votaciones disponibles en esta región</h4>
             <p>Por favor, intente más tarde.</p>
         </div>
     {% endif %}
