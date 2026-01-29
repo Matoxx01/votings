@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 
 {% block title %}Reporte - {{ voting.title }}{% endblock %}
 
@@ -108,12 +109,16 @@
                                         <tr>
                                             <td><strong>{{ stat.subject.name }}</strong></td>
                                             <td class="text-center"><span class="badge bg-info">{{ stat.votes }}</span></td>
-                                            <td class="text-center"><strong>{{ stat.percentage }}%</strong></td>
+                                            <td class="text-center"><strong>{{ stat.percentage|floatformat:1 }}%</strong></td>
                                             <td>
-                                                <div class="progress" style="height: 25px;">
-                                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ stat.percentage }}%" aria-valuenow="{{ stat.percentage }}" aria-valuemin="0" aria-valuemax="100">
-                                                        {{ stat.percentage }}%
-                                                    </div>
+                                                <div class="progress" style="height: 25px; background-color: #e9ecef;">
+                                                    {% if stat.percentage > 0 %}
+                                                        <div class="progress-bar" role="progressbar" style="width: {{ stat.percentage|unlocalize }}%; background: linear-gradient(90deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; font-size: 12px;" aria-valuenow="{{ stat.percentage|unlocalize }}" aria-valuemin="0" aria-valuemax="100">
+                                                            {{ stat.percentage|floatformat:1 }}%
+                                                        </div>
+                                                    {% else %}
+                                                        <span style="padding: 5px; color: #999; font-size: 12px;">0%</span>
+                                                    {% endif %}
                                                 </div>
                                             </td>
                                         </tr>
