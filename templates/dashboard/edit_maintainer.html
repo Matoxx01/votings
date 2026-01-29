@@ -15,6 +15,15 @@
         <div class="col-lg-6 mx-auto">
             <div class="card shadow-lg">
                 <div class="card-body p-5">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
                     <form method="post" class="needs-validation" novalidate>
                         {% csrf_token %}
                         
@@ -75,6 +84,17 @@
 </div>
 
 <script>
+    // Auto-cerrar alertas después de 5 segundos
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            var alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                var bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    });
+
     (function () {
         'use strict';
         window.addEventListener('load', function () {

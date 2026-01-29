@@ -18,6 +18,15 @@
                     <h5 class="mb-0">📧 Importar y Enviar Invitaciones</h5>
                 </div>
                 <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
                     <div class="alert alert-info mb-4">
                         <strong>📋 Formato del archivo Excel:</strong>
                         <ul class="mb-0 mt-2">
@@ -67,6 +76,17 @@
 </div>
 
 <script>
+    // Auto-cerrar alertas después de 5 segundos
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            var alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                var bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    });
+
     (function () {
         'use strict';
         window.addEventListener('load', function () {

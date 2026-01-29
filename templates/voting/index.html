@@ -3,6 +3,21 @@
 {% block title %}Votaciones - Sistema de Votaciones{% endblock %}
 
 {% block content %}
+{% if militante_logged_in %}
+<div class="bg-dark text-white py-2">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <small>Usuario: <strong>{{ militante_name }}</strong></small>
+            </div>
+            <a href="{% url 'voting:militante_logout' %}" class="btn btn-outline-light btn-sm">
+                Cerrar Sesión
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="page-header">
     <div class="container text-center">
         <h1>Sistema de Votaciones</h1>
@@ -10,6 +25,14 @@
 </div>
 
 <div class="container py-5">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
     {% if regions or votings_without_region %}
         <div class="row">
             <!-- Regiones -->
@@ -65,8 +88,8 @@
                             </div>
 
                             <small class="text-muted">
-                                <strong>Inicio:</strong> {{ voting.start_date|date:"d/m/Y H:i" }}<br>
-                                <strong>Fin:</strong> {{ voting.finish_date|date:"d/m/Y H:i" }}
+                                <strong>Inicio:</strong> {{ voting.start_date|date:"j \d\e F \d\e Y \a \l\a\s H:i" }}<br>
+                                <strong>Fin:</strong> {{ voting.finish_date|date:"j \d\e F \d\e Y \a \l\a\s H:i" }}
                             </small>
                         </div>
                         
@@ -92,4 +115,17 @@
         </div>
     {% endif %}
 </div>
+
+<script>
+    // Auto-cerrar alertas después de 5 segundos
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            var alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                var bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    });
+</script>
 {% endblock %}

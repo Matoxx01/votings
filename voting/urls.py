@@ -12,6 +12,7 @@ urlpatterns = [
     path('votacion/<int:voting_id>/registro/', views.register, name='register'),
     path('votacion/<int:voting_id>/login/', views.militante_login, name='militante_login'),
     path('votacion/<int:voting_id>/olvide-contrasena/', views.militante_password_reset_request, name='militante_password_reset_request'),
+    path('militante-logout/', views.militante_logout, name='militante_logout'),
     path('votar/<int:subject_id>/', views.vote, name='vote'),
     path('exito/', views.success, name='success'),
     path('estadisticas/<int:voting_id>/', views.voting_statistics, name='statistics'),

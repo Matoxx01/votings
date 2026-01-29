@@ -53,35 +53,65 @@ def serve_media(request, path):
 
 def index(request):
     """Vista principal - muestra regiones y votaciones sin región"""
-    # Obtener regiones que tienen votaciones activas (excepto S/Region id=17)
+    now = timezone.now()
+    
+    # Obtener regiones que tienen votaciones activas y no finalizadas (excepto S/Region id=17)
     regions_with_votings = Region.objects.filter(
-        votings__is_active=True
+        votings__is_active=True,
+        votings__finish_date__gte=now
     ).exclude(id=17).distinct().order_by('id')
     
-    # Obtener votaciones sin región (S/Region, id=17) para mostrar directamente
+    # Obtener votaciones sin región (S/Region, id=17) activas y no finalizadas
     votings_without_region = Voting.objects.filter(
         is_active=True,
-        id_region__id=17
+        id_region__id=17,
+        finish_date__gte=now
     ).order_by('-created_at')
+    
+    # Verificar si hay algún militante logueado
+    militante_logged_in = False
+    militante_name = None
+    for key in request.session.keys():
+        if key.startswith('militante_'):
+            militante_data = request.session[key]
+            militante_logged_in = True
+            militante_name = militante_data.get('name', 'Usuario')
+            break
     
     context = {
         'regions': regions_with_votings,
         'votings_without_region': votings_without_region,
+        'militante_logged_in': militante_logged_in,
+        'militante_name': militante_name,
     }
     return render(request, 'voting/index.html', context)
 
 
 def region_votings(request, region_id):
     """Vista para mostrar votaciones de una región específica"""
+    now = timezone.now()
     region = get_object_or_404(Region, id=region_id)
     votings = Voting.objects.filter(
         is_active=True,
-        id_region=region
+        id_region=region,
+        finish_date__gte=now
     ).order_by('-created_at')
+    
+    # Verificar si hay algún militante logueado
+    militante_logged_in = False
+    militante_name = None
+    for key in request.session.keys():
+        if key.startswith('militante_'):
+            militante_data = request.session[key]
+            militante_logged_in = True
+            militante_name = militante_data.get('name', 'Usuario')
+            break
     
     context = {
         'region': region,
         'votings': votings,
+        'militante_logged_in': militante_logged_in,
+        'militante_name': militante_name,
     }
     return render(request, 'voting/region_votings.html', context)
 
@@ -321,7 +351,11 @@ def militante_login(request, voting_id):
     
     if request.method == 'POST':
         form = MilitanteLoginForm(request.POST)
-        if form.is_valid():
+        if not form.is_valid():
+            # Si el form no es válido, se queda en la página con los errores
+            pass
+        else:
+            # Procesar login válido
             rut = form.cleaned_data.get('rut')
             password = form.cleaned_data.get('password')
             
@@ -365,7 +399,11 @@ def militante_login(request, voting_id):
             # Verificar si ya votó
             if user_data.has_voted:
                 messages.error(request, "Este RUT ya ha votado en esta votación.")
-                return redirect('voting:index')
+                return render(request, 'voting/militante_login.html', {
+                    'form': form,
+                    'voting': voting,
+                    'contact_email': contact_email,
+                })
             
             # Guardar en sesión
             request.session[session_key] = {
@@ -389,6 +427,21 @@ def militante_login(request, voting_id):
         'contact_email': contact_email,
     }
     return render(request, 'voting/militante_login.html', context)
+
+
+def militante_logout(request):
+    """Vista de logout para militantes"""
+    # Limpiar todas las sesiones de militante
+    session_keys_to_remove = []
+    for key in request.session.keys():
+        if key.startswith('militante_'):
+            session_keys_to_remove.append(key)
+    
+    for key in session_keys_to_remove:
+        del request.session[key]
+    
+    messages.success(request, "Sesión cerrada correctamente.")
+    return redirect('voting:index')
 
 
 @require_http_methods(["GET", "POST"])
