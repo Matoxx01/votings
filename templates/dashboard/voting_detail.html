@@ -21,8 +21,8 @@
                     <p><strong>Descripción:</strong> {{ voting.description }}</p>
                     <p><strong>Inicio:</strong> {{ voting.start_date|date:"d/m/Y H:i" }}</p>
                     <p><strong>Fin:</strong> {{ voting.finish_date|date:"d/m/Y H:i" }}</p>
-                    <p><strong>Estado:</strong> 
-                        {% if voting.is_active %}
+                    <p><strong>Estado:</strong>
+                        {% if voting.is_open %}
                             <span class="badge bg-success">Activa</span>
                         {% else %}
                             <span class="badge bg-secondary">Inactiva</span>

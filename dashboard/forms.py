@@ -26,7 +26,7 @@ class VotingForm(forms.ModelForm):
     """Formulario para crear/editar votaciones"""
     class Meta:
         model = Voting
-        fields = ['title', 'description', 'image', 'id_region', 'start_date', 'finish_date', 'is_active']
+        fields = ['title', 'description', 'image', 'id_region', 'start_date', 'finish_date']
         labels = {
             'title': 'Título',
             'description': 'Descripción',
@@ -34,7 +34,6 @@ class VotingForm(forms.ModelForm):
             'id_region': 'Región',
             'start_date': 'Fecha de Inicio',
             'finish_date': 'Fecha de Finalización',
-            'is_active': 'Activa',
         }
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
@@ -43,7 +42,6 @@ class VotingForm(forms.ModelForm):
             'id_region': forms.Select(attrs={'class': 'form-control'}),
             'start_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'finish_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     
     def __init__(self, *args, **kwargs):

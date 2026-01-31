@@ -27,8 +27,8 @@ class MaintainerAdmin(admin.ModelAdmin):
 
 @admin.register(Voting)
 class VotingAdmin(admin.ModelAdmin):
-    list_display = ['title', 'start_date', 'finish_date', 'is_active', 'created_at']
-    list_filter = ['is_active', 'created_at']
+    list_display = ['title', 'start_date', 'finish_date', 'created_at']
+    list_filter = ['created_at']
     search_fields = ['title', 'description']
     readonly_fields = ['created_at']
 

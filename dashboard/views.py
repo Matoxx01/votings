@@ -10,6 +10,7 @@ from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDa
 from dashboard.decorators import maintainer_login_required, admin_required, no_auditor
 from dashboard.services import ExcelService
 from voting.services import EmailService
+from voting.time_utils import get_real_now
 import json
 import logging
 
@@ -78,16 +79,15 @@ def dashboard(request):
         context = {
             'votings': votings,
             'total_votes': total_votes,
-            'now': timezone.now(),
+            'now': get_real_now(),
         }
         return render(request, 'dashboard/auditor_dashboard.html', context)
     
     # Vista completa para administradores
     total_votings = Voting.objects.count()
     active_votings = Voting.objects.filter(
-        start_date__lte=timezone.now(),
-        finish_date__gte=timezone.now(),
-        is_active=True
+        start_date__lte=get_real_now(),
+        finish_date__gte=get_real_now()
     ).count()
     total_votes = VotingRecord.objects.count()
     
@@ -104,6 +104,7 @@ def dashboard(request):
 def votings_management(request):
     """Vista para gestionar votaciones"""
     votings = Voting.objects.all().order_by('-created_at')
+    now = get_real_now()
     
     if request.method == 'POST':
         form = VotingForm(request.POST, request.FILES)
@@ -117,6 +118,7 @@ def votings_management(request):
     context = {
         'votings': votings,
         'form': form,
+        'now': now,
     }
     return render(request, 'dashboard/votings_management.html', context)
 

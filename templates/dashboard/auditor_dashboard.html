@@ -45,7 +45,7 @@
                                     </td>
                                     <td>{{ voting.id_region.name|default:"-" }}</td>
                                     <td>
-                                        {% if voting.is_active and voting.start_date <= now and voting.finish_date >= now %}
+                                        {% if voting.is_open %}
                                             <span class="badge bg-success">Activa</span>
                                         {% elif voting.finish_date < now %}
                                             <span class="badge bg-secondary">Finalizada</span>

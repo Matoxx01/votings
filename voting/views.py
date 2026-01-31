@@ -11,6 +11,7 @@ import io
 from voting.models import Voting, Subject, UserData, Count, VotingRecord, Region, Militante, MilitanteRegistrationToken, MilitantePasswordResetToken
 from voting.forms import VoterRegistrationForm, MilitanteRegistrationForm, MilitanteLoginForm, MilitantePasswordResetRequestForm, MilitantePasswordResetForm
 from voting.services import EmailService
+from voting.time_utils import get_real_now
 
 
 def favicon(request):
@@ -53,18 +54,18 @@ def serve_media(request, path):
 
 def index(request):
     """Vista principal - muestra regiones y votaciones sin región"""
-    now = timezone.now()
+    now = get_real_now()
     
-    # Obtener regiones que tienen votaciones activas y no finalizadas (excepto S/Region id=17)
+    # Obtener regiones que tienen votaciones abiertas (excepto S/Region id=17)
     regions_with_votings = Region.objects.filter(
-        votings__is_active=True,
+        votings__start_date__lte=now,
         votings__finish_date__gte=now
     ).exclude(id=17).distinct().order_by('id')
     
-    # Obtener votaciones sin región (S/Region, id=17) activas y no finalizadas
+    # Obtener votaciones sin región (S/Region, id=17) abiertas
     votings_without_region = Voting.objects.filter(
-        is_active=True,
         id_region__id=17,
+        start_date__lte=now,
         finish_date__gte=now
     ).order_by('-created_at')
     
@@ -89,11 +90,11 @@ def index(request):
 
 def region_votings(request, region_id):
     """Vista para mostrar votaciones de una región específica"""
-    now = timezone.now()
+    now = get_real_now()
     region = get_object_or_404(Region, id=region_id)
     votings = Voting.objects.filter(
-        is_active=True,
         id_region=region,
+        start_date__lte=now,
         finish_date__gte=now
     ).order_by('-created_at')
     
@@ -118,7 +119,7 @@ def region_votings(request, region_id):
 
 def voting_detail(request, voting_id):
     """Vista de detalle de una votación con sus subjects"""
-    voting = get_object_or_404(Voting, id=voting_id, is_active=True)
+    voting = get_object_or_404(Voting, id=voting_id)
     
     if not voting.is_open():
         messages.error(request, "Esta votación no está disponible en este momento.")

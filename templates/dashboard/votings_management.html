@@ -65,7 +65,7 @@
                                 <tr style="cursor: pointer;" onclick="window.location='{% url 'dashboard:voting_detail' voting.id %}';">
                                     <td><strong>{{ voting.title }}</strong></td>
                                     <td>
-                                        {% if voting.is_active %}
+                                        {% if voting.is_open %}
                                             <span class="badge bg-success">Activa</span>
                                         {% else %}
                                             <span class="badge bg-secondary">Inactiva</span>

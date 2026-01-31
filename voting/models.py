@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 import secrets
 import datetime
+from .time_utils import get_real_now
 
 
 class Region(models.Model):
@@ -74,7 +75,6 @@ class Voting(models.Model):
     id_region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True, related_name='votings')
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField()
-    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -86,9 +86,9 @@ class Voting(models.Model):
         return self.title
 
     def is_open(self):
-        """Verifica si la votación está activa"""
-        now = timezone.now()
-        return self.start_date <= now <= self.finish_date and self.is_active
+        """Verifica si la votación está activa según fechas (usando hora real de internet)"""
+        now = get_real_now()
+        return self.start_date <= now <= self.finish_date
 
 
 class Subject(models.Model):
