@@ -212,7 +212,6 @@ def process_vote(request, voting, subject, voter_data):
         
         # Marcar como votado
         user_data.has_voted = True
-        user_data.voted_at = timezone.now()
         user_data.save()
         
         # Limpiar sesión de militante
@@ -227,10 +226,9 @@ def process_vote(request, voting, subject, voter_data):
                 to_email=mail,
                 user_name=f"{name} {lastname}",
                 voting_title=voting.title,
-                subject_name=subject.name,
             )
-        except Exception as e:
-            print(f"Error al enviar correo: {e}")
+        except Exception:
+            pass
         
         messages.success(request, "¡Tu voto ha sido registrado correctamente!")
         return redirect('voting:success')
@@ -337,7 +335,7 @@ def militante_register(request, token):
 @require_http_methods(["GET", "POST"])
 def militante_login(request, voting_id):
     """Vista de login para militantes antes de votar"""
-    voting = get_object_or_404(Voting, id=voting_id, is_active=True)
+    voting = get_object_or_404(Voting, id=voting_id)
     
     if not voting.is_open():
         messages.error(request, "Esta votación no está disponible en este momento.")

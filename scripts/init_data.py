@@ -94,6 +94,3 @@ for rut in users_data:
         print(f"ℹ Usuario ya existe: {rut}")
 
 print("\n✓ Datos de prueba inicializados correctamente")
-print("\nAcceso al dashboard:")
-print("  Email: matias@barrioslira.com")
-print("  Contraseña: 1234")

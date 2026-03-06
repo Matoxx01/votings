@@ -28,8 +28,7 @@ def get_ntp_santiago_time():
         santiago_time = utc_time.astimezone(santiago_tz)
         
         return santiago_time
-    except Exception as e:
-        print(f"Error obteniendo hora NTP: {e}")
+    except Exception:
         return None
 
 

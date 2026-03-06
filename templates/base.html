@@ -157,6 +157,33 @@
             box-shadow: none;
         }
 
+        /* Hero Banner */
+        .hero-banner {
+            width: 100%;
+            line-height: 0;
+            overflow: hidden;
+        }
+
+        .hero-banner img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            max-height: 400px;
+        }
+
+        @media (max-width: 768px) {
+            .hero-banner img {
+                max-height: 250px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .hero-banner img {
+                max-height: 180px;
+            }
+        }
+
         /* Button Styles */
         .btn {
             font-weight: 600;
@@ -656,15 +683,19 @@
         }
     </style> {% block extra_css %}{% endblock %} 
   <nav class="navbar navbar-expand-lg navbar-dark">
-   <div class="container"><a class="navbar-brand" href="{% url 'voting:index' %}"> <span class="navbar-brand-icon">🗳️</span> Votaciones </a> <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"> <span class="navbar-toggler-icon"></span> </button>
+   <div class="container"><a class="navbar-brand" href="{% url 'voting:index' %}"> <span class="navbar-brand-icon">🗳️</span> Sistema de Votaciones </a> <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"> <span class="navbar-toggler-icon"></span> </button>
     <div class="collapse navbar-collapse" id="navbarNav">
      <ul class="navbar-nav ms-auto">
-      <li class="nav-item"><a class="nav-link" href="{% url 'voting:index' %}">Votaciones</a></li> {% if request.session.maintainer_id %} 
+      {% if request.session.maintainer_id %} 
       <li class="nav-item"><!-- Continúa tu contenido aquí --></li> {% endif %}
      </ul>
     </div>
    </div>
-  </nav><!-- Loader -->
+  </nav>
+  
+  {% block hero %}{% endblock %}
+  
+  <!-- Loader -->
   <div class="loader">
    <div class="loader-spinner"></div>
   </div> {% block content %}{% endblock %} 

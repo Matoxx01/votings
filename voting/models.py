@@ -130,7 +130,6 @@ class UserData(models.Model):
     id_voting = models.ForeignKey(Voting, on_delete=models.CASCADE, related_name='user_data')
     rut = models.CharField(max_length=20)
     has_voted = models.BooleanField(default=False)
-    voted_at = models.DateTimeField(null=True, blank=True)
     register = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -144,10 +143,9 @@ class UserData(models.Model):
 
 
 class VotingRecord(models.Model):
-    """Modelo para registrar los votos realizados (ANÓNIMO)"""
+    """Modelo para registrar los votos realizados (ANÓNIMO - sin timestamps para evitar correlación)"""
     id_voting = models.ForeignKey(Voting, on_delete=models.CASCADE)
     id_subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    voted_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Voting Record"

@@ -10,7 +10,7 @@ class EmailService:
     """Servicio para enviar correos electrónicos"""
 
     @staticmethod
-    def send_confirmation_email(to_email, user_name, voting_title, subject_name):
+    def send_confirmation_email(to_email, user_name, voting_title):
         """
         Envía un correo de confirmación de voto
         
@@ -18,19 +18,12 @@ class EmailService:
             to_email: Correo del votante
             user_name: Nombre del votante
             voting_title: Título de la votación
-            subject_name: Nombre del subject votado
         """
         subject = f"Confirmación de Voto - {voting_title}"
-        
-        # Formatear fecha y hora actual
-        now = timezone.localtime(timezone.now())
-        timestamp = now.strftime("%d/%m/%Y a las %H:%M hrs")
         
         context = {
             'user_name': user_name,
             'voting_title': voting_title,
-            'subject_name': subject_name,
-            'timestamp': timestamp,
         }
         
         html_message = render_to_string('voting/emails/confirmation_email.html', context)

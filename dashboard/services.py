@@ -116,22 +116,3 @@ class ExcelService:
         except Exception as e:
             raise Exception(f"Error al procesar el archivo Excel: {str(e)}")
 
-    @staticmethod
-    def export_voting_results(voting):
-        """
-        Exporta los resultados de una votación a un archivo Excel
-        
-        Args:
-            voting: Instancia de Voting
-            
-        Returns:
-            pd.DataFrame: DataFrame con los resultados
-        """
-        from voting.models import VotingRecord
-        
-        records = VotingRecord.objects.filter(id_voting=voting).values(
-            'rut', 'mail', 'id_subject__name', 'voted_at'
-        )
-        
-        df = pd.DataFrame(list(records))
-        return df

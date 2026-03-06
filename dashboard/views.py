@@ -423,9 +423,7 @@ def edit_maintainer(request, maintainer_id):
 @require_http_methods(["POST"])
 def send_password_reset_email(request, maintainer_id):
     """Vista para enviar email de restablecimiento de contraseña"""
-    logger.info(f"Iniciando envío de email de restablecimiento para maintainer_id={maintainer_id}")
     maintainer = get_object_or_404(Maintainer, id=maintainer_id)
-    logger.info(f"Maintainer encontrado: {maintainer.name} {maintainer.lastname} ({maintainer.mail})")
     
     try:
         # Crear token de recuperación
@@ -433,20 +431,18 @@ def send_password_reset_email(request, maintainer_id):
         
         # Generar link de recuperación en dashboard (sin login requerido)
         reset_link = request.build_absolute_uri(f'/dashboard/reset-password/{reset_token.token}/')
-        logger.info(f"Reset link: {reset_link}")
         
-        logger.info(f"Enviando email a {maintainer.mail}")
         EmailService.send_password_reset_email(
             to_email=maintainer.mail,
             user_name=f"{maintainer.name} {maintainer.lastname}",
             reset_link=reset_link
         )
-        logger.info(f"Email enviado exitosamente a {maintainer.mail}")
+        logger.info(f"Email de restablecimiento enviado para maintainer_id={maintainer_id}")
         
         messages.success(request, f"Email de restablecimiento enviado a {maintainer.mail}")
     except Exception as e:
-        logger.error(f"Error al enviar email: {str(e)}", exc_info=True)
-        messages.error(request, f"Error al enviar email: {str(e)}")
+        logger.error("Error al enviar email de restablecimiento")
+        messages.error(request, "Error al enviar el email de restablecimiento.")
     
     return redirect('dashboard:edit_maintainer', maintainer_id=maintainer_id)
 

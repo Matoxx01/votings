@@ -1,6 +1,13 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Votaciones - Sistema de Votaciones{% endblock %}
+
+{% block hero %}
+<div class="hero-banner">
+    <img src="{% static 'banner.png' %}" alt="Banner">
+</div>
+{% endblock %}
 
 {% block content %}
 {% if militante_logged_in %}
@@ -17,12 +24,6 @@
     </div>
 </div>
 {% endif %}
-
-<div class="page-header">
-    <div class="container text-center">
-        <h1>Sistema de Votaciones</h1>
-    </div>
-</div>
 
 <div class="container py-5">
     {% if messages %}
