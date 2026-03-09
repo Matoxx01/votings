@@ -272,6 +272,16 @@ def militante_invite(request):
 def voting_statistics(request, voting_id):
     """Vista de estadísticas detalladas de una votación"""
     voting = get_object_or_404(Voting, id=voting_id)
+
+    # Solo permitir acceso si la votación ya finalizó (hora chilena)
+    import pytz
+    santiago_tz = pytz.timezone('America/Santiago')
+    now_chile = get_real_now()
+    finish_date_chile = voting.finish_date.astimezone(santiago_tz)
+    if finish_date_chile >= now_chile:
+        messages.error(request, 'Las estadísticas solo están disponibles una vez finalizada la votación.')
+        return redirect('dashboard:votings_management')
+
     subjects = voting.subjects.all()
     
     # Contar total de RUTs registrados y votos realizados
@@ -323,6 +333,16 @@ def voting_statistics(request, voting_id):
 def generate_report(request, voting_id):
     """Vista para generar reportes de votaciones (solo estadísticas)"""
     voting = get_object_or_404(Voting, id=voting_id)
+
+    # Solo permitir acceso si la votación ya finalizó (hora chilena)
+    import pytz
+    santiago_tz = pytz.timezone('America/Santiago')
+    now_chile = get_real_now()
+    finish_date_chile = voting.finish_date.astimezone(santiago_tz)
+    if finish_date_chile >= now_chile:
+        messages.error(request, 'El reporte solo está disponible una vez finalizada la votación.')
+        return redirect('dashboard:votings_management')
+
     subjects = voting.subjects.all()
     
     # Contar total de RUTs registrados y votos realizados

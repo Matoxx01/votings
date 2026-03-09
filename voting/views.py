@@ -246,6 +246,16 @@ def success(request):
 def voting_statistics(request, voting_id):
     """Vista de estadísticas básicas de una votación (pública)"""
     voting = get_object_or_404(Voting, id=voting_id)
+
+    # Solo permitir acceso si la votación ya finalizó (hora chilena)
+    import pytz
+    santiago_tz = pytz.timezone('America/Santiago')
+    now_chile = get_real_now()
+    finish_date_chile = voting.finish_date.astimezone(santiago_tz)
+    if finish_date_chile >= now_chile:
+        messages.error(request, 'Las estadísticas estarán disponibles una vez que finalice el período de votación.')
+        return redirect('voting:voting_detail', voting_id=voting_id)
+
     subjects = voting.subjects.all()
     
     stats = []

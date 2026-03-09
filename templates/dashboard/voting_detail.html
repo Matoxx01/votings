@@ -38,19 +38,27 @@
                         <thead class="table-primary">
                             <tr>
                                 <th>Nombre</th>
-                                <th>Votos</th>
+                                {% if not voting.is_open %}<th>Votos</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for subject in stats %}
                                 <tr>
                                     <td><strong>{{ subject.subject.name }}</strong></td>
-                                    <td><span class="badge bg-info">{{ subject.votes }} votos</span></td>
+                                    {% if not voting.is_open %}
+                                        <td><span class="badge bg-info">{{ subject.votes }} votos</span></td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                {% if voting.is_open %}
+                    <div class="alert alert-warning d-flex align-items-center gap-2 mt-2" role="alert">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="flex-shrink-0" viewBox="0 0 16 16"><path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10h14V4zM8 10.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/></svg>
+                        Los votos estarán visibles una vez que finalice el período de votación.
+                    </div>
+                {% endif %}
             {% else %}
                 <div class="alert alert-warning">
                     No hay subjects creados para esta votación.
@@ -61,12 +69,17 @@
                 <a href="{% url 'dashboard:subjects_management' voting.id %}" class="btn btn-warning">
                     Agregar Opciones
                 </a>
-                <a href="{% url 'dashboard:voting_statistics' voting.id %}" class="btn btn-info">
-                    Ver Estadísticas
-                </a>
-                <a href="{% url 'dashboard:report' voting.id %}" class="btn btn-primary">
-                    Generar Reporte
-                </a>
+                {% if not voting.is_open %}
+                    <a href="{% url 'dashboard:voting_statistics' voting.id %}" class="btn btn-info">
+                        Ver Estadísticas
+                    </a>
+                    <a href="{% url 'dashboard:report' voting.id %}" class="btn btn-primary">
+                        Generar Reporte
+                    </a>
+                {% else %}
+                    <button class="btn btn-info" disabled title="Disponible al finalizar la votación">Ver Estadísticas</button>
+                    <button class="btn btn-primary" disabled title="Disponible al finalizar la votación">Generar Reporte</button>
+                {% endif %}
                 {% if is_admin %}
                     <form method="POST" action="{% url 'dashboard:delete_voting' voting.id %}" style="display: inline;" onsubmit="return confirm('⚠️ ¿Estás seguro de que deseas eliminar esta votación y todos sus datos? Esta acción no se puede deshacer.');">
                         {% csrf_token %}
