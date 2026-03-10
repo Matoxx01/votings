@@ -6,18 +6,18 @@
 <div class="page-header">
     <div class="container">
         <h1>Gestionar Maintainers</h1>
-        <p class="lead">Maintainers del Sistema</p>
+        <p>Maintainers del Sistema</p>
     </div>
 </div>
 
-<div class="container py-5">
+<div class="container py-4">
     <div class="row">
         <div class="col-lg-10 mx-auto">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3 class="mb-0">Maintainers Activos</h3>
                 {% if is_admin %}
                     <a href="{% url 'dashboard:create_maintainer' %}" class="btn btn-success">
-                        ➕ Crear Maintainer
+                        Crear Maintainer
                     </a>
                 {% endif %}
             </div>
@@ -25,7 +25,7 @@
             {% if maintainers %}
                 <div class="table-responsive">
                     <table class="table table-hover">
-                        <thead class="table-primary">
+                        <thead>
                             <tr>
                                 <th>Nombre</th>
                                 <th>Email</th>

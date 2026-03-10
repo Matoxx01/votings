@@ -10,25 +10,24 @@
     </div>
 </div>
 
-<div class="container py-5">
+<div class="container py-4">
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <div class="card shadow-lg">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">📤 Importar Usuarios desde Excel</h5>
+            <div class="card">
+                <div class="card-header bg-info">
+                    <h5 class="mb-0">Importar Usuarios desde Excel</h5>
                 </div>
                 <div class="card-body">
                     {% if messages %}
                         {% for message in messages %}
-                            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">
                                 {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
                             </div>
                         {% endfor %}
                     {% endif %}
                     
                     <div class="alert alert-info mb-4">
-                        <strong>📋 Formato del archivo:</strong>
+                        <strong>Formato del archivo:</strong>
                         <p class="mb-2">El archivo Excel debe tener una columna llamada <code>rut</code> con los RUTs de los usuarios.</p>
                         <p class="mb-0"><strong>Ejemplo:</strong> 12345678-K, 23456789-5, etc.</p>
                     </div>
@@ -58,7 +57,7 @@
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">
-                                📤 Importar Usuarios
+                                Importar Usuarios
                             </button>
                         </div>
                     </form>
@@ -75,17 +74,6 @@
 </div>
 
 <script>
-    // Auto-cerrar alertas después de 5 segundos
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            var alerts = document.querySelectorAll('.alert-dismissible');
-            alerts.forEach(function(alert) {
-                var bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            });
-        }, 5000);
-    });
-
     (function () {
         'use strict';
         window.addEventListener('load', function () {

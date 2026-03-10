@@ -5,10 +5,10 @@
 {% block content %}
 <style>
     .privacy-note {
-        background: #f0fdf4;
-        border-left: 4px solid #10b981;
+        background: #f8f9fa;
+        border-left: 4px solid var(--gov-blue, #2563A0);
         padding: 1rem;
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 0.95rem;
         line-height: 1.6;
         color: #1f2937;
@@ -44,10 +44,10 @@
     </div>
 </div>
 
-<div class="container py-5">
+<div class="container py-4">
     <div class="row">
         <div class="col-lg-6 mx-auto">
-            <div class="card shadow-lg mb-4">
+            <div class="card mb-4">
                 <div class="card-body p-4 p-sm-5">
                     <h3 class="card-title mb-4 text-center">Confirmar Voto</h3>
                     
@@ -63,9 +63,9 @@
                     <form method="post" class="needs-validation" novalidate>
                         {% csrf_token %}
                         
-                        <div class="d-grid gap-2 mt-5">
+                        <div class="d-grid gap-2 mt-4">
                             <button type="submit" class="btn btn-success btn-lg">
-                                ✓ Confirmar Voto
+                                Confirmar Voto
                             </button>
                             <a href="{% url 'voting:voting_detail' voting.id %}" class="btn btn-secondary">
                                 Cancelar
@@ -77,7 +77,7 @@
 
             <!-- Información de Privacidad -->
             <div class="privacy-note">
-                <p>🔒 <strong>Tu voto es completamente anónimo</strong> <br /> Se registra qué votaste, pero nunca quién votó. Solo se guardan 2 datos: la votación y la opción elegida. Tu RUT, email, nombre y hora del voto <strong>NUNCA</strong> se vinculan con tu voto. El código que procesa tu voto es:</p>
+                <p><strong>Tu voto es completamente anónimo</strong> <br /> Se registra qué votaste, pero nunca quién votó. Solo se guardan 2 datos: la votación y la opción elegida. Tu RUT, email, nombre y hora del voto <strong>NUNCA</strong> se vinculan con tu voto. El código que procesa tu voto es:</p>
                 <div class="code-inline">VotingRecord.objects.create(
     id_voting = votación,
     id_subject = opción

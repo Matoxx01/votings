@@ -6,26 +6,18 @@
 <div class="page-header">
     <div class="container">
         <h1>Acceso Administrador</h1>
-        <p class="lead">Sistema de Gestión de Votaciones</p>
+        <p>Sistema de Gestión de Votaciones</p>
     </div>
 </div>
 
 <div class="container py-5">
     <div class="row">
         <div class="col-md-5 mx-auto">
-            <div class="card shadow-lg">
-                <div class="card-body p-5">
-                    <h3 class="card-title text-center mb-4">🔐 Iniciar Sesión</h3>
-
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-
+            <div class="card">
+                <div class="card-header bg-primary">
+                    <h5 class="mb-0">Iniciar Sesión</h5>
+                </div>
+                <div class="card-body p-4">
                     <form method="post" class="needs-validation" novalidate>
                         {% csrf_token %}
 
@@ -33,9 +25,7 @@
                             <label for="{{ form.mail.id_for_label }}" class="form-label">{{ form.mail.label }}</label>
                             {{ form.mail }}
                             {% if form.mail.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.mail.errors }}
-                                </div>
+                                <div class="invalid-feedback d-block">{{ form.mail.errors }}</div>
                             {% endif %}
                         </div>
 
@@ -43,52 +33,33 @@
                             <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label }}</label>
                             {{ form.password }}
                             {% if form.password.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ form.password.errors }}
-                                </div>
+                                <div class="invalid-feedback d-block">{{ form.password.errors }}</div>
                             {% endif %}
                         </div>
 
-                        <div class="d-grid gap-2 mt-5">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                Iniciar Sesión
-                            </button>
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">Iniciar Sesión</button>
                         </div>
                     </form>
 
                     <div class="text-center mt-3">
-                        <a href="{% url 'dashboard:request_password_reset' %}" class="text-muted small">
-                            ¿Olvidaste tu contraseña?
-                        </a>
+                        <a href="{% url 'dashboard:request_password_reset' %}" class="text-muted small">¿Olvidaste tu contraseña?</a>
                     </div>
 
                     <div class="alert alert-info mt-4" role="alert">
-                        <strong>💡 Nota:</strong> Solo administradores autorizados pueden acceder.
+                        <strong>Nota:</strong> Solo administradores autorizados pueden acceder.
                     </div>
                 </div>
             </div>
 
             <div class="text-center mt-4">
-                <a href="{% url 'voting:index' %}" class="text-muted">
-                    ← Volver a Votaciones
-                </a>
+                <a href="{% url 'voting:index' %}" class="text-muted">&larr; Volver a Votaciones</a>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Auto-cerrar alertas después de 5 segundos
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            var alerts = document.querySelectorAll('.alert-dismissible');
-            alerts.forEach(function(alert) {
-                var bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            });
-        }, 5000);
-    });
-
     (function () {
         'use strict';
         window.addEventListener('load', function () {

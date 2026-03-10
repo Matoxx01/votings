@@ -10,25 +10,24 @@
     </div>
 </div>
 
-<div class="container py-5">
+<div class="container py-4">
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <div class="card shadow-lg">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">📧 Importar y Enviar Invitaciones</h5>
+            <div class="card">
+                <div class="card-header bg-success">
+                    <h5 class="mb-0">Importar y Enviar Invitaciones</h5>
                 </div>
                 <div class="card-body">
                     {% if messages %}
                         {% for message in messages %}
-                            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">
                                 {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
                             </div>
                         {% endfor %}
                     {% endif %}
                     
                     <div class="alert alert-info mb-4">
-                        <strong>📋 Formato del archivo Excel:</strong>
+                        <strong>Formato del archivo Excel:</strong>
                         <ul class="mb-0 mt-2">
                             <li><strong>Columna A:</strong> RUT (se formatea automáticamente a 12345678-K)</li>
                             <li><strong>Columna B:</strong> Nombre completo</li>
@@ -59,7 +58,7 @@
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">
-                                📧 Enviar Invitaciones
+                                Enviar Invitaciones
                             </button>
                         </div>
                     </form>
@@ -76,17 +75,6 @@
 </div>
 
 <script>
-    // Auto-cerrar alertas después de 5 segundos
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            var alerts = document.querySelectorAll('.alert-dismissible');
-            alerts.forEach(function(alert) {
-                var bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            });
-        }, 5000);
-    });
-
     (function () {
         'use strict';
         window.addEventListener('load', function () {

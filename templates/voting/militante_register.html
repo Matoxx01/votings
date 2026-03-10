@@ -9,24 +9,15 @@
     </div>
 </div>
 
-<div class="container py-5">
+<div class="container py-4">
     <div class="row">
         <div class="col-lg-6 mx-auto">
-            <div class="card shadow-lg">
+            <div class="card">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
                         <h4>¡Hola {{ token_obj.nombre }}!</h4>
                         <p class="text-muted">Completa tu registro para poder participar en las votaciones.</p>
                     </div>
-                    
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
                     
                     <div class="alert alert-info">
                         <strong>Datos de tu invitación:</strong><br>
@@ -55,7 +46,7 @@
                             <div class="input-group">
                                 {{ form.password }}
                                 <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('id_password')">
-                                    👁️
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/></svg>
                                 </button>
                             </div>
                             {% if form.password.help_text %}
@@ -73,7 +64,7 @@
                             <div class="input-group">
                                 {{ form.password_confirm }}
                                 <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('id_password_confirm')">
-                                    👁️
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/></svg>
                                 </button>
                             </div>
                             {% if form.password_confirm.errors %}
@@ -91,7 +82,7 @@
 
                         <div class="d-grid gap-2 mt-4">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                ✓ Completar Registro
+                                Completar Registro
                             </button>
                         </div>
                     </form>
@@ -102,17 +93,6 @@
 </div>
 
 <script>
-    // Auto-cerrar alertas después de 5 segundos
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            var alerts = document.querySelectorAll('.alert-dismissible');
-            alerts.forEach(function(alert) {
-                var bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            });
-        }, 5000);
-    });
-
     function togglePassword(inputId) {
         var input = document.getElementById(inputId);
         if (input.type === "password") {

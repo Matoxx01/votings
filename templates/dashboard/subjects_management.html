@@ -10,12 +10,12 @@
     </div>
 </div>
 
-<div class="container py-5">
+<div class="container py-4">
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <!-- Crear Nueva Opción -->
-            <div class="card shadow-lg mb-5">
-                <div class="card-header bg-success text-white">
+            <div class="card mb-4">
+                <div class="card-header bg-success">
                     <h5 class="mb-0">Crear Nueva Opción</h5>
                 </div>
                 <div class="card-body">
@@ -38,7 +38,7 @@
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">
-                                ✓ Crear Opción
+                                Crear Opción
                             </button>
                         </div>
                     </form>
@@ -46,7 +46,7 @@
             </div>
 
             <!-- Lista de Opciones -->
-            <h3 class="mb-4">Opciones Existentes</h3>
+            <h4 class="section-title">Opciones Existentes</h4>
             {% if subjects %}
                 <div class="row">
                     {% for subject in subjects %}
