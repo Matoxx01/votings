@@ -273,15 +273,38 @@
         }
         
         .card-header {
-            background: #f0f0f0 !important;
-            color: #000 !important;
+            color: #fff !important;
             border: 1px solid #000 !important;
             padding: 10px;
         }
         
-        .bg-primary, .bg-success, .bg-info, .bg-dark {
-            background: #f0f0f0 !important;
-            color: #000 !important;
+        .bg-primary {
+            background: #1B2A4A !important;
+            color: #fff !important;
+            border: 1px solid #000 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        .bg-success {
+            background: #166534 !important;
+            color: #fff !important;
+            border: 1px solid #000 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        .bg-info {
+            background: #0e7490 !important;
+            color: #fff !important;
+            border: 1px solid #000 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        .bg-dark {
+            background: #1e293b !important;
+            color: #fff !important;
             border: 1px solid #000 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -318,9 +341,9 @@
         }
         
         .table thead th {
-            background: #e9ecef !important;
-            color: #000 !important;
-            border: 1px solid #999 !important;
+            background: #1e293b !important;
+            color: #fff !important;
+            border: 1px solid #000 !important;
             padding: 8px !important;
             font-weight: 700;
             -webkit-print-color-adjust: exact;
@@ -350,7 +373,7 @@
         }
         
         .progress-bar {
-            background: #666 !important;
+            background: #1B2A4A !important;
             color: #fff !important;
             font-size: 10px;
             -webkit-print-color-adjust: exact;
@@ -359,9 +382,9 @@
         
         /* Badges */
         .badge {
-            border: 1px solid #999 !important;
-            color: #000 !important;
-            background: #e9ecef !important;
+            border: 1px solid #000 !important;
+            color: #fff !important;
+            background: #0e7490 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -383,8 +406,16 @@
         }
         
         .card-text {
-            color: #000 !important;
             opacity: 1 !important;
+        }
+        
+        .bg-primary .card-text,
+        .bg-success .card-text,
+        .bg-info .card-text,
+        .bg-primary p,
+        .bg-success p,
+        .bg-info p {
+            color: #fff !important;
         }
         
         /* Espaciado responsable */
@@ -415,7 +446,15 @@
         }
         
         .text-white {
-            color: #000 !important;
+            color: #fff !important;
+        }
+        
+        .card .card-body .text-white {
+            color: #fff !important;
+        }
+        
+        .card .card-body h3 {
+            color: #fff !important;
         }
     }
 </style>

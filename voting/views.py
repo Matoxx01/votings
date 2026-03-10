@@ -355,6 +355,25 @@ def militante_register(request, token):
             token_obj.used = True
             token_obj.save()
             
+            # Notificar votaciones próximas donde el militante está habilitado
+            now = get_real_now()
+            upcoming_votings = Voting.objects.filter(
+                user_data__rut=militante.rut,
+                finish_date__gt=now,
+            ).distinct()
+            for voting in upcoming_votings:
+                try:
+                    EmailService.send_upcoming_voting_email(
+                        to_email=militante.mail,
+                        nombre=militante.nombre,
+                        voting_title=voting.title,
+                        voting_description=voting.description,
+                        start_date=voting.start_date.strftime('%d/%m/%Y %H:%M'),
+                        finish_date=voting.finish_date.strftime('%d/%m/%Y %H:%M'),
+                    )
+                except Exception:
+                    pass
+            
             messages.success(request, "¡Registro completado exitosamente! Ahora puedes iniciar sesión para votar.")
             return redirect('voting:index')
     else:

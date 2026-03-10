@@ -155,6 +155,73 @@ class EmailService:
         )
 
     @staticmethod
+    def send_upcoming_voting_email(to_email, nombre, voting_title, voting_description, start_date, finish_date):
+        """
+        Envía un correo notificando una votación próxima
+        """
+        subject = f"Votación Próxima - {voting_title}"
+        
+        context = {
+            'nombre': nombre,
+            'voting_title': voting_title,
+            'voting_description': voting_description,
+            'start_date': start_date,
+            'finish_date': finish_date,
+        }
+        
+        html_message = render_to_string('voting/emails/upcoming_voting_email.html', context)
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject,
+            plain_message,
+            settings.EMAIL_HOST_USER,
+            [to_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+    @staticmethod
+    def send_bulk_upcoming_voting_emails(militantes, voting, delay=1):
+        """
+        Envía correos masivos notificando una votación próxima
+        
+        Args:
+            militantes: QuerySet de Militante
+            voting: Instancia de Voting
+            delay: Segundos entre cada envío
+            
+        Returns:
+            dict: {sent: int, failed: int, errors: list}
+        """
+        results = {'sent': 0, 'failed': 0, 'errors': []}
+        
+        start_date = voting.start_date.strftime('%d/%m/%Y %H:%M')
+        finish_date = voting.finish_date.strftime('%d/%m/%Y %H:%M')
+        
+        for i, militante in enumerate(militantes):
+            try:
+                EmailService.send_upcoming_voting_email(
+                    to_email=militante.mail,
+                    nombre=militante.nombre,
+                    voting_title=voting.title,
+                    voting_description=voting.description,
+                    start_date=start_date,
+                    finish_date=finish_date,
+                )
+                
+                results['sent'] += 1
+                
+                if i < len(militantes) - 1:
+                    time.sleep(delay)
+                    
+            except Exception as e:
+                results['failed'] += 1
+                results['errors'].append(f"{militante.mail}: {str(e)}")
+        
+        return results
+
+    @staticmethod
     def send_bulk_registration_emails(users_data, base_url, delay=1):
         """
         Envía correos de registro masivamente con delay

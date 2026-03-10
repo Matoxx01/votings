@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votación Próxima</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .header {
+            background: #1B2A4A;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 4px 4px 0 0;
+        }
+        .content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 4px 4px;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+        .info-badge {
+            display: inline-block;
+            background-color: #1B2A4A;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .info-box {
+            background-color: #f0f4ff;
+            padding: 15px;
+            border-left: 4px solid #1B2A4A;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            margin: 15px 0;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        td:first-child {
+            font-weight: bold;
+            width: 150px;
+            color: #1B2A4A;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Votación Próxima</h1>
+        </div>
+
+        <div class="content">
+            <p>Hola <strong>{{ nombre }}</strong>,</p>
+
+            <p>Te informamos que has sido habilitado/a para participar en una próxima votación.</p>
+
+            <div class="info-badge">📋 Nueva Votación Programada</div>
+
+            <table>
+                <tr>
+                    <td>Votación:</td>
+                    <td>{{ voting_title }}</td>
+                </tr>
+                <tr>
+                    <td>Descripción:</td>
+                    <td>{{ voting_description }}</td>
+                </tr>
+                <tr>
+                    <td>Inicio:</td>
+                    <td>{{ start_date }}</td>
+                </tr>
+                <tr>
+                    <td>Término:</td>
+                    <td>{{ finish_date }}</td>
+                </tr>
+            </table>
+
+            <div class="info-box">
+                <strong>¿Cómo votar?</strong>
+                <p>Una vez iniciado el período de votación, ingresa al sistema con tus credenciales para emitir tu voto. Recuerda que solo podrás votar durante el período indicado.</p>
+            </div>
+
+            <p>
+                Saludos cordiales,<br>
+                <strong>Equipo de Partido Republicano</strong>
+            </p>
+
+            <div class="footer">
+                <p>&copy; 2026 Partido Republicano - Sistema de Votaciones</p>
+                <p>Este es un correo informativo automático. Por favor, no responder.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
