@@ -28,4 +28,6 @@ urlpatterns = [
 
 # Servir archivos estáticos y media en desarrollo
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+
+handler404 = 'votings_project.views.custom_404'
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

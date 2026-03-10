@@ -318,17 +318,19 @@
         }
         
         .table thead th {
-            background: #333 !important;
-            color: white !important;
-            border: 1px solid #000 !important;
+            background: #e9ecef !important;
+            color: #000 !important;
+            border: 1px solid #999 !important;
             padding: 8px !important;
+            font-weight: 700;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
         
         .table tbody td {
-            border: 1px solid #999 !important;
+            border: 1px solid #ccc !important;
             padding: 6px !important;
+            color: #000 !important;
         }
         
         .table tbody tr {
@@ -342,16 +344,31 @@
         /* Barras de progreso */
         .progress {
             height: 20px;
-            border: 1px solid #000;
+            border: 1px solid #999;
             page-break-inside: avoid;
+            background: #fff !important;
         }
         
         .progress-bar {
-            background: #333 !important;
-            color: white;
+            background: #666 !important;
+            color: #fff !important;
             font-size: 10px;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+        }
+        
+        /* Badges */
+        .badge {
+            border: 1px solid #999 !important;
+            color: #000 !important;
+            background: #e9ecef !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        /* Opacidad */
+        [style*="opacity"] {
+            opacity: 1 !important;
         }
         
         /* Texto */
@@ -362,6 +379,12 @@
         
         p {
             margin: 5px 0;
+            color: #000 !important;
+        }
+        
+        .card-text {
+            color: #000 !important;
+            opacity: 1 !important;
         }
         
         /* Espaciado responsable */
@@ -385,6 +408,10 @@
         /* Asegurar que los íconos sean visibles */
         .d-flex {
             display: flex;
+        }
+        
+        svg {
+            opacity: 1 !important;
         }
         
         .text-white {

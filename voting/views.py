@@ -131,7 +131,7 @@ def voting_detail(request, voting_id):
         # Redirigir a login de militante
         return redirect('voting:militante_login', voting_id=voting_id)
     
-    subjects = voting.subjects.all()
+    subjects = voting.subjects.exclude(name='Voto en Blanco')
     
     context = {
         'voting': voting,
@@ -173,6 +173,31 @@ def vote(request, subject_id):
         'voter_name': voter_data.get('name', ''),
     }
     return render(request, 'voting/vote.html', context)
+
+
+@require_http_methods(["POST"])
+def vote_blank(request, voting_id):
+    """Procesa un voto en blanco"""
+    voting = get_object_or_404(Voting, id=voting_id)
+
+    if not voting.is_open():
+        messages.error(request, "Esta votación no está disponible en este momento.")
+        return redirect('voting:voting_detail', voting_id=voting.id)
+
+    session_key = f'militante_{voting_id}'
+    if session_key not in request.session:
+        messages.error(request, "Debes iniciar sesión para votar.")
+        return redirect('voting:militante_login', voting_id=voting_id)
+
+    voter_data = request.session.get(session_key, {})
+
+    # Obtener o crear el subject "Voto en Blanco" para esta votación
+    blank_subject, _ = Subject.objects.get_or_create(
+        name='Voto en Blanco',
+        id_voting=voting,
+    )
+
+    return process_vote(request, voting, blank_subject, voter_data)
 
 
 @transaction.atomic

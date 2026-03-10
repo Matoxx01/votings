@@ -14,6 +14,7 @@ urlpatterns = [
     path('votacion/<int:voting_id>/olvide-contrasena/', views.militante_password_reset_request, name='militante_password_reset_request'),
     path('militante-logout/', views.militante_logout, name='militante_logout'),
     path('votar/<int:subject_id>/', views.vote, name='vote'),
+    path('votacion/<int:voting_id>/voto-blanco/', views.vote_blank, name='vote_blank'),
     path('exito/', views.success, name='success'),
     path('estadisticas/<int:voting_id>/', views.voting_statistics, name='statistics'),
     # Rutas de militantes

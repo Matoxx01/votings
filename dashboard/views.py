@@ -165,6 +165,10 @@ def subjects_management(request, voting_id):
     subjects = voting.subjects.all()
     
     if request.method == 'POST':
+        if voting.is_open():
+            messages.error(request, "No se pueden agregar candidatos mientras la votación está en período activo.")
+            return redirect('dashboard:subjects_management', voting_id=voting_id)
+        
         form = SubjectForm(request.POST)
         if form.is_valid():
             subject = form.save(commit=False)
@@ -491,6 +495,11 @@ def delete_maintainer(request, maintainer_id):
 def delete_voting(request, voting_id):
     """Vista para eliminar una votación completa (solo admins)"""
     voting = get_object_or_404(Voting, id=voting_id)
+    
+    if voting.is_open():
+        messages.error(request, "No se puede eliminar una votación mientras está en período activo.")
+        return redirect('dashboard:voting_detail', voting_id=voting_id)
+    
     voting_title = voting.title
     
     try:

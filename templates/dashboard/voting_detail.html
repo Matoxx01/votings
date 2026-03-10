@@ -66,9 +66,13 @@
             {% endif %}
 
             <div class="mt-4 d-flex gap-2">
-                <a href="{% url 'dashboard:subjects_management' voting.id %}" class="btn btn-warning">
-                    Agregar Candidatos
-                </a>
+                {% if voting.is_open %}
+                    <button class="btn btn-warning" disabled title="No disponible durante la votación activa">Agregar Candidatos</button>
+                {% else %}
+                    <a href="{% url 'dashboard:subjects_management' voting.id %}" class="btn btn-warning">
+                        Agregar Candidatos
+                    </a>
+                {% endif %}
                 {% if not voting.is_open %}
                     <a href="{% url 'dashboard:voting_statistics' voting.id %}" class="btn btn-info">
                         Ver Estadísticas
@@ -81,12 +85,16 @@
                     <button class="btn btn-primary" disabled title="Disponible al finalizar la votación">Generar Reporte</button>
                 {% endif %}
                 {% if is_admin %}
-                    <form method="POST" action="{% url 'dashboard:delete_voting' voting.id %}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta votación y todos sus datos? Esta acción no se puede deshacer.');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger">
-                            Eliminar Votación
-                        </button>
-                    </form>
+                    {% if voting.is_open %}
+                        <button class="btn btn-danger" disabled title="No se puede eliminar durante la votación activa">Eliminar Votación</button>
+                    {% else %}
+                        <form method="POST" action="{% url 'dashboard:delete_voting' voting.id %}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta votación y todos sus datos? Esta acción no se puede deshacer.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">
+                                Eliminar Votación
+                            </button>
+                        </form>
+                    {% endif %}
                 {% endif %}
                 <a href="{% url 'dashboard:votings_management' %}" class="btn btn-secondary">
                     Volver
