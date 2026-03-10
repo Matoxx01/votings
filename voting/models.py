@@ -1,7 +1,10 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 import secrets
 import datetime
+import hmac
+import hashlib
 from .time_utils import get_real_now
 
 
@@ -106,9 +109,8 @@ class Subject(models.Model):
         return f"{self.name} - {self.id_voting.title}"
 
     def get_vote_count(self):
-        """Obtiene el total de votos para este subject"""
-        count = Count.objects.filter(id_subject=self).first()
-        return count.number if count else 0
+        """Obtiene el total de votos para este subject (fuente de verdad: VotingRecords)"""
+        return VotingRecord.objects.filter(id_subject=self).count()
 
 
 class Count(models.Model):
@@ -123,6 +125,14 @@ class Count(models.Model):
 
     def __str__(self):
         return f"{self.id_subject.name}: {self.number} votos"
+
+    def get_verified_count(self):
+        """Obtiene el conteo real basado en VotingRecords (fuente de verdad)"""
+        return VotingRecord.objects.filter(id_subject=self.id_subject).count()
+
+    def is_consistent(self):
+        """Verifica que el contador coincide con los registros reales"""
+        return self.number == self.get_verified_count()
 
 
 class UserData(models.Model):
@@ -143,9 +153,20 @@ class UserData(models.Model):
 
 
 class VotingRecord(models.Model):
-    """Modelo para registrar los votos realizados (ANÓNIMO - sin timestamps para evitar correlación)"""
+    """
+    Registro inmutable de un voto (ANÓNIMO).
+    
+    Protecciones:
+    - integrity_hash: HMAC del contenido del registro, impide modificar campos
+    - chain_hash: incluye el hash del registro anterior de la misma votación (cadena)
+      → cualquier INSERT/DELETE en medio de la cadena la rompe y es detectable
+    - save() rechaza actualizaciones posteriores a la creación
+    """
     id_voting = models.ForeignKey(Voting, on_delete=models.CASCADE)
     id_subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    integrity_hash = models.CharField(max_length=64, blank=True)
+    chain_hash = models.CharField(max_length=64, blank=True,
+                                   help_text='Hash encadenado con el voto anterior de esta votación')
 
     class Meta:
         verbose_name = "Voting Record"
@@ -153,6 +174,79 @@ class VotingRecord(models.Model):
 
     def __str__(self):
         return f"Voto por {self.id_subject.name} en {self.id_voting.title}"
+
+    @staticmethod
+    def _get_prev_chain_hash(voting_id, exclude_pk=None):
+        """Obtiene el chain_hash del último registro de la votación (eslabón anterior)."""
+        qs = VotingRecord.objects.filter(id_voting_id=voting_id)
+        if exclude_pk:
+            qs = qs.exclude(pk=exclude_pk)
+        prev = qs.order_by('pk').last()
+        return prev.chain_hash if prev else '0' * 64
+
+    def generate_hash(self, prev_chain_hash=None):
+        """
+        Genera el HMAC del registro.
+        Incluye el hash encadenado del registro anterior, de modo que:
+        - Modificar cualquier campo invalida este hash
+        - Insertar/borrar un registro en la cadena invalida todos los hashes posteriores
+        """
+        if prev_chain_hash is None:
+            prev_chain_hash = VotingRecord._get_prev_chain_hash(self.id_voting_id, exclude_pk=self.pk)
+        message = f"{self.id_voting_id}:{self.id_subject_id}:{self.pk}:{prev_chain_hash}"
+        return hmac.new(
+            settings.SECRET_KEY.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+    def verify_integrity(self):
+        """Verifica que el registro no ha sido alterado."""
+        return hmac.compare_digest(self.integrity_hash, self.generate_hash())
+
+    @staticmethod
+    def verify_chain(voting_id):
+        """
+        Verifica la integridad de toda la cadena de votos de una votación.
+        Retorna (ok: bool, broken_at: int|None) donde broken_at es el pk del primer fallo.
+        """
+        records = list(VotingRecord.objects.filter(id_voting_id=voting_id).order_by('pk'))
+        prev_hash = '0' * 64
+        for record in records:
+            expected = hmac.new(
+                settings.SECRET_KEY.encode(),
+                f"{record.id_voting_id}:{record.id_subject_id}:{record.pk}:{prev_hash}".encode(),
+                hashlib.sha256
+            ).hexdigest()
+            if not hmac.compare_digest(record.integrity_hash, expected):
+                return False, record.pk
+            prev_hash = record.integrity_hash
+        return True, None
+
+    def save(self, *args, **kwargs):
+        # Bloquear cualquier actualización posterior a la creación inicial
+        if self.pk and not kwargs.get('update_fields') == ['integrity_hash']:
+            existing = VotingRecord.objects.filter(pk=self.pk).exists()
+            if existing:
+                raise PermissionError(
+                    "Los registros de votos son inmutables y no pueden ser modificados."
+                )
+        is_new = not self.pk
+        super().save(*args, **kwargs)
+        if is_new and not self.integrity_hash:
+            prev_chain_hash = VotingRecord._get_prev_chain_hash(self.id_voting_id, exclude_pk=self.pk)
+            self.integrity_hash = self.generate_hash(prev_chain_hash=prev_chain_hash)
+            self.chain_hash = self.integrity_hash
+            # Usamos update() para no disparar el save() recursivo con restricción
+            VotingRecord.objects.filter(pk=self.pk).update(
+                integrity_hash=self.integrity_hash,
+                chain_hash=self.chain_hash,
+            )
+
+    def delete(self, *args, **kwargs):
+        raise PermissionError(
+            "Los registros de votos son inmutables y no pueden ser eliminados."
+        )
 
 class PasswordResetToken(models.Model):
     """Modelo para tokens de recuperación de contraseña de maintainers"""

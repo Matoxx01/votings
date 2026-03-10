@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from django.http import FileResponse, HttpResponse
 from django.conf import settings
@@ -230,10 +231,9 @@ def process_vote(request, voting, subject, voter_data):
             id_subject=subject,
         )
         
-        # Incrementar contador
+        # Incrementar contador atómicamente
         count, created = Count.objects.get_or_create(id_subject=subject)
-        count.number += 1
-        count.save()
+        Count.objects.filter(id_subject=subject).update(number=F('number') + 1)
         
         # Marcar como votado
         user_data.has_voted = True
@@ -287,8 +287,7 @@ def voting_statistics(request, voting_id):
     total_votes = 0
     
     for subject in subjects:
-        count = subject.vote_count if hasattr(subject, 'vote_count') else None
-        votes = count.number if count else 0
+        votes = VotingRecord.objects.filter(id_subject=subject).count()
         total_votes += votes
         stats.append({
             'subject': subject,

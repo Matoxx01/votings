@@ -139,8 +139,7 @@ def voting_detail(request, voting_id):
     total_votes = 0
     
     for subject in subjects:
-        count = Count.objects.filter(id_subject=subject).first()
-        votes = count.number if count else 0
+        votes = VotingRecord.objects.filter(id_subject=subject).count()
         total_votes += votes
         stats.append({
             'subject': subject,
@@ -309,8 +308,7 @@ def voting_statistics(request, voting_id):
     
     stats = []
     for subject in subjects:
-        count = Count.objects.filter(id_subject=subject).first()
-        votes = count.number if count else 0
+        votes = VotingRecord.objects.filter(id_subject=subject).count()
         percentage = (votes / total_votes) if total_votes > 0 else 0
         final_percentage = round(percentage * 100, 2)
         
@@ -370,8 +368,7 @@ def generate_report(request, voting_id):
     
     stats = []
     for subject in subjects:
-        count = Count.objects.filter(id_subject=subject).first()
-        votes = count.number if count else 0
+        votes = VotingRecord.objects.filter(id_subject=subject).count()
         percentage = (votes / total_registered) if total_registered > 0 else 0
         
         stats.append({
