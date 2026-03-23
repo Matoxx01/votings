@@ -104,8 +104,7 @@ python manage.py runserver
 
 Accede a:
 - **Votaciones**: http://localhost:8000/
-- **Dashboard**: http://localhost:8000/dashboard/login/
-- **Admin Django**: http://localhost:8000/admin/
+- **Dashboard**: http://localhost:8000/dashboard/
 
 ## Estructura del Proyecto
 
@@ -274,20 +273,10 @@ Para más detalles sobre la integridad y anonimato de los votos, consulta nuestr
 - **openpyxl**: Lectura/escritura Excel
 - **Pillow**: Procesamiento de imágenes
 
-## Próximos Pasos
-
-- [ ] Implementar hash de contraseñas
-- [ ] Agregar autenticación por token
-- [ ] Crear API REST
-- [ ] Agregar 2FA
-- [ ] Implementar auditoría completa
-- [ ] Añadir tests
-- [ ] Dockerizar la aplicación
-
 ## Soporte
 
 Para dudas o problemas, contacta al equipo de desarrollo.
 
 ---
 
-Última actualización: Enero 2026
+Última actualización: Marzo 2026
