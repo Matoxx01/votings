@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from voting.models import (
     Role, User, Maintainer, Voting, Subject, Count, UserData, VotingRecord
 )
@@ -104,7 +104,6 @@ class VotingRecordAdmin(ReadOnlyMixin, admin.ModelAdmin):
     @admin.action(description='Verificar cadena de integridad de la votación')
     def verify_chain_action(self, request, queryset):
         voting_ids = queryset.values_list('id_voting_id', flat=True).distinct()
-        from django.contrib import messages as msg
         from voting.models import VotingRecord as VR
         for vid in voting_ids:
             ok, broken_at = VR.verify_chain(vid)

@@ -264,6 +264,8 @@ rut
 - ✅ CSRF Protection (Django)
 - ✅ SQL Injection Prevention (ORM)
 
+Para más detalles sobre la integridad y anonimato de los votos, consulta nuestra **[Auditoría de Seguridad](SECURITY.md)**.
+
 ## Dependencias Principales
 
 - **Django**: Framework web
