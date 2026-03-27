@@ -64,6 +64,7 @@ def run_trigger(sql, reverse_sql):
 
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
         ("voting", "0008_add_integrity_hash_to_votingrecord"),

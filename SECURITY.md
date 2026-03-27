@@ -212,16 +212,34 @@ Para ejecutar los tests:
 python manage.py test voting.tests -v 2
 ```
 
+Para validar **enforcement real de triggers SQL** (MySQL/MariaDB, fuera del frontend):
+
+```bash
+python manage.py test voting.tests.MySQLDirectSQLEnforcementTest -v 2
+```
+
 ---
 
-## 7. Limitación conocida: protección a nivel de base de datos
+## 7. Protección activa a nivel de base de datos y frontend
 
-> [!NOTE]
-> Los mecanismos descritos operan a nivel del **ORM de Django**. Si alguien tuviera acceso directo a la base de datos (MySQL/SQLite) con un cliente SQL, podría ejecutar `UPDATE` o `DELETE` directamente, sin pasar por el ORM.
->
-> **Mitigación existente:** El sistema de HMAC encadenado (`chain_hash`) detecta cualquier modificación posterior. Ejecutar `VotingRecord.verify_chain(voting_id)` (o verlo en el panel de admin) revelará inmediatamente si la cadena fue alterada.
->
-> Para una protección adicional a nivel de base de datos, se pueden añadir **triggers SQL** que bloqueen directamente las operaciones `UPDATE` y `DELETE` en la tabla `voting_votingrecord`.
+Actualmente existen controles adicionales:
+
+- **Trigger DB para `VotingRecord` (DELETE condicionado):**
+  - `DELETE` está bloqueado por defecto.
+  - Solo se permite cuando la app habilita explícitamente `@allow_votingrecord_delete = 1` en la sesión SQL durante una operación autorizada.
+
+- **Trigger DB para `VotingRecord` (UPDATE condicionado):**
+  - `UPDATE` está bloqueado por defecto.
+  - Solo se permite para el sellado técnico inicial de `integrity_hash`/`chain_hash`, cuando la app habilita temporalmente `@allow_votingrecord_update = 1`.
+
+- **Token de eliminación por sesión (12 horas):**
+  - La eliminación de una votación desde dashboard exige un token de seguridad por sesión.
+  - El token expira a las 12 horas.
+  - Si el token está expirado, la sesión se cierra y se fuerza nuevo login.
+
+- **Trigger DB para `Count` (solo `+1`):**
+  - Solo se acepta `UPDATE` cuando `NEW.number = OLD.number + 1`.
+  - Cualquier otro cambio en `number` se rechaza.
 
 ---
 
@@ -233,5 +251,7 @@ python manage.py test voting.tests -v 2
 | Código Python modifica/borra un voto | Sí | `PermissionError` en `save()` y `delete()` |
 | Voto modificado directamente en BD | Detectable | HMAC + `verify_chain()` |
 | Voto insertado falsamente en la cadena | Detectable | `chain_hash` invalida registros posteriores |
+| Eliminación de votos sin autorización | Bloqueada | Trigger DB + variable SQL temporal autorizada |
+| Modificación arbitraria de `Count.number` | Bloqueada | Trigger DB (`number` solo puede subir `+1`) |
 | Admin infla `Count.number` | Detectable | `is_consistent()` + `get_verified_count()` |
 | Rastrear quién votó por qué opción | Imposible | Sin campos de identidad en `VotingRecord` |

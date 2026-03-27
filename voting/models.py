@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, connection
 from django.utils import timezone
 from django.conf import settings
 import secrets
@@ -237,11 +237,24 @@ class VotingRecord(models.Model):
             prev_chain_hash = VotingRecord._get_prev_chain_hash(self.id_voting_id, exclude_pk=self.pk)
             self.integrity_hash = self.generate_hash(prev_chain_hash=prev_chain_hash)
             self.chain_hash = self.integrity_hash
-            # Usamos update() para no disparar el save() recursivo con restricción
-            VotingRecord.objects.filter(pk=self.pk).update(
-                integrity_hash=self.integrity_hash,
-                chain_hash=self.chain_hash,
-            )
+            # Usamos update() para no disparar el save() recursivo con restricción.
+            # En MySQL/MariaDB habilitamos una bandera SQL de autorización temporal.
+            if connection.vendor == 'mysql':
+                with connection.cursor() as cursor:
+                    cursor.execute("SET @allow_votingrecord_update = 1")
+                try:
+                    VotingRecord.objects.filter(pk=self.pk).update(
+                        integrity_hash=self.integrity_hash,
+                        chain_hash=self.chain_hash,
+                    )
+                finally:
+                    with connection.cursor() as cursor:
+                        cursor.execute("SET @allow_votingrecord_update = 0")
+            else:
+                VotingRecord.objects.filter(pk=self.pk).update(
+                    integrity_hash=self.integrity_hash,
+                    chain_hash=self.chain_hash,
+                )
 
     def delete(self, *args, **kwargs):
         raise PermissionError(

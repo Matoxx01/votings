@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 from django.views.decorators.http import require_http_methods
+from django.db import connection, transaction
 from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
 from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante
@@ -11,10 +12,82 @@ from dashboard.decorators import maintainer_login_required, admin_required, no_a
 from dashboard.services import ExcelService
 from voting.services import EmailService
 from voting.time_utils import get_real_now
+from datetime import timedelta
 import json
 import logging
+import secrets
+import hmac
 
 logger = logging.getLogger(__name__)
+
+DELETE_VOTING_TOKEN_KEY = 'delete_voting_token'
+DELETE_VOTING_TOKEN_EXPIRES_KEY = 'delete_voting_token_expires_at'
+DELETE_VOTING_TOKEN_TTL_HOURS = 12
+
+
+def _expire_delete_token_and_logout(request):
+    """Cierra sesión si el token de eliminación expiró."""
+    request.session.flush()
+    messages.error(request, "Tu token de eliminación expiró. Inicia sesión nuevamente.")
+    return redirect('dashboard:login')
+
+
+def _get_or_create_delete_voting_token(request):
+    """
+    Entrega token de eliminación válido por sesión.
+    Si está expirado, fuerza cierre de sesión.
+    """
+    token = request.session.get(DELETE_VOTING_TOKEN_KEY)
+    expires_at = request.session.get(DELETE_VOTING_TOKEN_EXPIRES_KEY)
+    now_ts = timezone.now().timestamp()
+
+    if token and expires_at:
+        if now_ts <= float(expires_at):
+            return token, None
+        return None, _expire_delete_token_and_logout(request)
+
+    new_token = secrets.token_urlsafe(32)
+    new_expires = (timezone.now() + timedelta(hours=DELETE_VOTING_TOKEN_TTL_HOURS)).timestamp()
+    request.session[DELETE_VOTING_TOKEN_KEY] = new_token
+    request.session[DELETE_VOTING_TOKEN_EXPIRES_KEY] = new_expires
+    request.session.modified = True
+    return new_token, None
+
+
+def _validate_delete_voting_token(request):
+    """Valida token de eliminación recibido por formulario."""
+    session_token = request.session.get(DELETE_VOTING_TOKEN_KEY)
+    expires_at = request.session.get(DELETE_VOTING_TOKEN_EXPIRES_KEY)
+    form_token = request.POST.get('delete_voting_token', '')
+    now_ts = timezone.now().timestamp()
+
+    if not session_token or not expires_at:
+        return False, "Falta token de seguridad para eliminar."
+
+    if now_ts > float(expires_at):
+        return False, _expire_delete_token_and_logout(request)
+
+    if not form_token or not hmac.compare_digest(str(session_token), str(form_token)):
+        return False, "Token de seguridad inválido para eliminar."
+
+    return True, None
+
+
+def _with_authorized_votingrecord_delete(callback):
+    """
+    Ejecuta una operación de borrado autorizando temporalmente DELETE en VotingRecord
+    solo para esta sesión SQL (MySQL/MariaDB).
+    """
+    if connection.vendor != 'mysql':
+        return callback()
+
+    with connection.cursor() as cursor:
+        cursor.execute("SET @allow_votingrecord_delete = 1")
+    try:
+        return callback()
+    finally:
+        with connection.cursor() as cursor:
+            cursor.execute("SET @allow_votingrecord_delete = 0")
 
 
 def login_view(request):
@@ -145,6 +218,12 @@ def voting_detail(request, voting_id):
             'subject': subject,
             'votes': votes,
         })
+
+    delete_voting_token = None
+    if is_admin:
+        delete_voting_token, logout_redirect = _get_or_create_delete_voting_token(request)
+        if logout_redirect:
+            return logout_redirect
     
     context = {
         'voting': voting,
@@ -152,6 +231,7 @@ def voting_detail(request, voting_id):
         'stats': stats,
         'total_votes': total_votes,
         'is_admin': is_admin,
+        'delete_voting_token': delete_voting_token,
     }
     return render(request, 'dashboard/voting_detail.html', context)
 
@@ -510,12 +590,20 @@ def delete_voting(request, voting_id):
     if voting.is_open():
         messages.error(request, "No se puede eliminar una votación mientras está en período activo.")
         return redirect('dashboard:voting_detail', voting_id=voting_id)
-    
+
+    token_ok, token_result = _validate_delete_voting_token(request)
+    if not token_ok:
+        if hasattr(token_result, 'status_code'):
+            return token_result
+        messages.error(request, token_result)
+        return redirect('dashboard:voting_detail', voting_id=voting_id)
+
     voting_title = voting.title
     
     try:
-        # Eliminar todos los registros asociados en cascada
-        voting.delete()
+        # Eliminar todos los registros asociados en cascada con autorización temporal DB
+        with transaction.atomic():
+            _with_authorized_votingrecord_delete(voting.delete)
         messages.success(request, f"Votación '{voting_title}' y todos sus datos han sido eliminados correctamente.")
     except Exception as e:
         messages.error(request, f"Error al eliminar la votación: {str(e)}")

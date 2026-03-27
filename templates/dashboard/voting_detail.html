@@ -90,6 +90,7 @@
                     {% else %}
                         <form method="POST" action="{% url 'dashboard:delete_voting' voting.id %}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta votación y todos sus datos? Esta acción no se puede deshacer.');">
                             {% csrf_token %}
+                            <input type="hidden" name="delete_voting_token" value="{{ delete_voting_token }}">
                             <button type="submit" class="btn btn-danger">
                                 Eliminar Votación
                             </button>

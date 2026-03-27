@@ -28,11 +28,13 @@ python manage.py test voting.tests --settings=votings_project.test_settings
 """
 
 from django.test import TestCase
+from django.db import connection, DatabaseError
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 import hmac
 import hashlib
+import unittest
 
 from voting.models import (
     Region, Voting, Subject, Count, UserData,
@@ -392,3 +394,61 @@ class AdminReadOnlyTest(TestCase):
         self.assertFalse(admin_instance.has_add_permission(request=None))
         self.assertFalse(admin_instance.has_change_permission(request=None))
         self.assertFalse(admin_instance.has_delete_permission(request=None))
+
+
+# ---------------------------------------------------------------------------
+# 6. Enforcements REALES en MySQL/MariaDB (SQL directo)
+# ---------------------------------------------------------------------------
+
+@unittest.skipUnless(connection.vendor == 'mysql', "Requiere backend MySQL/MariaDB")
+class MySQLDirectSQLEnforcementTest(TestCase):
+    """
+    GARANTÍA: Con SQL directo (fuera del frontend), las reglas críticas se bloquean
+    por triggers en MySQL/MariaDB.
+    """
+
+    def setUp(self):
+        self.voting = _make_voting("SQL Enforcement Voting")
+        self.subject = _make_subject(self.voting, "SQL Subject")
+        self.record = _make_record(self.voting, self.subject)
+        self.count, _ = Count.objects.get_or_create(id_subject=self.subject, defaults={"number": 1})
+
+    def test_direct_sql_delete_votingrecord_is_blocked(self):
+        with self.assertRaises(DatabaseError) as ctx:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM voting_votingrecord WHERE id = %s",
+                    [self.record.id],
+                )
+
+        self.assertIn("DELETE no permitido", str(ctx.exception))
+        self.assertTrue(VotingRecord.objects.filter(id=self.record.id).exists())
+
+    def test_direct_sql_update_votingrecord_is_blocked(self):
+        with self.assertRaises(DatabaseError) as ctx:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE voting_votingrecord SET id_subject_id = id_subject_id WHERE id = %s",
+                    [self.record.id],
+                )
+
+        self.assertIn("UPDATE no permitido", str(ctx.exception))
+
+    def test_direct_sql_count_update_only_allows_plus_one(self):
+        with self.assertRaises(DatabaseError) as ctx:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE voting_count SET number = number + 2 WHERE id = %s",
+                    [self.count.id],
+                )
+
+        self.assertIn("solo permite incrementos de +1", str(ctx.exception))
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE voting_count SET number = number + 1 WHERE id = %s",
+                [self.count.id],
+            )
+
+        self.count.refresh_from_db()
+        self.assertEqual(self.count.number, 2)
