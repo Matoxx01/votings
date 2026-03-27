@@ -311,6 +311,20 @@ class Militante(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.rut})"
 
+    def save(self, *args, **kwargs):
+        is_new = not self.pk
+        # Bloquear cualquier actualización vía SQL a menos que sea a través de la app
+        if is_new and connection.vendor == 'mysql':
+            with connection.cursor() as cursor:
+                cursor.execute("SET @allow_militante_insert = 1")
+            try:
+                super().save(*args, **kwargs)
+            finally:
+                with connection.cursor() as cursor:
+                    cursor.execute("SET @allow_militante_insert = 0")
+        else:
+            super().save(*args, **kwargs)
+
 
 class MilitanteRegistrationToken(models.Model):
     """Modelo para tokens de registro de militantes"""
