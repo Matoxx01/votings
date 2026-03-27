@@ -62,8 +62,8 @@
         <div class="row mb-4">
             <div class="col-lg-6 mb-3">
                 <div class="card">
-                    <div class="card-header bg-primary">
-                        <h5 class="mb-0">Gráfico de Barras</h5>
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0 text-white">Gráfico de Barras</h5>
                     </div>
                     <div class="card-body">
                         <canvas id="barChart" style="max-height: 300px;"></canvas>
@@ -73,8 +73,8 @@
 
             <div class="col-lg-6 mb-3">
                 <div class="card">
-                    <div class="card-header bg-success">
-                        <h5 class="mb-0">Gráfico de Pastel</h5>
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0 text-white">Gráfico de Pastel</h5>
                     </div>
                     <div class="card-body">
                         <canvas id="pieChart" style="max-height: 300px;"></canvas>
@@ -87,16 +87,16 @@
         <div class="row mb-4">
             <div class="col-lg-12">
                 <div class="card">
-                    <div class="card-header bg-dark d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Detalles de Resultados</h5>
-                        <button class="btn btn-sm btn-light" onclick="window.print()">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-white">Detalles de Resultados</h5>
+                        <button class="btn btn-sm btn-light" onclick="printReport()">
                             Imprimir Reporte
                         </button>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover">
-                                <thead class="table-light">
+                                <thead class="bg-primary text-white">
                                     <tr>
                                         <th>Opción</th>
                                         <th class="text-center">Total de Votos</th>
@@ -149,7 +149,81 @@
     {% endif %}
 </div>
 
+<!-- Modal Confirmación de Impresión -->
+<div class="modal fade" id="printConfirmModal" tabindex="-1" aria-labelledby="printConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="printConfirmModalLabel">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+            <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
+            <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+          </svg>
+          Opciones de Impresión
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-4 text-center">
+        <h5 class="mb-3 text-dark">¿Cómo deseas generar el reporte?</h5>
+        <p class="mb-0 text-muted">¿Deseas incluir el porcentaje de personas que <strong>no han votado</strong> en la tabla y los gráficos?</p>
+      </div>
+      <div class="modal-footer justify-content-center bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-outline-primary fw-bold px-4" onclick="executePrint(false)">Excluir "No Voto"</button>
+        <button type="button" class="btn btn-primary fw-bold px-4" onclick="executePrint(true)">Incluir "No Voto"</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+    let printModalInstance;
+
+    function printReport() {
+        if (typeof bootstrap !== 'undefined') {
+            if (!printModalInstance) {
+                printModalInstance = new bootstrap.Modal(document.getElementById('printConfirmModal'));
+            }
+            printModalInstance.show();
+        } else {
+            // Fallback por si acaso
+            const include = confirm('¿Desea incluir el porcentaje de personas que no han votado (No Voto) en el reporte?');
+            executePrint(include);
+        }
+    }
+
+    function executePrint(include) {
+        if (printModalInstance) {
+            printModalInstance.hide();
+        }
+        
+        const currentUrl = new URL(window.location.href);
+        const currentlyIncludes = currentUrl.searchParams.get('include_no_voto') !== 'false';
+        
+        if (currentlyIncludes === include) {
+            setTimeout(() => {
+                window.print();
+            }, 350); // Pausa breve para permitir que el modal se cierre antes de imprimir
+        } else {
+            currentUrl.searchParams.set('include_no_voto', include ? 'true' : 'false');
+            currentUrl.searchParams.set('autoprint', 'true');
+            window.location.href = currentUrl.toString();
+        }
+    }
+
+    window.addEventListener("load", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('autoprint') === 'true') {
+            setTimeout(() => {
+                window.print();
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.delete('autoprint');
+                window.history.replaceState({}, document.title, newUrl.toString());
+            }, 500); // Pequeña pausa extra para estar 100% seguros de que todo renderizó
+        }
+    });
+</script>
 <script>
     {% if stats %}
         const labels = [{% for stat in stats %}'{{ stat.subject.name }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
@@ -169,6 +243,7 @@
             responsive: true,
             maintainAspectRatio: true,
             devicePixelRatio: 2,
+            animation: false, // Desactivar animaciones para que el gráfico esté listo para imprimir al instante
         };
 
         // Gráfico de Barras
@@ -262,7 +337,7 @@
         /* Tarjetas */
         .card {
             page-break-inside: avoid;
-            border: 2px solid #000 !important;
+            border: 1px solid #ddd !important;
             margin-bottom: 15px;
             background: white !important;
             box-shadow: none !important;
@@ -274,14 +349,13 @@
         
         .card-header {
             color: #fff !important;
-            border: 1px solid #000 !important;
+            border-bottom: 1px solid #ddd !important;
             padding: 10px;
         }
         
         .bg-primary {
             background: #1B2A4A !important;
             color: #fff !important;
-            border: 1px solid #000 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -289,7 +363,6 @@
         .bg-success {
             background: #166534 !important;
             color: #fff !important;
-            border: 1px solid #000 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -297,7 +370,6 @@
         .bg-info {
             background: #0e7490 !important;
             color: #fff !important;
-            border: 1px solid #000 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -305,7 +377,6 @@
         .bg-dark {
             background: #1e293b !important;
             color: #fff !important;
-            border: 1px solid #000 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -316,8 +387,6 @@
             height: auto !important;
             max-height: 250px !important;
             page-break-inside: avoid;
-            border: 1px solid #999;
-            padding: 5px;
             display: block !important;
         }
         

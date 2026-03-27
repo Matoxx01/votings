@@ -398,11 +398,11 @@ def voting_statistics(request, voting_id):
             'percentage': final_percentage,
         })
     
-    # Agregar opción "Nulo/No voto"
+    # Agregar opción "No Voto"
     no_vote_percentage = (no_votes / total_registered) if total_registered > 0 else 0
     no_final_percentage = round(no_vote_percentage * 100, 2)
     stats.append({
-        'subject': type('obj', (object,), {'name': 'Nulo/No voto'})(),
+        'subject': type('obj', (object,), {'name': 'No Voto'})(),
         'votes': no_votes,
         'percentage': no_final_percentage,
     })
@@ -447,9 +447,13 @@ def generate_report(request, voting_id):
     no_votes = total_registered - total_votes
     
     stats = []
+    
+    include_no_voto = request.GET.get('include_no_voto', 'true') == 'true'
+    base_total = total_registered if include_no_voto else total_votes
+
     for subject in subjects:
         votes = VotingRecord.objects.filter(id_subject=subject).count()
-        percentage = (votes / total_registered) if total_registered > 0 else 0
+        percentage = (votes / base_total) if base_total > 0 else 0
         
         stats.append({
             'subject': subject,
@@ -457,13 +461,14 @@ def generate_report(request, voting_id):
             'percentage': round(percentage * 100, 2),
         })
     
-    # Agregar opción "Nulo/No voto"
-    no_vote_percentage = (no_votes / total_registered) if total_registered > 0 else 0
-    stats.append({
-        'subject': type('obj', (object,), {'name': 'Nulo/No voto'})(),
-        'votes': no_votes,
-        'percentage': round(no_vote_percentage * 100, 2),
-    })
+    # Agregar opción "No Voto"
+    if include_no_voto:
+        no_vote_percentage = (no_votes / base_total) if base_total > 0 else 0
+        stats.append({
+            'subject': type('obj', (object,), {'name': 'No Voto'})(),
+            'votes': no_votes,
+            'percentage': round(no_vote_percentage * 100, 2),
+        })
     
     context = {
         'voting': voting,
