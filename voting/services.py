@@ -32,7 +32,7 @@ class EmailService:
         send_mail(
             subject,
             plain_message,
-            settings.EMAIL_HOST_USER,
+            settings.DEFAULT_FROM_EMAIL,
             [to_email],
             html_message=html_message,
             fail_silently=False,
@@ -61,7 +61,7 @@ class EmailService:
         send_mail(
             subject,
             plain_message,
-            settings.EMAIL_HOST_USER,
+            settings.DEFAULT_FROM_EMAIL,
             [to_email],
             html_message=html_message,
             fail_silently=False,
@@ -90,7 +90,7 @@ class EmailService:
         send_mail(
             subject,
             plain_message,
-            settings.EMAIL_HOST_USER,
+            settings.DEFAULT_FROM_EMAIL,
             [to_email],
             html_message=html_message,
             fail_silently=False,
@@ -119,7 +119,7 @@ class EmailService:
         send_mail(
             subject,
             plain_message,
-            settings.EMAIL_HOST_USER,
+            settings.DEFAULT_FROM_EMAIL,
             [to_email],
             html_message=html_message,
             fail_silently=False,
@@ -148,7 +148,7 @@ class EmailService:
         send_mail(
             subject,
             plain_message,
-            settings.EMAIL_HOST_USER,
+            settings.DEFAULT_FROM_EMAIL,
             [to_email],
             html_message=html_message,
             fail_silently=False,
@@ -175,7 +175,7 @@ class EmailService:
         send_mail(
             subject,
             plain_message,
-            settings.EMAIL_HOST_USER,
+            settings.DEFAULT_FROM_EMAIL,
             [to_email],
             html_message=html_message,
             fail_silently=False,

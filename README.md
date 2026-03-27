@@ -50,15 +50,19 @@ DATABASES = {
 }
 ```
 
-### 4. Configurar Email
+### 4. Configurar Email (Resend)
 
 En `votings_project/settings.py`:
 ```python
-EMAIL_HOST_USER = "tu-email@gmail.com"
-EMAIL_HOST_PASSWORD = "tu-app-password"
+EMAIL_HOST = "smtp.resend.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "resend"
+EMAIL_HOST_PASSWORD = "re_vuestra_api_key"
+DEFAULT_FROM_EMAIL = "notificaciones@vuestro-dominio.com"
 ```
 
-**Nota**: Para Gmail, usa contraseña de aplicación (no la contraseña regular).
+**Nota**: Asegúrate de tener tu dominio verificado en Resend para que los correos lleguen a destinatarios externos.
 
 ### 5. Ejecutar Migraciones
 

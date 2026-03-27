@@ -399,7 +399,7 @@ def militante_login(request, voting_id):
     if session_key in request.session:
         return redirect('voting:voting_detail', voting_id=voting_id)
     
-    contact_email = settings.EMAIL_HOST_USER
+    contact_email = settings.DEFAULT_FROM_EMAIL
     
     if request.method == 'POST':
         form = MilitanteLoginForm(request.POST)
@@ -537,7 +537,7 @@ def militante_password_reset_request(request, voting_id=None):
                 
             except Militante.DoesNotExist:
                 # Mostrar mensaje de que no está validado
-                contact_email = settings.EMAIL_HOST_USER
+                contact_email = settings.DEFAULT_FROM_EMAIL
                 messages.error(request, f"No estás validado. Contacta a {contact_email}")
                 if voting:
                     return redirect('voting:militante_password_reset_request', voting_id=voting_id)
@@ -545,7 +545,7 @@ def militante_password_reset_request(request, voting_id=None):
     else:
         form = MilitantePasswordResetRequestForm()
     
-    contact_email = settings.EMAIL_HOST_USER
+    contact_email = settings.DEFAULT_FROM_EMAIL
     
     context = {
         'form': form,
