@@ -157,63 +157,6 @@ votings/
 └── manage.py
 ```
 
-## Modelos de Datos
-
-### Role
-- id (PK)
-- name
-
-### Maintainer
-- id (PK)
-- id_role (FK → Role)
-- name
-- lastname
-- mail (unique)
-- password
-- is_active
-- created_at
-
-### Voting
-- id (PK)
-- title
-- description
-- image
-- start_date
-- finish_date
-- is_active
-- created_at
-
-### Subject
-- id (PK)
-- name
-- description
-- id_voting (FK → Voting)
-- created_at
-
-### Count
-- id (PK)
-- id_subject (OneToOne → Subject)
-- number
-- updated_at
-
-### UserData
-- id (PK)
-- id_voting (FK → Voting)
-- rut
-- has_voted
-- voted_at
-- register
-- created_at
-
-### VotingRecord
-- id (PK)
-- id_voting (FK → Voting)
-- id_subject (FK → Subject)
-- user_data (FK → UserData)
-- rut
-- mail
-- voted_at
-
 ## Flujo de Votación
 
 1. Usuario accede a `/` (página principal de votaciones)
