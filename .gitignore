@@ -66,3 +66,6 @@ Thumbs.db
 # IDE
 *.sublime-project
 *.sublime-workspace
+
+# Notas
+notas.txt

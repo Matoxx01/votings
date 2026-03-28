@@ -102,6 +102,22 @@
                 </tr>
             </table>
 
+            {% if candidates %}
+            <div style="margin-top: 25px;">
+                <h3 style="color: #1B2A4A; border-bottom: 2px solid #1B2A4A; padding-bottom: 5px;">Candidatos / Opciones:</h3>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px;">
+                    {% for candidate in candidates %}
+                    <div style="background-color: #fcfcfc; border: 1px solid #eee; padding: 12px; border-radius: 4px;">
+                        <div style="font-weight: bold; color: #1B2A4A; font-size: 16px;">{{ candidate.name }}</div>
+                        {% if candidate.description %}
+                        <div style="font-size: 13px; color: #666; margin-top: 4px;">{{ candidate.description }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="info-box">
                 <strong>¿Cómo votar?</strong>
                 <p>Una vez iniciado el período de votación, ingresa al sistema con tus credenciales para emitir tu voto. Recuerda que solo podrás votar durante el período indicado.</p>

@@ -155,7 +155,7 @@ class EmailService:
         )
 
     @staticmethod
-    def send_upcoming_voting_email(to_email, nombre, voting_title, voting_description, start_date, finish_date):
+    def send_upcoming_voting_email(to_email, nombre, voting_title, voting_description, start_date, finish_date, candidates=None):
         """
         Envía un correo notificando una votación próxima
         """
@@ -167,6 +167,7 @@ class EmailService:
             'voting_description': voting_description,
             'start_date': start_date,
             'finish_date': finish_date,
+            'candidates': candidates,
         }
         
         html_message = render_to_string('voting/emails/upcoming_voting_email.html', context)
@@ -199,6 +200,9 @@ class EmailService:
         start_date = voting.start_date.strftime('%d/%m/%Y %H:%M')
         finish_date = voting.finish_date.strftime('%d/%m/%Y %H:%M')
         
+        # Obtener candidatos para la votación
+        candidates = voting.subjects.all()
+        
         for i, militante in enumerate(militantes):
             try:
                 EmailService.send_upcoming_voting_email(
@@ -208,6 +212,7 @@ class EmailService:
                     voting_description=voting.description,
                     start_date=start_date,
                     finish_date=finish_date,
+                    candidates=candidates,
                 )
                 
                 results['sent'] += 1
