@@ -32,7 +32,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-1tjd92ls0p7u$ai_iiu_&f9q#6
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://votings.up.railway.app,http://localhost:8000').split(',')
 
 # Application definition
 
