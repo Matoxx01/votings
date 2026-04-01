@@ -155,6 +155,29 @@ class EmailService:
         )
 
     @staticmethod
+    def send_verification_code_email(to_email, code):
+        """
+        Envía un código de 6 dígitos para verificar el correo
+        """
+        subject = "Código de Verificación - Cambio de Correo"
+        
+        context = {
+            'verification_code': code,
+        }
+        
+        html_message = render_to_string('voting/emails/verification_code_email.html', context)
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject,
+            plain_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [to_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+    @staticmethod
     def send_upcoming_voting_email(to_email, nombre, voting_title, voting_description, start_date, finish_date, candidates=None):
         """
         Envía un correo notificando una votación próxima

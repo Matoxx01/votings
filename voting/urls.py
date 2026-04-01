@@ -20,4 +20,6 @@ urlpatterns = [
     # Rutas de militantes
     path('registro-militante/<str:token>/', views.militante_register, name='militante_register'),
     path('recuperar-contrasena-militante/<str:token>/', views.militante_password_reset, name='militante_password_reset'),
+    path('verificar-correo/enviar/', views.enviar_codigo_correo, name='enviar_codigo_correo'),
+    path('verificar-correo/validar/', views.validar_codigo_correo, name='validar_codigo_correo'),
 ]

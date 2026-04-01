@@ -9,6 +9,8 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password, check_password
 from pathlib import Path
 import io
+import json
+import random
 from voting.models import Voting, Subject, UserData, Count, VotingRecord, Region, Militante, MilitanteRegistrationToken, MilitantePasswordResetToken
 from voting.forms import VoterRegistrationForm, MilitanteRegistrationForm, MilitanteLoginForm, MilitantePasswordResetRequestForm, MilitantePasswordResetForm
 from voting.services import EmailService
@@ -342,11 +344,30 @@ def militante_register(request, token):
                     'token_obj': token_obj,
                 })
             
+            # Determinar el correo a utilizar
+            final_mail = token_obj.mail
+            cambiar_correo = request.POST.get('check_cambiar_correo') == 'on'
+            
+            if cambiar_correo:
+                if request.session.get('correo_cambiado_verificado'):
+                    nuevo_correo = request.session.get('nuevo_correo_verificado')
+                    if nuevo_correo:
+                        final_mail = nuevo_correo
+                        # Limpiar la sesión para que no afecte futuros registros
+                        del request.session['correo_cambiado_verificado']
+                        del request.session['nuevo_correo_verificado']
+                else:
+                    messages.error(request, "Has marcado la opción de cambiar correo, pero la verificación está incompleta.")
+                    return render(request, 'voting/militante_register.html', {
+                        'form': form,
+                        'token_obj': token_obj,
+                    })
+
             # Crear el militante
             militante = Militante.objects.create(
                 nombre=token_obj.nombre,
                 rut=token_obj.rut,
-                mail=token_obj.mail,
+                mail=final_mail,
                 password=make_password(password)
             )
             
@@ -592,3 +613,57 @@ def militante_password_reset(request, token):
         'token_obj': token_obj,
     }
     return render(request, 'voting/militante_password_reset.html', context)
+
+from django.http import JsonResponse
+
+@require_http_methods(["POST"])
+def enviar_codigo_correo(request):
+    """Genera y envía un código de verificación por correo via AJAX"""
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+        
+        if not email:
+            return JsonResponse({'success': False, 'message': 'Correo inválido.'})
+        
+        # Generar código de 6 dígitos
+        code = f"{random.randint(100000, 999999)}"
+        
+        # Guardar en sesión
+        request.session['verification_code'] = code
+        request.session['verification_email'] = email
+        request.session.modified = True
+        
+        # Enviar correo
+        EmailService.send_verification_code_email(email, code)
+        
+        return JsonResponse({'success': True, 'message': 'Código enviado exitosamente.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@require_http_methods(["POST"])
+def validar_codigo_correo(request):
+    """Valida el código asíncronamente y guarda estado verificado en sesión"""
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+        code = data.get('code')
+        
+        session_code = request.session.get('verification_code')
+        session_email = request.session.get('verification_email')
+        
+        if not session_code or not session_email:
+            return JsonResponse({'success': False, 'message': 'No hay código pendiente. Envíe uno nuevo.'})
+            
+        if email == session_email and str(code) == str(session_code):
+            request.session['correo_cambiado_verificado'] = True
+            request.session['nuevo_correo_verificado'] = email
+            request.session.modified = True
+            # Limpiamos
+            if 'verification_code' in request.session:
+                del request.session['verification_code']
+            return JsonResponse({'success': True, 'message': 'Correo verificado exitosamente.'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Código o correo incorrecto.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})

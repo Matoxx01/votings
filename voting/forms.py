@@ -100,9 +100,16 @@ class MilitanteRegistrationForm(forms.Form):
         label="RUT",
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Ej: 12345678-K'
-        }),
-        help_text="Ingrese su RUT sin puntos y con guión"
+            'id': 'rut_input',
+        })
+    )
+    numero_documento = forms.CharField(
+        max_length=50,
+        label="Número de Documento",
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ej: 518863574'
+        })
     )
     password = forms.CharField(
         label="Contraseña",
@@ -158,13 +165,44 @@ class MilitanteRegistrationForm(forms.Form):
         return password
 
     def clean(self):
-        """Valida que las contraseñas coincidan"""
+        """Valida que las contraseñas coincidan y valida la cédula en el Registro Civil"""
         cleaned_data = super().clean()
         password = cleaned_data.get('password')
         password_confirm = cleaned_data.get('password_confirm')
         
         if password and password_confirm and password != password_confirm:
-            raise ValidationError("Las contraseñas no coinciden.")
+            self.add_error('password_confirm', "Las contraseñas no coinciden.")
+            
+        rut = cleaned_data.get('rut')
+        numero_documento = cleaned_data.get('numero_documento')
+        
+        if rut and numero_documento:
+            import urllib.request
+            import json
+            from django.conf import settings
+            
+            url = "https://smartinvoice2.certificadoradelsur.cl/checkidentitycard/rest-services/public/validacion/validarCedula"
+            data = {
+                "rut": rut,
+                "numeroDocumento": numero_documento,
+                "usuario": settings.API_USER,
+                "clave": settings.API_PASS
+            }
+            req = urllib.request.Request(url, json.dumps(data).encode('utf-8'), {'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'})
+            
+            try:
+                with urllib.request.urlopen(req) as response:
+                    res_data = json.loads(response.read().decode())
+                    estado = res_data.get('estado')
+                    estado_cedula = res_data.get('estadoCedula')
+                    
+                    if estado == 'OK' and estado_cedula == 'Vigente':
+                        pass # Cédula válida
+                    else:
+                        error_msg = res_data.get('estadoCedula', res_data.get('comentarios', 'Cédula inválida'))
+                        self.add_error('numero_documento', f"Validación fallida: {error_msg}")
+            except Exception as e:
+                self.add_error('numero_documento', f"No se pudo validar la cédula en este momento. Intente más tarde.")
         
         return cleaned_data
 

@@ -195,3 +195,7 @@ MESSAGE_TAGS = {
     messages.WARNING: 'warning',
     messages.ERROR: 'danger',
 }
+
+# API Registro Civil
+API_USER = os.getenv('API_USER', '')
+API_PASS = os.getenv('API_PASS', '')
