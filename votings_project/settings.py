@@ -76,7 +76,9 @@ TEMPLATES = [
     },
 ]
 
+WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 WSGI_APPLICATION = "votings_project.wsgi.application"
+WHITENOISE_USE_FINDERS = True
 
 
 # Database
