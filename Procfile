@@ -1,2 +1,2 @@
-web: uvicorn votings_project.asgi:application --host 0.0.0.0 --port $PORT
+web: gunicorn votings_project.wsgi:application --bind 0.0.0.0:$PORT
 release: python manage.py collectstatic --noinput && python manage.py migrate
