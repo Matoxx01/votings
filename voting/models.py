@@ -333,7 +333,7 @@ class MilitanteRegistrationToken(models.Model):
     mail = models.EmailField()
     token = models.CharField(max_length=255, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
+    expires_at = models.DateTimeField(null=True, blank=True)  # Campo opcional para compatibilidad
     used = models.BooleanField(default=False)
     
     class Meta:
@@ -344,21 +344,20 @@ class MilitanteRegistrationToken(models.Model):
         return f"Token de registro para {self.mail}"
     
     def is_valid(self):
-        """Verifica si el token es válido (no expirado y no usado)"""
-        return not self.used and timezone.now() <= self.expires_at
+        """Verifica si el token es válido (solo verifica si no ha sido usado)"""
+        return not self.used
     
     @staticmethod
     def create_token(nombre, rut, mail):
-        """Crea un nuevo token de registro"""
+        """Crea un nuevo token de registro sin expiración"""
         token = secrets.token_urlsafe(32)
-        expires_at = timezone.now() + datetime.timedelta(hours=72)  # 72 horas para registrarse
         
         return MilitanteRegistrationToken.objects.create(
             nombre=nombre,
             rut=rut,
             mail=mail,
             token=token,
-            expires_at=expires_at
+            expires_at=None  # Sin expiración
         )
 
 

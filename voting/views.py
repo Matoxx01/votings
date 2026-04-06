@@ -320,7 +320,7 @@ def militante_register(request, token):
     
     # Verificar si el token es válido
     if not token_obj.is_valid():
-        messages.error(request, "El enlace de registro ha expirado o ya fue utilizado.")
+        messages.error(request, "El enlace de registro ya fue utilizado.")
         return redirect('voting:index')
     
     # Verificar si el RUT ya está registrado
