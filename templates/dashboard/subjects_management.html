@@ -62,7 +62,21 @@
                                 <div class="card-body">
                                     <h6 class="card-title">{{ subject.name }}</h6>
                                     <p class="card-text text-muted small">{{ subject.description|truncatewords:15 }}</p>
-                                    <span class="badge bg-info">Creado: {{ subject.created_at|date:"d/m" }}</span>
+                                    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                        <span class="badge bg-info">Creado: {{ subject.created_at|date:"d/m" }}</span>
+                                        {% if voting.is_open %}
+                                            <button type="button" class="btn btn-outline-danger btn-sm" disabled title="No disponible durante la votación activa">
+                                                Eliminar
+                                            </button>
+                                        {% else %}
+                                            <form method="post" action="{% url 'dashboard:delete_subject' voting.id subject.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar este candidato?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    Eliminar
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>

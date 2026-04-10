@@ -79,3 +79,73 @@ class DeleteVotingSecurityTokenTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Voting.objects.filter(id=self.voting.id).exists())
+
+
+class DeleteSubjectTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.role = Role.objects.create(name='admin')
+        self.maintainer = Maintainer.objects.create(
+            id_role=self.role,
+            name='Admin',
+            lastname='User',
+            mail='admin-delete-subject@example.com',
+            password='hashed',
+            is_active=True,
+        )
+        self.region, _ = Region.objects.get_or_create(
+            id=9998,
+            defaults={'name': 'Region Test Delete Subject'},
+        )
+
+    def _login_session(self):
+        session = self.client.session
+        session['maintainer_id'] = self.maintainer.id
+        session['maintainer_name'] = 'Admin User'
+        session.save()
+
+    def test_delete_subject_allowed_before_voting_starts(self):
+        now = timezone.now()
+        voting = Voting.objects.create(
+            title='Votación futura',
+            description='desc',
+            id_region=self.region,
+            start_date=now + timedelta(days=1),
+            finish_date=now + timedelta(days=2),
+        )
+        subject = Subject.objects.create(
+            name='Candidato Futuro',
+            description='',
+            id_voting=voting,
+        )
+
+        self._login_session()
+        response = self.client.post(
+            reverse('dashboard:delete_subject', args=[voting.id, subject.id])
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Subject.objects.filter(id=subject.id).exists())
+
+    def test_delete_subject_denied_during_active_voting(self):
+        now = timezone.now()
+        voting = Voting.objects.create(
+            title='Votación activa',
+            description='desc',
+            id_region=self.region,
+            start_date=now - timedelta(hours=1),
+            finish_date=now + timedelta(hours=1),
+        )
+        subject = Subject.objects.create(
+            name='Candidato Activo',
+            description='',
+            id_voting=voting,
+        )
+
+        self._login_session()
+        response = self.client.post(
+            reverse('dashboard:delete_subject', args=[voting.id, subject.id])
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Subject.objects.filter(id=subject.id).exists())

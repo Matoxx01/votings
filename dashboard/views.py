@@ -272,6 +272,24 @@ def subjects_management(request, voting_id):
 
 @maintainer_login_required
 @no_auditor
+@require_http_methods(["POST"])
+def delete_subject(request, voting_id, subject_id):
+    """Elimina un candidato/opción solo si la votación no está activa."""
+    voting = get_object_or_404(Voting, id=voting_id)
+    subject = get_object_or_404(Subject, id=subject_id, id_voting=voting)
+
+    if voting.is_open():
+        messages.error(request, "No se pueden eliminar candidatos mientras la votación está en período activo.")
+        return redirect('dashboard:subjects_management', voting_id=voting_id)
+
+    subject_name = subject.name
+    subject.delete()
+    messages.success(request, f"Candidato '{subject_name}' eliminado correctamente.")
+    return redirect('dashboard:subjects_management', voting_id=voting_id)
+
+
+@maintainer_login_required
+@no_auditor
 def user_data_management(request):
     """Vista principal de gestión de usuarios - muestra opciones"""
     return render(request, 'dashboard/user_data_management.html')
