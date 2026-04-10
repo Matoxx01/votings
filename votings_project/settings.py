@@ -150,7 +150,11 @@ EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'resend')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'webmaster@localhost')
+_raw_from_email = os.getenv('DEFAULT_FROM_EMAIL', 'webmaster@localhost')
+if '<' not in _raw_from_email:
+    DEFAULT_FROM_EMAIL = f"Partido Republicano <{_raw_from_email}>"
+else:
+    DEFAULT_FROM_EMAIL = _raw_from_email
 
 # Logging Configuration
 LOGGING = {

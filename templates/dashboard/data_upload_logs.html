@@ -38,7 +38,7 @@
                                 {% if log.upload_type == 'VOTANTES' %}
                                     <span class="badge bg-info">Votantes</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">Militantes</span>
+                                    <span class="badge bg-secondary">Envío a Militantes</span>
                                 {% endif %}
                             </td>
                             <td><i class="bi bi-file-earmark-spreadsheet text-success"></i> {{ log.file_name }}</td>
@@ -52,8 +52,10 @@
                                 <span class="text-danger" title="Fallidos">{{ log.emails_failed }}</span>
                             </td>
                             <td>
-                                {% if log.details.email_errors %}
-                                <span class="text-danger"><i class="bi bi-exclamation-triangle"></i> Errores</span>
+                                {% if log.details.process_error %}
+                                <span class="text-danger"><i class="bi bi-x-circle"></i> Falla Proceso</span>
+                                {% elif log.details.email_errors %}
+                                <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Errores Correos</span>
                                 {% else %}
                                 <span class="text-success"><i class="bi bi-check-circle"></i> Éxito</span>
                                 {% endif %}
@@ -96,9 +98,15 @@
                                     </div>
                                 </div>
                                 
-                                {% if log.details.email_errors %}
+                                {% if log.details.process_error %}
                                 <div class="alert alert-danger mt-3 mb-0">
-                                    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Detalle de Errores:</h6>
+                                    <h6 class="alert-heading"><i class="bi bi-x-circle"></i> Error Crítico en la Carga/Proceso:</h6>
+                                    <hr>
+                                    <p class="mb-0">{{ log.details.process_error }}</p>
+                                </div>
+                                {% elif log.details.email_errors %}
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Detalle de Errores de Correos:</h6>
                                     <hr>
                                     <ul class="mb-0" style="max-height: 200px; overflow-y: auto;">
                                         {% for error in log.details.email_errors %}

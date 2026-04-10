@@ -395,7 +395,7 @@ class DataUploadLog(models.Model):
     """Modelo para registrar el resultado de cargas masivas desde Excel"""
     UPLOAD_TYPES = (
         ('VOTANTES', 'Carga de Votantes'),
-        ('REGISTRO_MILITANTES', 'Invitación a Militantes'),
+        ('REGISTRO_MILITANTES', 'Envío de Correos a Militantes'),
     )
     
     maintainer = models.ForeignKey('Maintainer', on_delete=models.SET_NULL, null=True, blank=True)

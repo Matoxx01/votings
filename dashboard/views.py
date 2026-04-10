@@ -425,8 +425,36 @@ def user_data_upload(request):
                 messages.success(request, msg)
                 return redirect('dashboard:user_data_upload')
             except Voting.DoesNotExist:
+                maintainer_id = request.session.get('maintainer_id')
+                maintainer_obj = Maintainer.objects.filter(id=maintainer_id).first() if maintainer_id else None
+                DataUploadLog.objects.create(
+                    maintainer=maintainer_obj,
+                    upload_type='VOTANTES',
+                    voting=None,
+                    file_name=excel_file.name if excel_file else 'Desconocido',
+                    total_rows=0,
+                    success_count=0,
+                    error_count=1,
+                    emails_sent=0,
+                    emails_failed=0,
+                    details={'process_error': "Votación no encontrada."}
+                )
                 messages.error(request, "Votación no encontrada.")
             except Exception as e:
+                maintainer_id = request.session.get('maintainer_id')
+                maintainer_obj = Maintainer.objects.filter(id=maintainer_id).first() if maintainer_id else None
+                DataUploadLog.objects.create(
+                    maintainer=maintainer_obj,
+                    upload_type='VOTANTES',
+                    voting=voting if 'voting' in locals() else None,
+                    file_name=excel_file.name if excel_file else 'Desconocido',
+                    total_rows=0,
+                    success_count=0,
+                    error_count=1,
+                    emails_sent=0,
+                    emails_failed=0,
+                    details={'process_error': str(e)}
+                )
                 messages.error(request, f"Error al importar: {str(e)}")
     else:
         form = UserDataUploadForm()
@@ -488,6 +516,20 @@ def militante_invite(request):
                 return redirect('dashboard:militante_invite')
                 
             except Exception as e:
+                maintainer_id = request.session.get('maintainer_id')
+                maintainer_obj = Maintainer.objects.filter(id=maintainer_id).first() if maintainer_id else None
+                DataUploadLog.objects.create(
+                    maintainer=maintainer_obj,
+                    upload_type='REGISTRO_MILITANTES',
+                    voting=None,
+                    file_name=excel_file.name if excel_file else 'Desconocido',
+                    total_rows=0,
+                    success_count=0,
+                    error_count=1,
+                    emails_sent=0,
+                    emails_failed=0,
+                    details={'process_error': str(e)}
+                )
                 messages.error(request, f"Error al procesar: {str(e)}")
     else:
         form = MilitanteInviteForm()

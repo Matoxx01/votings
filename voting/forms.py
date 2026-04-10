@@ -113,12 +113,12 @@ class MilitanteRegistrationForm(forms.Form):
     )
     password = forms.CharField(
         label="Contraseña",
-        min_length=8,
+        min_length=6,
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Mínimo 8 caracteres'
+            'placeholder': 'Mínimo 6 caracteres'
         }),
-        help_text="Mínimo 8 caracteres, 1 número, 1 símbolo y 1 mayúscula"
+        help_text="Mínimo 6 caracteres, 1 número y 1 mayúscula"
     )
     password_confirm = forms.CharField(
         label="Confirmar Contraseña",
@@ -150,17 +150,14 @@ class MilitanteRegistrationForm(forms.Form):
         if not password:
             raise ValidationError("La contraseña es requerida.")
         
-        if len(password) < 8:
-            raise ValidationError("La contraseña debe tener al menos 8 caracteres.")
+        if len(password) < 6:
+            raise ValidationError("La contraseña debe tener al menos 6 caracteres.")
         
         if not re.search(r'[A-Z]', password):
             raise ValidationError("La contraseña debe tener al menos una mayúscula.")
         
         if not re.search(r'[0-9]', password):
             raise ValidationError("La contraseña debe tener al menos un número.")
-        
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;\'`~]', password):
-            raise ValidationError("La contraseña debe tener al menos un símbolo.")
         
         return password
 
@@ -273,12 +270,12 @@ class MilitantePasswordResetForm(forms.Form):
     """Formulario para restablecer contraseña de militante"""
     password = forms.CharField(
         label="Nueva Contraseña",
-        min_length=8,
+        min_length=6,
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Mínimo 8 caracteres'
+            'placeholder': 'Mínimo 6 caracteres'
         }),
-        help_text="Mínimo 8 caracteres, 1 número, 1 símbolo y 1 mayúscula"
+        help_text="Mínimo 6 caracteres, 1 número y 1 mayúscula"
     )
     password_confirm = forms.CharField(
         label="Confirmar Contraseña",
@@ -294,17 +291,14 @@ class MilitantePasswordResetForm(forms.Form):
         if not password:
             raise ValidationError("La contraseña es requerida.")
         
-        if len(password) < 8:
-            raise ValidationError("La contraseña debe tener al menos 8 caracteres.")
+        if len(password) < 6:
+            raise ValidationError("La contraseña debe tener al menos 6 caracteres.")
         
         if not re.search(r'[A-Z]', password):
             raise ValidationError("La contraseña debe tener al menos una mayúscula.")
         
         if not re.search(r'[0-9]', password):
             raise ValidationError("La contraseña debe tener al menos un número.")
-        
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;\'`~]', password):
-            raise ValidationError("La contraseña debe tener al menos un símbolo.")
         
         return password
 
