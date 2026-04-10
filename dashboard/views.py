@@ -4,9 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 from django.views.decorators.http import require_http_methods
 from django.db import connection, transaction
+from django.core.paginator import Paginator
 from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
-from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante
+from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken
 from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm
 from dashboard.decorators import maintainer_login_required, admin_required, no_auditor
 from dashboard.services import ExcelService
@@ -291,8 +292,49 @@ def delete_subject(request, voting_id, subject_id):
 @maintainer_login_required
 @no_auditor
 def user_data_management(request):
-    """Vista principal de gestión de usuarios - muestra opciones"""
-    return render(request, 'dashboard/user_data_management.html')
+    """Vista principal de gestión de usuarios - muestra opciones y lista de usuarios"""
+    users_list = []
+    
+    # 1. Obtener militantes registrados
+    militantes = Militante.objects.all().order_by('-created_at')
+    ruts_registrados = set()
+    
+    for m in militantes:
+        users_list.append({
+            'nombre': m.nombre,
+            'rut': m.rut,
+            'mail': m.mail,
+            'registrado': True,
+            'fecha': m.created_at
+        })
+        ruts_registrados.add(m.rut)
+        
+    # 2. Obtener tokens de registro pendientes (militantes invitados pero no completados)
+    tokens = MilitanteRegistrationToken.objects.filter(used=False).order_by('-created_at')
+    
+    for t in tokens:
+        if t.rut not in ruts_registrados:
+            users_list.append({
+                'nombre': t.nombre,
+                'rut': t.rut,
+                'mail': t.mail,
+                'registrado': False,
+                'fecha': t.created_at
+            })
+            ruts_registrados.add(t.rut) # Evitar duplicados
+            
+    # Ordenar por fecha descendente (los más recientes primero)
+    users_list.sort(key=lambda x: x['fecha'], reverse=True)
+    
+    # Paginación
+    paginator = Paginator(users_list, 20)  # 20 usuarios por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+    }
+    return render(request, 'dashboard/user_data_management.html', context)
 
 
 @maintainer_login_required
