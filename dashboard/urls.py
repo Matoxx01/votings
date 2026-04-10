@@ -25,4 +25,5 @@ urlpatterns = [
     path('maintainers/<int:maintainer_id>/edit/', views.edit_maintainer, name='edit_maintainer'),
     path('maintainers/<int:maintainer_id>/delete/', views.delete_maintainer, name='delete_maintainer'),
     path('maintainers/<int:maintainer_id>/send-password-reset/', views.send_password_reset_email, name='send_password_reset'),
+    path('logs/cargas/', views.data_upload_logs, name='data_upload_logs'),
 ]

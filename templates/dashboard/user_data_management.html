@@ -15,7 +15,7 @@
         <div class="col-lg-10 mx-auto">
             <!-- Opciones de gestión -->
             <div class="row mb-4">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <div class="card h-100">
                         <div class="card-body text-center py-4">
                             <i class="bi bi-cloud-upload text-primary mb-3" style="font-size: 2.25rem;"></i>
@@ -27,7 +27,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <div class="card h-100">
                         <div class="card-body text-center py-4">
                             <i class="bi bi-envelope-at text-primary mb-3" style="font-size: 2.25rem;"></i>
@@ -39,7 +39,19 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center py-4">
+                                <i class="bi bi-journal-text text-info mb-3" style="font-size: 2.25rem;"></i>
+                                <h6 class="card-title">Registros de Carga</h6>
+                                <p class="card-text text-muted small">Ver el historial y resultados de las cargas de Excel.</p>
+                                <a href="{% url 'dashboard:data_upload_logs' %}" class="btn btn-info text-white">
+                                    Ver Registros
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             <!-- Lista de Usuarios -->
             <div class="card mb-4">

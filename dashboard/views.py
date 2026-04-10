@@ -7,7 +7,7 @@ from django.db import connection, transaction
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
-from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken
+from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog
 from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm
 from dashboard.decorators import maintainer_login_required, admin_required, no_auditor
 from dashboard.services import ExcelService
@@ -376,19 +376,52 @@ def user_data_upload(request):
                 voting = Voting.objects.get(id=voting_id)
                 count_imported = ExcelService.import_user_data(voting, excel_file)
                 
-                # Obtener RUTs importados y buscar militantes para notificar
+                # Obtener RUTs importados
                 imported_ruts = UserData.objects.filter(id_voting=voting).values_list('rut', flat=True)
+                
+                # 1. Notificar a militantes activos (registrados)
                 militantes_to_notify = list(Militante.objects.filter(rut__in=imported_ruts, is_active=True))
                 
-                email_results = {'sent': 0, 'failed': 0}
-                if militantes_to_notify:
-                    email_results = EmailService.send_bulk_upcoming_voting_emails(militantes_to_notify, voting)
+                # 2. Notificar a usuarios pendientes de registro (con tokens válidos)
+                tokens_to_notify = list(MilitanteRegistrationToken.objects.filter(rut__in=imported_ruts, used=False))
                 
-                msg = f"{count_imported} usuarios importados correctamente."
+                base_url = request.build_absolute_uri('/')[:-1]  # Quitar trailing slash
+                
+                email_results = {'sent': 0, 'failed': 0, 'errors': []}
+                
+                if militantes_to_notify:
+                    res1 = EmailService.send_bulk_upcoming_voting_emails(militantes_to_notify, voting)
+                    email_results['sent'] += res1['sent']
+                    email_results['failed'] += res1['failed']
+                    email_results['errors'].extend(res1.get('errors', []))
+                    
+                if tokens_to_notify:
+                    res2 = EmailService.send_bulk_upcoming_voting_emails_for_unregistered(tokens_to_notify, voting, base_url)
+                    email_results['sent'] += res2['sent']
+                    email_results['failed'] += res2['failed']
+                    email_results['errors'].extend(res2.get('errors', []))
+                
+                # Registrar el log
+                maintainer_id = request.session.get('maintainer_id')
+                maintainer_obj = Maintainer.objects.filter(id=maintainer_id).first() if maintainer_id else None
+                DataUploadLog.objects.create(
+                    maintainer=maintainer_obj,
+                    upload_type='VOTANTES',
+                    voting=voting,
+                    file_name=excel_file.name,
+                    total_rows=count_imported, 
+                    success_count=count_imported,
+                    error_count=0,
+                    emails_sent=email_results['sent'],
+                    emails_failed=email_results['failed'],
+                    details={'email_errors': email_results['errors']}
+                )
+
+                msg = f"{count_imported} usuarios importados. "
                 if email_results['sent'] > 0:
-                    msg += f" {email_results['sent']} correos de notificación enviados."
+                    msg += f"{email_results['sent']} correos enviados. "
                 if email_results['failed'] > 0:
-                    msg += f" {email_results['failed']} correos fallidos."
+                    msg += f"{email_results['failed']} correos fallidos."
                 messages.success(request, msg)
                 return redirect('dashboard:user_data_upload')
             except Voting.DoesNotExist:
@@ -427,6 +460,22 @@ def militante_invite(request):
                 # Enviar correos con delay
                 results = EmailService.send_bulk_registration_emails(users_data, base_url)
                 
+                # Registrar el log
+                maintainer_id = request.session.get('maintainer_id')
+                maintainer_obj = Maintainer.objects.filter(id=maintainer_id).first() if maintainer_id else None
+                DataUploadLog.objects.create(
+                    maintainer=maintainer_obj,
+                    upload_type='REGISTRO_MILITANTES',
+                    voting=None,
+                    file_name=excel_file.name,
+                    total_rows=len(users_data),
+                    success_count=len(users_data),
+                    error_count=0,
+                    emails_sent=results['sent'],
+                    emails_failed=results['failed'],
+                    details={'email_errors': results.get('errors', [])}
+                )
+
                 messages.success(
                     request, 
                     f"Proceso completado: {results['sent']} correos enviados, {results['failed']} fallidos."
@@ -447,6 +496,22 @@ def militante_invite(request):
         'form': form,
     }
     return render(request, 'dashboard/militante_invite.html', context)
+
+@maintainer_login_required
+@no_auditor
+def data_upload_logs(request):
+    """Vista para revisar los registros de cargas de Excel"""
+    logs = DataUploadLog.objects.all().select_related('maintainer', 'voting').order_by('-created_at')
+    
+    paginator = Paginator(logs, 20)  # 20 logs por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+    }
+    return render(request, 'dashboard/data_upload_logs.html', context)
+
 
 
 @maintainer_login_required

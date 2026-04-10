@@ -206,6 +206,35 @@ class EmailService:
         )
 
     @staticmethod
+    def send_upcoming_voting_with_registration_email(to_email, nombre, voting_title, voting_description, start_date, finish_date, registration_link, candidates=None):
+        """
+        Envía un correo notificando una votación próxima e invita a registrarse
+        """
+        subject = f"Próxima Votación y Registro - {voting_title}"
+        
+        context = {
+            'nombre': nombre,
+            'voting_title': voting_title,
+            'voting_description': voting_description,
+            'start_date': start_date,
+            'finish_date': finish_date,
+            'registration_link': registration_link,
+            'candidates': candidates,
+        }
+        
+        html_message = render_to_string('voting/emails/upcoming_voting_with_registration_email.html', context)
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject,
+            plain_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [to_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+    @staticmethod
     def send_bulk_upcoming_voting_emails(militantes, voting, delay=1):
         """
         Envía correos masivos notificando una votación próxima
@@ -246,6 +275,44 @@ class EmailService:
             except Exception as e:
                 results['failed'] += 1
                 results['errors'].append(f"{militante.mail}: {str(e)}")
+        
+        return results
+
+    @staticmethod
+    def send_bulk_upcoming_voting_emails_for_unregistered(tokens, voting, base_url, delay=1):
+        """
+        Envía correos masivos notificando una votación a usuarios pendientes de registro
+        """
+        results = {'sent': 0, 'failed': 0, 'errors': []}
+        
+        start_date = voting.start_date.strftime('%d/%m/%Y %H:%M')
+        finish_date = voting.finish_date.strftime('%d/%m/%Y %H:%M')
+        
+        candidates = voting.subjects.all()
+        
+        for i, token_obj in enumerate(tokens):
+            try:
+                registration_link = f"{base_url}/registro-militante/{token_obj.token}/"
+                
+                EmailService.send_upcoming_voting_with_registration_email(
+                    to_email=token_obj.mail,
+                    nombre=token_obj.nombre,
+                    voting_title=voting.title,
+                    voting_description=voting.description,
+                    start_date=start_date,
+                    finish_date=finish_date,
+                    registration_link=registration_link,
+                    candidates=candidates,
+                )
+                
+                results['sent'] += 1
+                
+                if i < len(tokens) - 1:
+                    time.sleep(delay)
+                    
+            except Exception as e:
+                results['failed'] += 1
+                results['errors'].append(f"{token_obj.mail}: {str(e)}")
         
         return results
 

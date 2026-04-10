@@ -385,9 +385,35 @@ class MilitantePasswordResetToken(models.Model):
         """Crea un nuevo token de recuperación"""
         token = secrets.token_urlsafe(32)
         expires_at = timezone.now() + datetime.timedelta(hours=24)
-        
         return MilitantePasswordResetToken.objects.create(
             militante=militante,
             token=token,
             expires_at=expires_at
         )
+
+class DataUploadLog(models.Model):
+    """Modelo para registrar el resultado de cargas masivas desde Excel"""
+    UPLOAD_TYPES = (
+        ('VOTANTES', 'Carga de Votantes'),
+        ('REGISTRO_MILITANTES', 'Invitación a Militantes'),
+    )
+    
+    maintainer = models.ForeignKey('Maintainer', on_delete=models.SET_NULL, null=True, blank=True)
+    upload_type = models.CharField(max_length=50, choices=UPLOAD_TYPES)
+    voting = models.ForeignKey('Voting', on_delete=models.SET_NULL, null=True, blank=True)
+    file_name = models.CharField(max_length=255)
+    total_rows = models.IntegerField(default=0)
+    success_count = models.IntegerField(default=0)
+    error_count = models.IntegerField(default=0)
+    emails_sent = models.IntegerField(default=0)
+    emails_failed = models.IntegerField(default=0)
+    details = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Data Upload Log"
+        verbose_name_plural = "Data Upload Logs"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_upload_type_display()} - {self.file_name} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
