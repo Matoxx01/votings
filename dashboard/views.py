@@ -337,6 +337,31 @@ def user_data_management(request):
     return render(request, 'dashboard/user_data_management.html', context)
 
 
+from django.http import JsonResponse
+
+@maintainer_login_required
+@no_auditor
+@require_http_methods(["POST"])
+def user_statuses_api(request):
+    """API para obtener en vivo el estado de registro de una lista de RUTs."""
+    try:
+        data = json.loads(request.body)
+        ruts = data.get('ruts', [])
+        
+        # Buscar cuáles de estos RUTs ya están registrados como Militantes
+        registrados = set(Militante.objects.filter(rut__in=ruts).values_list('rut', flat=True))
+        
+        result = {}
+        for rut in ruts:
+            result[rut] = {
+                'registrado': rut in registrados
+            }
+            
+        return JsonResponse({'status': 'success', 'data': result})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
 @maintainer_login_required
 @no_auditor
 def user_data_upload(request):

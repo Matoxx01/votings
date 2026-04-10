@@ -50,12 +50,12 @@
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>RUT</th>
-                                    <th>Correo</th>
-                                    <th>Estado</th>
-                                    <th>Fecha Inv./Reg.</th>
+                                <tr style="color: navy !important;">
+                                    <th style="color: navy !important;">Nombre</th>
+                                    <th style="color: navy !important;">RUT</th>
+                                    <th style="color: navy !important;">Correo</th>
+                                    <th style="color: navy !important;">Estado</th>
+                                    <th style="color: navy !important;">Fecha Inv./Reg.</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -64,7 +64,7 @@
                                     <td>{{ user.nombre }}</td>
                                     <td>{{ user.rut }}</td>
                                     <td>{{ user.mail }}</td>
-                                    <td>
+                                    <td class="user-status-cell" data-rut="{{ user.rut }}">
                                         {% if user.registrado %}
                                             <span class="badge bg-success">Cuenta Activada</span>
                                         {% else %}
@@ -149,4 +149,44 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        function checkStatuses() {
+            const cells = document.querySelectorAll('.user-status-cell');
+            const ruts = Array.from(cells).map(cell => cell.getAttribute('data-rut'));
+            
+            if (ruts.length === 0) return;
+
+            fetch("{% url 'dashboard:user_statuses_api' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ ruts: ruts })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    cells.forEach(cell => {
+                        const rut = cell.getAttribute('data-rut');
+                        if (data.data[rut]) {
+                            const isRegistrado = data.data[rut].registrado;
+                            if (isRegistrado) {
+                                cell.innerHTML = '<span class="badge bg-success">Cuenta Activada</span>';
+                            } else {
+                                cell.innerHTML = '<span class="badge bg-warning text-dark">Pendiente Registro</span>';
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error("Error checking status:", error));
+        }
+
+        // Revisar el estado cada 10 segundos
+        setInterval(checkStatuses, 10000);
+    });
+</script>
 {% endblock %}
