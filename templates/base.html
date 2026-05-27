@@ -584,11 +584,16 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
+          <li class="nav-item w-100 w-lg-auto text-end text-lg-start">
+            <a class="nav-link d-block" href="https://docs.google.com/forms/d/e/1FAIpQLSd75F01pQoMYs9Jw6ePNeL_rsOAhW2arLo3pOH0EeZoWZMX8A/viewform" target="_blank" rel="noopener">
+              Actualiza tus datos
+            </a>
+          </li>
           {% if request.session.maintainer_id %}
           <li class="nav-item"></li>
           {% endif %}
         </ul>
-        <img src="{% static 'logo-blanco.svg' %}" alt="Logo" class="ms-3" style="height: 38px; width: auto;">
+        <img src="{% static 'logo-blanco.svg' %}" alt="Logo" class="ms-3 d-none d-lg-block" style="height: 38px; width: auto;">
       </div>
     </div>
   </nav>
@@ -628,6 +633,22 @@
 
   <footer>
     <div class="container">
+      <div class="row">
+        <div class="col-md-6 mb-3 text-start">
+          <h5 class="text-start">Normativas</h5>
+          <ul class="list-unstyled text-start">
+            <li><a href="{% static 'docs/Normativas/Convocatoria elecciones internas.pdf' %}" target="_blank">Convocatoria Elecciones Internas</a></li>
+            <li><a href="{% static 'docs/Normativas/Estatutos Partido Republicano.pdf' %}" target="_blank">Estatutos Partido Republicano</a></li>
+            <li><a href="{% static 'docs/Normativas/Reglamento elecciones internas.pdf' %}" target="_blank">Reglamento Elecciones Internas</a></li>
+          </ul>
+        </div>
+        <div class="col-md-6 mb-3 text-start">
+          <h5 class="text-start">Requisitos</h5>
+          <ul class="list-unstyled text-start">
+            <li class="text-muted">No hay archivos disponibles.</li>
+          </ul>
+        </div>
+      </div>
       <p>&copy; 2026 Sistema de Votaciones &mdash; Todos los derechos reservados.</p>
     </div>
   </footer>
