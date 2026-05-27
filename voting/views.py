@@ -1,3 +1,30 @@
+def vota(request):
+    """Vista para mostrar las votaciones y regiones en /vota"""
+    now = get_real_now()
+    regions_with_votings = Region.objects.filter(
+        votings__start_date__lte=now,
+        votings__finish_date__gte=now
+    ).exclude(id=17).distinct().order_by('id')
+    votings_without_region = Voting.objects.filter(
+        id_region__id=17,
+        start_date__lte=now,
+        finish_date__gte=now
+    ).order_by('-created_at')
+    militante_logged_in = False
+    militante_name = None
+    for key in request.session.keys():
+        if key.startswith('militante_'):
+            militante_data = request.session[key]
+            militante_logged_in = True
+            militante_name = militante_data.get('name', 'Usuario')
+            break
+    context = {
+        'regions': regions_with_votings,
+        'votings_without_region': votings_without_region,
+        'militante_logged_in': militante_logged_in,
+        'militante_name': militante_name,
+    }
+    return render(request, 'voting/vota.html', context)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods

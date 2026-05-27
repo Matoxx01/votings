@@ -11,6 +11,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="font" href="{% static 'font/Anton-Regular.ttf' %}" type="font/ttf" crossorigin>
+  <style>
+    @font-face {
+      font-family: 'Anton';
+      src: url('{% static 'font/Anton-Regular.ttf' %}') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    .anton-link {
+      font-family: 'Anton', 'Inter', Arial, sans-serif !important;
+      font-size: 1.5rem !important;
+      letter-spacing: 0.01em;
+    }
+  </style>
   <style>
     :root {
       --gov-navy: #1B2A4A;
@@ -586,7 +601,7 @@
         <ul class="navbar-nav ms-auto">
           <li class="nav-item w-100 w-lg-auto text-end text-lg-start">
             <a class="nav-link d-block" href="https://docs.google.com/forms/d/e/1FAIpQLSd75F01pQoMYs9Jw6ePNeL_rsOAhW2arLo3pOH0EeZoWZMX8A/viewform" target="_blank" rel="noopener">
-              Actualiza tus datos
+              <span class="anton-link">Actualiza tus datos</span>
             </a>
           </li>
           {% if request.session.maintainer_id %}
@@ -633,22 +648,6 @@
 
   <footer>
     <div class="container">
-      <div class="row">
-        <div class="col-md-6 mb-3 text-start">
-          <h5 class="text-start">Normativas</h5>
-          <ul class="list-unstyled text-start">
-            <li><a href="{% static 'docs/Normativas/Convocatoria elecciones internas.pdf' %}" target="_blank">Convocatoria Elecciones Internas</a></li>
-            <li><a href="{% static 'docs/Normativas/Estatutos Partido Republicano.pdf' %}" target="_blank">Estatutos Partido Republicano</a></li>
-            <li><a href="{% static 'docs/Normativas/Reglamento elecciones internas.pdf' %}" target="_blank">Reglamento Elecciones Internas</a></li>
-          </ul>
-        </div>
-        <div class="col-md-6 mb-3 text-start">
-          <h5 class="text-start">Requisitos</h5>
-          <ul class="list-unstyled text-start">
-            <li class="text-muted">No hay archivos disponibles.</li>
-          </ul>
-        </div>
-      </div>
       <p>&copy; 2026 Sistema de Votaciones &mdash; Todos los derechos reservados.</p>
     </div>
   </footer>
