@@ -7,6 +7,67 @@
 <div class="hero-banner">
     <img src="{% static 'banner.png' %}" alt="Banner">
 </div>
+
+{% if has_active_votings %}
+<a href="/vota" class="action-stripe action-stripe--vote">
+  <span class="action-stripe__text">VOTA AQUÍ</span>
+</a>
+{% else %}
+<a href="https://docs.google.com/forms/d/e/1FAIpQLSd75F01pQoMYs9Jw6ePNeL_rsOAhW2arLo3pOH0EeZoWZMX8A/viewform"
+   target="_blank" rel="noopener"
+   class="action-stripe action-stripe--update">
+  <span class="action-stripe__text">ACTUALIZA TUS DATOS</span>
+</a>
+{% endif %}
+
+<style>
+  .action-stripe {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    background: var(--gov-navy);
+    text-decoration: none;
+    padding: 1rem 1.5rem;
+    transition: background 0.2s, letter-spacing 0.2s;
+  }
+
+  .action-stripe:hover {
+    background: var(--gov-navy-light);
+    text-decoration: none;
+  }
+
+  .action-stripe__text {
+    font-family: 'Anton', 'Inter', Arial, sans-serif;
+    font-size: clamp(1.5rem, 4vw, 2.8rem);
+    letter-spacing: clamp(0.15em, 2vw, 0.45em);
+    color: #ffffff;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1;
+  }
+
+  .action-stripe--vote .action-stripe__text {
+    color: #ffffff;
+  }
+
+  .action-stripe--update .action-stripe__text {
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .action-stripe--vote:hover .action-stripe__text {
+    letter-spacing: clamp(0.2em, 2.5vw, 0.55em);
+  }
+  .action-stripe--update:hover .action-stripe__text {
+    letter-spacing: clamp(0.2em, 2.5vw, 0.55em);
+  }
+
+  @media (max-width: 576px) {
+    .action-stripe {
+      padding: 0.85rem 1rem;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -56,10 +117,6 @@
             </ul>
           </div>
         </div>
-      </div>
-      <!-- Botón Vota Aquí sin tarjeta -->
-      <div class="col-md-2 col-lg-2 mb-4 d-flex align-items-center justify-content-center">
-        <a href="/vota" class="btn btn-danger btn-lg px-4 py-3 w-100" style="font-size: 1.3rem; min-width: 120px; max-width: 180px;">Vota Aquí</a>
       </div>
     </div>
 </div>

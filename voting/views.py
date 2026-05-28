@@ -109,11 +109,14 @@ def index(request):
             militante_name = militante_data.get('name', 'Usuario')
             break
     
+    has_active_votings = regions_with_votings.exists() or votings_without_region.exists()
+
     context = {
         'regions': regions_with_votings,
         'votings_without_region': votings_without_region,
         'militante_logged_in': militante_logged_in,
         'militante_name': militante_name,
+        'has_active_votings': has_active_votings,
     }
     return render(request, 'voting/index.html', context)
 
