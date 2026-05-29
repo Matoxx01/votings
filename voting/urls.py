@@ -24,7 +24,4 @@ urlpatterns = [
     path('verificar-correo/enviar/', views.enviar_codigo_correo, name='enviar_codigo_correo'),
     path('verificar-correo/validar/', views.validar_codigo_correo, name='validar_codigo_correo'),
     # Postulación
-    path('postulacion/', views.postulacion, name='postulacion'),
-    path('postulacion/enviar/', views.enviar_postulacion, name='enviar_postulacion'),
-    path('postulacion/exito/', views.postulacion_exitosa, name='postulacion_exitosa'),
 ]
