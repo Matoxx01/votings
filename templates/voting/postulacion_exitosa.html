@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Postulación Enviada — Partido Republicano{% endblock %}
+
+{% block content %}
+<style>
+  .success-wrap {
+    max-width: 640px;
+    margin: 4rem auto;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(27,42,74,0.12);
+    overflow: hidden;
+    text-align: center;
+  }
+  .success-header {
+    background: linear-gradient(135deg, #1B2A4A 0%, #2c3e6b 100%);
+    padding: 2.5rem 2rem 2rem;
+    color: #fff;
+  }
+  .success-icon {
+    font-size: 3.5rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+  .success-header h1 {
+    font-family: 'Anton', 'Inter', Arial, sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+  .success-body {
+    padding: 2.5rem 2rem;
+    color: #34435e;
+    line-height: 1.7;
+  }
+  .success-body p { margin-bottom: 1rem; }
+  .success-body strong { color: #1B2A4A; }
+  .btn-home {
+    display: inline-block;
+    margin-top: 1.5rem;
+    padding: 0.75rem 2rem;
+    background: linear-gradient(135deg, #1B2A4A 0%, #2c3e6b 100%);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-family: 'Anton', 'Inter', Arial, sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(27,42,74,0.2);
+  }
+  .btn-home:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(27,42,74,0.28);
+    color: #fff;
+    text-decoration: none;
+  }
+</style>
+
+<div class="container py-5">
+  <div class="success-wrap">
+    <div class="success-header">
+      <h1>¡Postulación Enviada!</h1>
+    </div>
+    <div class="success-body">
+      <p>Tu postulación ha sido recibida correctamente y ha sido enviada al <strong>Tribunal Supremo</strong> del Partido Republicano de Chile.</p>
+      <a href="{% url 'voting:index' %}" class="btn-home">← Volver al inicio</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

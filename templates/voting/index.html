@@ -67,6 +67,32 @@
       padding: 0.85rem 1rem;
     }
   }
+
+  /* Estilos para el botón de postulación */
+  .btn-postulacion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1B2A4A 0%, #2c3e6b 100%);
+    color: #ffffff;
+    font-family: 'Anton', 'Inter', Arial, sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(27, 42, 74, 0.2);
+  }
+
+  .btn-postulacion:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(27, 42, 74, 0.3);
+    color: #ffffff;
+    text-decoration: none;
+  }
 </style>
 {% endblock %}
 
@@ -120,6 +146,25 @@
               <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Formulario de patrocinantes.docx' %}" target="_blank"> Formulario de patrocinantes</a></li>
               <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Formulario inscripción de candidaturas cabildo.docx' %}" target="_blank"> Formulario inscripción de candidaturas cabildo</a></li>
             </ul>
+          </div>
+        </div>
+      </div>
+      <!-- Tarjeta Sube tu Postulación -->
+      <div class="col-md-5 col-lg-4 mb-4 d-flex flex-column">
+        <div class="card h-100 shadow flex-grow-1">
+          <div class="card-img-top ratio ratio-16x9" style="background: #f8f9fa;">
+            <img src="{% static 'images/boton-subepostulacion.jpeg' %}" alt="Sube tu Postulación" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div>
+              <h5 class="card-title">Sube tu Postulación</h5>
+              <p class="card-text text-muted" style="font-size: 0.93rem;">
+                Completa y sube todos los documentos requeridos para inscribir tu candidatura en las Elecciones Internas 2026.
+              </p>
+            </div>
+            <a href="{% url 'voting:postulacion' %}" class="btn btn-postulacion mt-3">
+              Enviar Postulación
+            </a>
           </div>
         </div>
       </div>
