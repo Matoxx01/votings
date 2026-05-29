@@ -16,7 +16,7 @@
 <a href="https://docs.google.com/forms/d/e/1FAIpQLSd75F01pQoMYs9Jw6ePNeL_rsOAhW2arLo3pOH0EeZoWZMX8A/viewform"
    target="_blank" rel="noopener"
    class="action-stripe action-stripe--update">
-  <span class="action-stripe__text">ACTUALIZA TUS DATOS</span>
+  <span class="action-stripe__text">ACTUALIZA TUS DATOS AQUÍ</span>
 </a>
 {% endif %}
 
@@ -49,6 +49,14 @@
 
   .action-stripe--vote .action-stripe__text {
     color: #ffffff;
+  }
+
+  .action-stripe--update {
+    background: #dc3545;
+  }
+
+  .action-stripe--update:hover {
+    background: #c82333;
   }
 
   .action-stripe--update .action-stripe__text {
@@ -141,8 +149,8 @@
             <ul class="list-unstyled mb-3">
               <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Manual de postulación.pdf' %}" target="_blank"> Manual de Postulación</a></li>
               <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Instructivo elecciones internas 2026.pdf' %}" target="_blank"> Instructivo elecciones internas 2026</a></li>
-              <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Declaración y compromiso ético para postulantes a cargos internos Partido Republicano de Chile.pdf' %}" target="_blank"> Declaración y compromiso ético para postulantes a cargos internos Partido Republicano de Chile</a></li>
-              <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Formulario inscripción de candidaturas Directiva Regional.docx' %}" target="_blank"> Formulario inscripción de candidaturas Directiva Regional</a></li>
+              <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Declaración y compromiso ético para postulantes a cargos internos Partido Republicano de Chile.pdf' %}" target="_blank"> Compromiso ético para postulantes a cargos internos Partido Republicano de Chile</a></li>
+              <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Formulario inscripción de candidaturas Directiva Regional.docx' %}" target="_blank"> Inscripción de candidaturas Directiva Regional</a></li>
               <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Formulario de patrocinantes.docx' %}" target="_blank"> Formulario de patrocinantes</a></li>
               <li><b>• </b><a href="{% static 'docs/DocumentosPostulacion/Formulario inscripción de candidaturas cabildo.docx' %}" target="_blank"> Formulario inscripción de candidaturas cabildo</a></li>
             </ul>
