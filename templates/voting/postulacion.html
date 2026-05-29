@@ -274,16 +274,6 @@
         <div class="upload-section">
           <h5>📎 Documentos Requeridos</h5>
 
-          <div class="upload-item" id="wrap-doc1">
-            <input type="file" name="doc_manual" id="doc-manual" accept=".pdf,.doc,.docx" required>
-            <div class="upload-icon">📄</div>
-            <div class="upload-label">
-              Manual de Postulación
-              <div class="upload-status" id="status-doc1">Haz clic para seleccionar archivo</div>
-            </div>
-            <span class="upload-required" id="req-doc1">Requerido</span>
-          </div>
-
           <div class="upload-item" id="wrap-doc2">
             <input type="file" name="doc_instructivo" id="doc-instructivo" accept=".pdf,.doc,.docx" required>
             <div class="upload-icon">📄</div>
@@ -350,7 +340,6 @@
 <script>
 (function () {
   const docs = [
-    { input: 'doc-manual',        wrap: 'wrap-doc1', status: 'status-doc1', req: 'req-doc1' },
     { input: 'doc-instructivo',   wrap: 'wrap-doc2', status: 'status-doc2', req: 'req-doc2' },
     { input: 'doc-declaracion',   wrap: 'wrap-doc3', status: 'status-doc3', req: 'req-doc3' },
     { input: 'doc-form-directiva',wrap: 'wrap-doc4', status: 'status-doc4', req: 'req-doc4' },

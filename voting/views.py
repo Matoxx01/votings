@@ -734,7 +734,6 @@ def enviar_postulacion(request):
 
     # Mapeo de campo → etiqueta para el correo
     doc_fields = [
-        ('doc_manual',        'Manual de Postulación'),
         ('doc_instructivo',   'Instructivo Elecciones Internas 2026'),
         ('doc_declaracion',   'Declaración y Compromiso Ético para Postulantes'),
         ('doc_form_directiva','Formulario Inscripción de Candidaturas Directiva Regional'),
