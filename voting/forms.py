@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from voting.models import UserData, VotingRecord
+from voting.models import UserData, VotingRecord, APICounter
 import re
 
 
@@ -177,7 +177,17 @@ class MilitanteRegistrationForm(forms.Form):
             import urllib.request
             import json
             from django.conf import settings
-            
+            # Incrementar el contador de uso del API antes de realizar la llamada
+            try:
+                counter, created = APICounter.objects.get_or_create(
+                    name='contador_api_regcivil', defaults={'contador': 0}
+                )
+                counter.contador = counter.contador + 1
+                counter.save()
+            except Exception:
+                # No bloquear la validación si la base de datos no está disponible
+                pass
+
             url = "https://smartinvoice2.certificadoradelsur.cl/checkidentitycard/rest-services/public/validacion/validarCedula"
             data = {
                 "rut": rut,

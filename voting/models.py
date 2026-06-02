@@ -135,6 +135,25 @@ class Count(models.Model):
         return self.number == self.get_verified_count()
 
 
+class APICounter(models.Model):
+    """Tabla simple para contar llamadas a APIs externas.
+
+    Se mapea explícitamente a la tabla `count` según la petición del usuario.
+    Campo `name` permite múltiples contadores por tipo y `contador` almacena el valor.
+    """
+    name = models.CharField(max_length=100, unique=True)
+    contador = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'count'
+        verbose_name = "API Count"
+        verbose_name_plural = "API Counts"
+
+    def __str__(self):
+        return f"{self.name}: {self.contador}"
+
+
 class UserData(models.Model):
     """Modelo para datos de usuarios autorizados a votar"""
     id_voting = models.ForeignKey(Voting, on_delete=models.CASCADE, related_name='user_data')
