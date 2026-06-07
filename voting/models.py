@@ -78,6 +78,7 @@ class Voting(models.Model):
     id_region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True, related_name='votings')
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField()
+    start_reminder_sent = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
