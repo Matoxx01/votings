@@ -217,6 +217,7 @@ X_FRAME_OPTIONS = 'DENY'
 
 # En producción (cuando DEBUG=False), activar cookies seguras y HTTPS
 if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = True
