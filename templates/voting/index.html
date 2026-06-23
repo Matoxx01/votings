@@ -15,8 +15,9 @@
 {% else %}
 <a href="https://docs.google.com/forms/d/e/1FAIpQLSd75F01pQoMYs9Jw6ePNeL_rsOAhW2arLo3pOH0EeZoWZMX8A/viewform"
    target="_blank" rel="noopener"
-   class="action-stripe action-stripe--update">
-  <span class="action-stripe__text">ACTUALIZA TUS DATOS AQUÍ</span>
+   class="update-banner-link">
+  <img src="{% static 'images/actualizar.png' %}" alt="Actualiza tus datos aquí" class="update-banner-img update-banner-img--normal">
+  <img src="{% static 'images/actualizar-hover.png' %}" alt="Actualiza tus datos aquí" class="update-banner-img update-banner-img--hover">
 </a>
 {% endif %}
 
@@ -51,23 +52,43 @@
     color: #ffffff;
   }
 
-  .action-stripe--update {
-    background: #dc3545;
-  }
-
-  .action-stripe--update:hover {
-    background: #c82333;
-  }
-
-  .action-stripe--update .action-stripe__text {
-    color: rgba(255, 255, 255, 0.92);
-  }
-
   .action-stripe--vote:hover .action-stripe__text {
     letter-spacing: clamp(0.2em, 2.5vw, 0.55em);
   }
-  .action-stripe--update:hover .action-stripe__text {
-    letter-spacing: clamp(0.2em, 2.5vw, 0.55em);
+
+  /* Estilos para el banner de actualizar datos con efecto hover */
+  .update-banner-link {
+    display: block;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .update-banner-img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  .update-banner-img--hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    opacity: 0;
+  }
+
+  .update-banner-link:hover .update-banner-img--normal {
+    opacity: 0;
+  }
+
+  .update-banner-link:hover .update-banner-img--hover {
+    opacity: 1;
   }
 
   @media (max-width: 576px) {
