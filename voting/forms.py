@@ -1,6 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from voting.models import UserData, VotingRecord, APICounter
+from voting.rate_limit import is_rate_limited, record_attempt, get_wait_seconds
 import re
 
 
@@ -177,6 +178,17 @@ class MilitanteRegistrationForm(forms.Form):
             import urllib.request
             import json
             from django.conf import settings
+
+            # ── Rate limiting: 5 llamadas / 5 min por IP ──
+            _request = getattr(self, '_http_request', None)
+            if _request and is_rate_limited(_request, 'api_regcivil', 5, 300):
+                wait = get_wait_seconds(_request, 'api_regcivil', 300)
+                self.add_error(
+                    'numero_documento',
+                    f"Demasiados intentos de validación. Espera {wait} segundos."
+                )
+                return cleaned_data
+
             # Incrementar el contador de uso del API antes de realizar la llamada
             try:
                 counter, created = APICounter.objects.get_or_create(
@@ -188,6 +200,10 @@ class MilitanteRegistrationForm(forms.Form):
                 # No bloquear la validación si la base de datos no está disponible
                 pass
 
+            # Registrar intento para rate limiting
+            if _request:
+                record_attempt(_request, 'api_regcivil', 300)
+
             url = "https://smartinvoice2.certificadoradelsur.cl/checkidentitycard/rest-services/public/validacion/validarCedula"
             data = {
                 "rut": rut,
@@ -198,7 +214,7 @@ class MilitanteRegistrationForm(forms.Form):
             req = urllib.request.Request(url, json.dumps(data).encode('utf-8'), {'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'})
             
             try:
-                with urllib.request.urlopen(req) as response:
+                with urllib.request.urlopen(req, timeout=10) as response:
                     res_data = json.loads(response.read().decode())
                     estado = res_data.get('estado')
                     estado_cedula = res_data.get('estadoCedula')
@@ -208,8 +224,8 @@ class MilitanteRegistrationForm(forms.Form):
                     else:
                         error_msg = res_data.get('estadoCedula', res_data.get('comentarios', 'Cédula inválida'))
                         self.add_error('numero_documento', f"Validación fallida: {error_msg}")
-            except Exception as e:
-                self.add_error('numero_documento', f"No se pudo validar la cédula en este momento. Intente más tarde.")
+            except Exception:
+                self.add_error('numero_documento', "No se pudo validar la cédula en este momento. Intente más tarde.")
         
         return cleaned_data
 

@@ -13,6 +13,7 @@ from dashboard.decorators import maintainer_login_required, admin_required, no_a
 from dashboard.services import ExcelService
 from voting.services import EmailService
 from voting.time_utils import get_real_now
+from voting.rate_limit import rate_limit_check, record_attempt
 from datetime import timedelta
 import json
 import logging
@@ -97,6 +98,12 @@ def login_view(request):
         return redirect('dashboard:dashboard')
     
     if request.method == 'POST':
+        # Rate limiting: 5 intentos / 10 min
+        limited, wait = rate_limit_check(request, 'login_dashboard', 5, 600)
+        if limited:
+            messages.error(request, f"Demasiados intentos de login. Espera {wait} segundos.")
+            return render(request, 'dashboard/login.html', {'form': MaintainerLoginForm()})
+
         form = MaintainerLoginForm(request.POST)
         if form.is_valid():
             mail = form.cleaned_data.get('mail')
@@ -111,8 +118,10 @@ def login_view(request):
                     messages.success(request, f"Bienvenido, {maintainer.name}!")
                     return redirect('dashboard:dashboard')
                 else:
-                    messages.error(request, "Contraseña incorrecta.")
+                    record_attempt(request, 'login_dashboard', 600)
+                    messages.error(request, "Correo o contraseña incorrectos.")
             except Maintainer.DoesNotExist:
+                record_attempt(request, 'login_dashboard', 600)
                 messages.error(request, "Correo o contraseña incorrectos.")
     else:
         form = MaintainerLoginForm()
@@ -850,11 +859,18 @@ def reset_password(request, token):
 def request_password_reset(request):
     """Vista pública para solicitar un reset de contraseña (SIN LOGIN REQUERIDO)"""
     if request.method == 'POST':
+        # Rate limiting: 3 solicitudes / 10 min
+        limited, wait = rate_limit_check(request, 'reset_dashboard', 3, 600)
+        if limited:
+            messages.error(request, f"Demasiados intentos. Espera {wait} segundos.")
+            return redirect('dashboard:request_password_reset')
+
         mail = request.POST.get('mail', '').strip()
         
         try:
             maintainer = Maintainer.objects.get(mail=mail, is_active=True)
             # Crear token de recuperación
+            record_attempt(request, 'reset_dashboard', 600)
             reset_token = PasswordResetToken.create_token(maintainer)
             
             # Enviar email con link de recuperación
@@ -865,7 +881,7 @@ def request_password_reset(request):
                 reset_link=reset_link
             )
             
-            messages.success(request, f"Se ha enviado un link de recuperación a {mail}. Revisa tu bandeja de entrada.")
+            messages.success(request, "Si el correo existe en el sistema, recibirás un email con instrucciones.")
         except Maintainer.DoesNotExist:
             # No revelar si el email existe o no por seguridad
             messages.info(request, "Si el correo existe, recibirás un email con instrucciones.")

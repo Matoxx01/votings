@@ -42,6 +42,7 @@ from voting.models import Voting, Subject, UserData, Count, VotingRecord, Region
 from voting.forms import VoterRegistrationForm, MilitanteRegistrationForm, MilitanteLoginForm, MilitantePasswordResetRequestForm, MilitantePasswordResetForm
 from voting.services import EmailService
 from voting.time_utils import get_real_now
+from voting.rate_limit import rate_limit_check, record_attempt, rate_limit_json
 
 
 def favicon(request):
@@ -362,6 +363,7 @@ def militante_register(request, token):
     
     if request.method == 'POST':
         form = MilitanteRegistrationForm(request.POST)
+        form._http_request = request  # Para rate limiting de API Registro Civil
         if form.is_valid():
             rut = form.cleaned_data.get('rut')
             password = form.cleaned_data.get('password')
@@ -453,6 +455,15 @@ def militante_login(request, voting_id):
     contact_email = settings.DEFAULT_FROM_EMAIL
     
     if request.method == 'POST':
+        # Rate limiting: 5 intentos / 5 min
+        limited, wait = rate_limit_check(request, 'login_militante', 5, 300)
+        if limited:
+            messages.error(request, f"Demasiados intentos. Espera {wait} segundos antes de intentar nuevamente.")
+            return render(request, 'voting/militante_login.html', {
+                'form': MilitanteLoginForm(),
+                'voting': voting,
+                'contact_email': contact_email,
+            })
         form = MilitanteLoginForm(request.POST)
         if not form.is_valid():
             # Si el form no es válido, se queda en la página con los errores
@@ -466,6 +477,7 @@ def militante_login(request, voting_id):
             try:
                 militante = Militante.objects.get(rut=rut, is_active=True)
             except Militante.DoesNotExist:
+                record_attempt(request, 'login_militante', 300)
                 messages.error(
                     request, 
                     f"No estás validado. Contacta a {contact_email}"
@@ -478,6 +490,7 @@ def militante_login(request, voting_id):
             
             # Verificar contraseña
             if not check_password(password, militante.password):
+                record_attempt(request, 'login_militante', 300)
                 messages.error(request, "Contraseña incorrecta.")
                 return render(request, 'voting/militante_login.html', {
                     'form': form,
@@ -555,6 +568,13 @@ def militante_password_reset_request(request, voting_id=None):
         voting = get_object_or_404(Voting, id=voting_id)
     
     if request.method == 'POST':
+        # Rate limiting: 3 solicitudes / 10 min
+        limited, wait = rate_limit_check(request, 'reset_militante', 3, 600)
+        if limited:
+            messages.error(request, f"Demasiados intentos. Espera {wait} segundos.")
+            if voting:
+                return redirect('voting:militante_password_reset_request', voting_id=voting_id)
+            return redirect('voting:index')
         form = MilitantePasswordResetRequestForm(request.POST)
         if form.is_valid():
             rut = form.cleaned_data.get('rut')
@@ -564,6 +584,7 @@ def militante_password_reset_request(request, voting_id=None):
                 
                 # Crear token de recuperación
                 token_obj = MilitantePasswordResetToken.create_token(militante)
+                record_attempt(request, 'reset_militante', 600)
                 
                 # Enviar correo
                 base_url = request.build_absolute_uri('/')[:-1]
@@ -647,6 +668,7 @@ def militante_password_reset(request, token):
 from django.http import JsonResponse
 
 @require_http_methods(["POST"])
+@rate_limit_json('envio_codigo', max_attempts=3, window_seconds=300)
 def enviar_codigo_correo(request):
     """Genera y envía un código de verificación por correo via AJAX"""
     try:
@@ -659,19 +681,25 @@ def enviar_codigo_correo(request):
         # Generar código de 6 dígitos
         code = f"{random.randint(100000, 999999)}"
         
-        # Guardar en sesión
+        # Guardar en sesión con timestamp de expiración (5 minutos)
+        import time as _time
         request.session['verification_code'] = code
         request.session['verification_email'] = email
+        request.session['verification_code_expires'] = _time.time() + 300
         request.session.modified = True
+        
+        # Registrar intento para rate limiting
+        record_attempt(request, 'envio_codigo', 300)
         
         # Enviar correo
         EmailService.send_verification_code_email(email, code)
         
         return JsonResponse({'success': True, 'message': 'Código enviado exitosamente.'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+    except Exception:
+        return JsonResponse({'success': False, 'message': 'Error al enviar el código. Intenta más tarde.'})
 
 @require_http_methods(["POST"])
+@rate_limit_json('validar_codigo', max_attempts=5, window_seconds=300)
 def validar_codigo_correo(request):
     """Valida el código asíncronamente y guarda estado verificado en sesión"""
     try:
@@ -681,22 +709,35 @@ def validar_codigo_correo(request):
         
         session_code = request.session.get('verification_code')
         session_email = request.session.get('verification_email')
+        code_expires = request.session.get('verification_code_expires', 0)
         
         if not session_code or not session_email:
             return JsonResponse({'success': False, 'message': 'No hay código pendiente. Envíe uno nuevo.'})
-            
+        
+        # Verificar expiración del código (5 minutos)
+        import time as _time
+        if _time.time() > code_expires:
+            # Limpiar código expirado
+            for k in ('verification_code', 'verification_email', 'verification_code_expires'):
+                request.session.pop(k, None)
+            request.session.modified = True
+            return JsonResponse({'success': False, 'message': 'El código ha expirado. Solicita uno nuevo.'})
+        
+        # Registrar intento para rate limiting
+        record_attempt(request, 'validar_codigo', 300)
+        
         if email == session_email and str(code) == str(session_code):
             request.session['correo_cambiado_verificado'] = True
             request.session['nuevo_correo_verificado'] = email
             request.session.modified = True
-            # Limpiamos
-            if 'verification_code' in request.session:
-                del request.session['verification_code']
+            # Limpiamos código usado
+            for k in ('verification_code', 'verification_email', 'verification_code_expires'):
+                request.session.pop(k, None)
             return JsonResponse({'success': True, 'message': 'Correo verificado exitosamente.'})
         else:
             return JsonResponse({'success': False, 'message': 'Código o correo incorrecto.'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+    except Exception:
+        return JsonResponse({'success': False, 'message': 'Error al validar. Intenta más tarde.'})
 
 
 
