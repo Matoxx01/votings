@@ -235,7 +235,7 @@ class EmailService:
         )
 
     @staticmethod
-    def send_bulk_upcoming_voting_emails(militantes, voting, delay=1):
+    def send_bulk_upcoming_voting_emails(militantes, voting, delay=0.2):
         """
         Envía correos masivos notificando una votación próxima
         
@@ -279,7 +279,7 @@ class EmailService:
         return results
 
     @staticmethod
-    def send_bulk_upcoming_voting_emails_for_unregistered(tokens, voting, base_url, delay=1):
+    def send_bulk_upcoming_voting_emails_for_unregistered(tokens, voting, base_url, delay=0.2):
         """
         Envía correos masivos notificando una votación a usuarios pendientes de registro
         """
@@ -317,14 +317,14 @@ class EmailService:
         return results
 
     @staticmethod
-    def send_bulk_registration_emails(users_data, base_url, delay=1):
+    def send_bulk_registration_emails(users_data, base_url, delay=0.2):
         """
         Envía correos de registro masivamente con delay
         
         Args:
             users_data: Lista de diccionarios con {nombre, rut, mail, token}
             base_url: URL base del sitio
-            delay: Segundos entre cada envío (default 1)
+            delay: Segundos entre cada envío (default 0.2)
             
         Returns:
             dict: {sent: int, failed: int, errors: list}

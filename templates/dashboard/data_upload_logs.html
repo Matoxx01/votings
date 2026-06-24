@@ -52,7 +52,9 @@
                                 <span class="text-danger" title="Fallidos">{{ log.emails_failed }}</span>
                             </td>
                             <td>
-                                {% if log.details.process_error %}
+                                {% if log.details.in_progress %}
+                                <span class="text-primary"><i class="bi bi-hourglass-split"></i> En Proceso</span>
+                                {% elif log.details.process_error %}
                                 <span class="text-danger"><i class="bi bi-x-circle"></i> Falla Proceso</span>
                                 {% elif log.details.email_errors %}
                                 <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Errores Correos</span>
@@ -98,7 +100,13 @@
                                     </div>
                                 </div>
                                 
-                                {% if log.details.process_error %}
+                                {% if log.details.in_progress %}
+                                <div class="alert alert-primary mt-3 mb-0">
+                                    <h6 class="alert-heading"><i class="bi bi-hourglass-split"></i> Procesando en Segundo Plano</h6>
+                                    <hr>
+                                    <p class="mb-0">El archivo se está procesando actualmente en el servidor. Los contadores y el estado final se actualizarán automáticamente en cuanto el proceso termine.</p>
+                                </div>
+                                {% elif log.details.process_error %}
                                 <div class="alert alert-danger mt-3 mb-0">
                                     <h6 class="alert-heading"><i class="bi bi-x-circle"></i> Error Crítico en la Carga/Proceso:</h6>
                                     <hr>

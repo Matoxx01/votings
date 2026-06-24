@@ -49,23 +49,26 @@ class ExcelService:
             if 'rut' not in df.columns:
                 raise ValueError("El archivo debe contener una columna 'rut'")
             
-            count = 0
+            ruts_in_df = set()
             for index, row in df.iterrows():
                 rut_raw = row['rut']
-                if pd.isna(rut_raw):
-                    continue
-                rut = format_rut(rut_raw)
-                
-                if rut:
-                    user_data, created = UserData.objects.get_or_create(
-                        id_voting=voting,
-                        rut=rut,
-                        defaults={'register': False, 'has_voted': False}
-                    )
-                    if created:
-                        count += 1
+                if pd.notna(rut_raw):
+                    rut = format_rut(rut_raw)
+                    if rut:
+                        ruts_in_df.add(rut)
             
-            return count
+            # Consultar los RUTs existentes para esta votación en una sola consulta
+            existing_ruts = set(UserData.objects.filter(id_voting=voting, rut__in=ruts_in_df).values_list('rut', flat=True))
+            new_ruts = ruts_in_df - existing_ruts
+            
+            if new_ruts:
+                user_data_objects = [
+                    UserData(id_voting=voting, rut=rut, register=False, has_voted=False)
+                    for rut in new_ruts
+                ]
+                UserData.objects.bulk_create(user_data_objects, batch_size=1000)
+            
+            return len(new_ruts)
         
         except Exception as e:
             raise Exception(f"Error al procesar el archivo Excel: {str(e)}")
@@ -92,7 +95,9 @@ class ExcelService:
             if len(df.columns) < 3:
                 raise ValueError("El archivo debe tener al menos 3 columnas: RUT (A), Nombre (B), Mail (C)")
             
-            users = []
+            rows_data = []
+            ruts_in_df = set()
+            
             for index, row in df.iterrows():
                 rut_raw = row[0]  # Columna A
                 nombre = str(row[1]).strip() if pd.notna(row[1]) else ''  # Columna B
@@ -103,16 +108,18 @@ class ExcelService:
                 
                 # Formatear RUT
                 rut = format_rut(rut_raw)
-                
-                # Validar que no existe ya como militante
-                if Militante.objects.filter(rut=rut).exists():
-                    continue  # Saltar si ya existe
-                
-                users.append({
-                    'nombre': nombre,
-                    'rut': rut,
-                    'mail': mail
-                })
+                if rut:
+                    rows_data.append({
+                        'nombre': nombre,
+                        'rut': rut,
+                        'mail': mail
+                    })
+                    ruts_in_df.add(rut)
+            
+            # Consultar una sola vez a la base de datos para saber qué RUTs ya existen (evita N+1 queries)
+            existing_ruts = set(Militante.objects.filter(rut__in=ruts_in_df).values_list('rut', flat=True))
+            
+            users = [data for data in rows_data if data['rut'] not in existing_ruts]
             
             return users
         

@@ -371,6 +371,95 @@ def user_statuses_api(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
+import threading
+import io
+from django.db import close_old_connections
+
+def async_user_data_upload(log_id, voting_id, file_bytes, base_url):
+    close_old_connections()
+    try:
+        log = DataUploadLog.objects.get(id=log_id)
+        voting = Voting.objects.get(id=voting_id)
+        excel_buffer = io.BytesIO(file_bytes)
+        
+        count_imported = ExcelService.import_user_data(voting, excel_buffer)
+        
+        # Obtener RUTs importados
+        imported_ruts = UserData.objects.filter(id_voting=voting).values_list('rut', flat=True)
+        
+        # 1. Notificar a militantes activos (registrados)
+        militantes_to_notify = list(Militante.objects.filter(rut__in=imported_ruts, is_active=True))
+        
+        # 2. Notificar a usuarios pendientes de registro (con tokens válidos)
+        tokens_to_notify = list(MilitanteRegistrationToken.objects.filter(rut__in=imported_ruts, used=False))
+        
+        email_results = {'sent': 0, 'failed': 0, 'errors': []}
+        
+        if militantes_to_notify:
+            res1 = EmailService.send_bulk_upcoming_voting_emails(militantes_to_notify, voting)
+            email_results['sent'] += res1['sent']
+            email_results['failed'] += res1['failed']
+            email_results['errors'].extend(res1.get('errors', []))
+            
+        if tokens_to_notify:
+            res2 = EmailService.send_bulk_upcoming_voting_emails_for_unregistered(tokens_to_notify, voting, base_url)
+            email_results['sent'] += res2['sent']
+            email_results['failed'] += res2['failed']
+            email_results['errors'].extend(res2.get('errors', []))
+        
+        log.total_rows = count_imported
+        log.success_count = count_imported
+        log.emails_sent = email_results['sent']
+        log.emails_failed = email_results['failed']
+        log.details = {'email_errors': email_results['errors'], 'in_progress': False}
+        log.save()
+    except Exception as e:
+        try:
+            log = DataUploadLog.objects.get(id=log_id)
+            log.error_count = 1
+            log.details = {'process_error': str(e), 'in_progress': False}
+            log.save()
+        except Exception:
+            pass
+    finally:
+        close_old_connections()
+
+
+def async_militante_invite(log_id, file_bytes, base_url):
+    close_old_connections()
+    try:
+        log = DataUploadLog.objects.get(id=log_id)
+        excel_buffer = io.BytesIO(file_bytes)
+        
+        # Importar datos del Excel
+        users_data = ExcelService.import_militantes_from_excel(excel_buffer)
+        
+        if not users_data:
+            log.details = {'process_error': 'No se encontraron usuarios válidos para invitar (o ya estaban todos registrados).', 'in_progress': False}
+            log.save()
+            return
+            
+        # Enviar correos con delay
+        results = EmailService.send_bulk_registration_emails(users_data, base_url)
+        
+        log.total_rows = len(users_data)
+        log.success_count = len(users_data)
+        log.emails_sent = results['sent']
+        log.emails_failed = results['failed']
+        log.details = {'email_errors': results.get('errors', []), 'in_progress': False}
+        log.save()
+    except Exception as e:
+        try:
+            log = DataUploadLog.objects.get(id=log_id)
+            log.error_count = 1
+            log.details = {'process_error': str(e), 'in_progress': False}
+            log.save()
+        except Exception:
+            pass
+    finally:
+        close_old_connections()
+
+
 @maintainer_login_required
 @no_auditor
 def user_data_upload(request):
@@ -383,55 +472,35 @@ def user_data_upload(request):
             
             try:
                 voting = Voting.objects.get(id=voting_id)
-                count_imported = ExcelService.import_user_data(voting, excel_file)
-                
-                # Obtener RUTs importados
-                imported_ruts = UserData.objects.filter(id_voting=voting).values_list('rut', flat=True)
-                
-                # 1. Notificar a militantes activos (registrados)
-                militantes_to_notify = list(Militante.objects.filter(rut__in=imported_ruts, is_active=True))
-                
-                # 2. Notificar a usuarios pendientes de registro (con tokens válidos)
-                tokens_to_notify = list(MilitanteRegistrationToken.objects.filter(rut__in=imported_ruts, used=False))
-                
+                file_bytes = excel_file.read()
                 base_url = request.build_absolute_uri('/')[:-1]  # Quitar trailing slash
                 
-                email_results = {'sent': 0, 'failed': 0, 'errors': []}
-                
-                if militantes_to_notify:
-                    res1 = EmailService.send_bulk_upcoming_voting_emails(militantes_to_notify, voting)
-                    email_results['sent'] += res1['sent']
-                    email_results['failed'] += res1['failed']
-                    email_results['errors'].extend(res1.get('errors', []))
-                    
-                if tokens_to_notify:
-                    res2 = EmailService.send_bulk_upcoming_voting_emails_for_unregistered(tokens_to_notify, voting, base_url)
-                    email_results['sent'] += res2['sent']
-                    email_results['failed'] += res2['failed']
-                    email_results['errors'].extend(res2.get('errors', []))
-                
-                # Registrar el log
                 maintainer_id = request.session.get('maintainer_id')
                 maintainer_obj = Maintainer.objects.filter(id=maintainer_id).first() if maintainer_id else None
-                DataUploadLog.objects.create(
+                
+                # Crear el log en estado "EN PROCESO"
+                log = DataUploadLog.objects.create(
                     maintainer=maintainer_obj,
                     upload_type='VOTANTES',
                     voting=voting,
                     file_name=excel_file.name,
-                    total_rows=count_imported, 
-                    success_count=count_imported,
+                    total_rows=0, 
+                    success_count=0,
                     error_count=0,
-                    emails_sent=email_results['sent'],
-                    emails_failed=email_results['failed'],
-                    details={'email_errors': email_results['errors']}
+                    emails_sent=0,
+                    emails_failed=0,
+                    details={'in_progress': True}
                 )
 
-                msg = f"{count_imported} usuarios importados. "
-                if email_results['sent'] > 0:
-                    msg += f"{email_results['sent']} correos enviados. "
-                if email_results['failed'] > 0:
-                    msg += f"{email_results['failed']} correos fallidos."
-                messages.success(request, msg)
+                # Iniciar hilo en segundo plano
+                thread = threading.Thread(
+                    target=async_user_data_upload,
+                    args=(log.id, voting.id, file_bytes, base_url)
+                )
+                thread.daemon = True
+                thread.start()
+
+                messages.success(request, "El archivo se ha cargado correctamente y se está procesando en segundo plano. Puedes cerrar el navegador o navegar a otra página. Revisa la pestaña 'Registros de Carga' para ver el progreso y resultado final.")
                 return redirect('dashboard:user_data_upload')
             except Voting.DoesNotExist:
                 maintainer_id = request.session.get('maintainer_id')
@@ -484,44 +553,38 @@ def militante_invite(request):
             excel_file = request.FILES.get('file')
             
             try:
-                # Importar datos del Excel
-                users_data = ExcelService.import_militantes_from_excel(excel_file)
-                
-                if not users_data:
-                    messages.warning(request, "No se encontraron usuarios válidos para invitar.")
-                    return redirect('dashboard:militante_invite')
-                
-                # Obtener URL base
+                file_bytes = excel_file.read()
                 base_url = request.build_absolute_uri('/')[:-1]  # Quitar trailing slash
                 
-                # Enviar correos con delay
-                results = EmailService.send_bulk_registration_emails(users_data, base_url)
-                
-                # Registrar el log
                 maintainer_id = request.session.get('maintainer_id')
                 maintainer_obj = Maintainer.objects.filter(id=maintainer_id).first() if maintainer_id else None
-                DataUploadLog.objects.create(
+                
+                # Crear el log en estado "EN PROCESO"
+                log = DataUploadLog.objects.create(
                     maintainer=maintainer_obj,
                     upload_type='REGISTRO_MILITANTES',
                     voting=None,
                     file_name=excel_file.name,
-                    total_rows=len(users_data),
-                    success_count=len(users_data),
+                    total_rows=0,
+                    success_count=0,
                     error_count=0,
-                    emails_sent=results['sent'],
-                    emails_failed=results['failed'],
-                    details={'email_errors': results.get('errors', [])}
+                    emails_sent=0,
+                    emails_failed=0,
+                    details={'in_progress': True}
                 )
+
+                # Iniciar hilo en segundo plano
+                thread = threading.Thread(
+                    target=async_militante_invite,
+                    args=(log.id, file_bytes, base_url)
+                )
+                thread.daemon = True
+                thread.start()
 
                 messages.success(
                     request, 
-                    f"Proceso completado: {results['sent']} correos enviados, {results['failed']} fallidos."
+                    "El archivo se ha cargado correctamente y se está procesando en segundo plano. Puedes cerrar el navegador o navegar a otra página. Revisa la pestaña 'Registros de Carga' para ver el progreso y resultado final."
                 )
-                
-                if results['errors']:
-                    for error in results['errors'][:5]:  # Mostrar máximo 5 errores
-                        messages.warning(request, error)
-                
                 return redirect('dashboard:militante_invite')
                 
             except Exception as e:
