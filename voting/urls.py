@@ -23,5 +23,8 @@ urlpatterns = [
     path('recuperar-contrasena-militante/<str:token>/', views.militante_password_reset, name='militante_password_reset'),
     path('verificar-correo/enviar/', views.enviar_codigo_correo, name='enviar_codigo_correo'),
     path('verificar-correo/validar/', views.validar_codigo_correo, name='validar_codigo_correo'),
+    path('login-militante/', views.militante_general_login, name='militante_general_login'),
+    path('editar-usuario/', views.militante_edit_profile, name='militante_edit_profile'),
+    path('olvide-contrasena/', views.militante_password_reset_request, name='militante_general_password_reset_request'),
     # Postulación
 ]

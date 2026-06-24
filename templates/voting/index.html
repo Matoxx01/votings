@@ -215,6 +215,25 @@
           </div>
         </div>
       </div>
+      <!-- Tarjeta Edita tu usuario -->
+      <div class="col-md-5 col-lg-4 mb-4 d-flex flex-column">
+        <div class="card h-100 shadow flex-grow-1">
+          <div class="card-img-top ratio ratio-16x9" style="background: #f8f9fa;">
+            <img src="{% static 'images/boton-sesion.png' %}" alt="Edita tu usuario" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div>
+              <h5 class="card-title">Edita tu usuario</h5>
+              <p class="card-text text-muted" style="font-size: 0.93rem;">
+                Inicia sesión como militante para actualizar tus datos personales, correo electrónico o contraseña.
+              </p>
+            </div>
+            <a href="{% url 'voting:militante_general_login' %}" class="btn btn-postulacion mt-3">
+              Iniciar Sesión
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
 </div>
 {% endblock %}

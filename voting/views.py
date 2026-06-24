@@ -39,7 +39,7 @@ import io
 import json
 import random
 from voting.models import Voting, Subject, UserData, Count, VotingRecord, Region, Militante, MilitanteRegistrationToken, MilitantePasswordResetToken
-from voting.forms import VoterRegistrationForm, MilitanteRegistrationForm, MilitanteLoginForm, MilitantePasswordResetRequestForm, MilitantePasswordResetForm
+from voting.forms import VoterRegistrationForm, MilitanteRegistrationForm, MilitanteLoginForm, MilitantePasswordResetRequestForm, MilitantePasswordResetForm, MilitanteEditProfileForm
 from voting.services import EmailService
 from voting.time_utils import get_real_now
 from voting.rate_limit import rate_limit_check, record_attempt, rate_limit_json
@@ -472,7 +472,7 @@ def militante_login(request, voting_id):
     if session_key in request.session:
         return redirect('voting:voting_detail', voting_id=voting_id)
     
-    contact_email = settings.DEFAULT_FROM_EMAIL
+    contact_email = 'contacto@partidorepublicanodechile.cl'
     
     if request.method == 'POST':
         # Rate limiting: 5 intentos / 5 min
@@ -629,7 +629,7 @@ def militante_password_reset_request(request, voting_id=None):
                 
             except Militante.DoesNotExist:
                 # Mostrar mensaje de que no está validado
-                contact_email = settings.DEFAULT_FROM_EMAIL
+                contact_email = 'contacto@partidorepublicanodechile.cl'
                 messages.error(request, f"No estás validado. Contacta a {contact_email}")
                 if voting:
                     return redirect('voting:militante_password_reset_request', voting_id=voting_id)
@@ -637,7 +637,7 @@ def militante_password_reset_request(request, voting_id=None):
     else:
         form = MilitantePasswordResetRequestForm()
     
-    contact_email = settings.DEFAULT_FROM_EMAIL
+    contact_email = 'contacto@partidorepublicanodechile.cl'
     
     context = {
         'form': form,
@@ -697,6 +697,9 @@ def enviar_codigo_correo(request):
         
         if not email:
             return JsonResponse({'success': False, 'message': 'Correo inválido.'})
+        
+        if Militante.objects.filter(mail=email).exists():
+            return JsonResponse({'success': False, 'message': 'Este correo ya está registrado en el sistema.'})
         
         # Generar código de 6 dígitos
         code = f"{random.randint(100000, 999999)}"
@@ -760,4 +763,152 @@ def validar_codigo_correo(request):
         return JsonResponse({'success': False, 'message': 'Error al validar. Intenta más tarde.'})
 
 
+@require_http_methods(["GET", "POST"])
+def militante_general_login(request):
+    """Vista de login general para militantes (para editar usuario)"""
+    # Si ya está logueado, redirigir a editar perfil
+    for key in request.session.keys():
+        if key.startswith('militante_'):
+            return redirect('voting:militante_edit_profile')
+    
+    contact_email = 'contacto@partidorepublicanodechile.cl'
+    
+    if request.method == 'POST':
+        limited, wait = rate_limit_check(request, 'login_militante', 5, 300)
+        if limited:
+            messages.error(request, f"Demasiados intentos. Espera {wait} segundos antes de intentar nuevamente.")
+            return render(request, 'voting/militante_general_login.html', {
+                'form': MilitanteLoginForm(),
+                'contact_email': contact_email,
+            })
+        form = MilitanteLoginForm(request.POST)
+        if form.is_valid():
+            rut = form.cleaned_data.get('rut')
+            password = form.cleaned_data.get('password')
+            
+            try:
+                militante = Militante.objects.get(rut=rut, is_active=True)
+            except Militante.DoesNotExist:
+                record_attempt(request, 'login_militante', 300)
+                messages.error(
+                    request, 
+                    f"No estás validado. Contacta a {contact_email}"
+                )
+                return render(request, 'voting/militante_general_login.html', {
+                    'form': form,
+                    'contact_email': contact_email,
+                })
+            
+            if not check_password(password, militante.password):
+                record_attempt(request, 'login_militante', 300)
+                messages.error(request, "Contraseña incorrecta.")
+                return render(request, 'voting/militante_general_login.html', {
+                    'form': form,
+                    'contact_email': contact_email,
+                })
+            
+            # Guardar en sesión general de militante
+            request.session['militante_general'] = {
+                'rut': rut,
+                'mail': militante.mail,
+                'name': militante.nombre,
+                'lastname': '',
+                'militante_id': militante.id,
+            }
+            request.session.modified = True
+            
+            messages.success(request, f"¡Bienvenido/a {militante.nombre}! Puedes actualizar tus datos a continuación.")
+            return redirect('voting:militante_edit_profile')
+    else:
+        form = MilitanteLoginForm()
+    
+    context = {
+        'form': form,
+        'contact_email': contact_email,
+    }
+    return render(request, 'voting/militante_general_login.html', context)
 
+
+@require_http_methods(["GET", "POST"])
+def militante_edit_profile(request):
+    """Vista para que un militante edite sus datos (correo, nombre, contraseña) sin cambiar RUT"""
+    militante_data = None
+    session_key = None
+    for key in request.session.keys():
+        if key.startswith('militante_'):
+            militante_data = request.session[key]
+            session_key = key
+            break
+            
+    if not militante_data or 'rut' not in militante_data:
+        messages.error(request, "Debes iniciar sesión para editar tus datos.")
+        return redirect('voting:militante_general_login')
+        
+    rut = militante_data.get('rut')
+    try:
+        militante = Militante.objects.get(rut=rut, is_active=True)
+    except Militante.DoesNotExist:
+        messages.error(request, "Usuario no encontrado o inactivo.")
+        return redirect('voting:militante_logout')
+        
+    if request.method == 'POST':
+        form = MilitanteEditProfileForm(request.POST, militante_rut=militante.rut)
+        if form.is_valid():
+            nombre = form.cleaned_data.get('nombre')
+            password = form.cleaned_data.get('password')
+            
+            # Verificar si quiere cambiar correo
+            cambiar_correo = request.POST.get('check_cambiar_correo') == 'on'
+            final_mail = militante.mail
+            
+            if cambiar_correo:
+                if request.session.get('correo_cambiado_verificado'):
+                    nuevo_correo = request.session.get('nuevo_correo_verificado')
+                    if nuevo_correo:
+                        if Militante.objects.filter(mail=nuevo_correo).exclude(rut=militante.rut).exists():
+                            messages.error(request, "El nuevo correo ya está siendo utilizado por otro usuario.")
+                            return render(request, 'voting/militante_edit_profile.html', {
+                                'form': form,
+                                'militante': militante,
+                                'militante_logged_in': True,
+                                'militante_name': militante_data.get('name', militante.nombre),
+                            })
+                        final_mail = nuevo_correo
+                        del request.session['correo_cambiado_verificado']
+                        del request.session['nuevo_correo_verificado']
+                else:
+                    messages.error(request, "Has marcado la opción de cambiar correo, pero la verificación está incompleta.")
+                    return render(request, 'voting/militante_edit_profile.html', {
+                        'form': form,
+                        'militante': militante,
+                        'militante_logged_in': True,
+                        'militante_name': militante_data.get('name', militante.nombre),
+                    })
+            
+            militante.nombre = nombre
+            militante.mail = final_mail
+            if password:
+                militante.password = make_password(password)
+            militante.save()
+            
+            # Actualizar datos en la sesión
+            request.session[session_key]['name'] = nombre
+            request.session[session_key]['mail'] = final_mail
+            request.session.modified = True
+            
+            messages.success(request, "¡Tus datos han sido actualizados correctamente!")
+            return redirect('voting:index')
+    else:
+        form = MilitanteEditProfileForm(initial={
+            'nombre': militante.nombre,
+            'rut': militante.rut,
+            'mail': militante.mail,
+        })
+        
+    context = {
+        'form': form,
+        'militante': militante,
+        'militante_logged_in': True,
+        'militante_name': militante_data.get('name', militante.nombre),
+    }
+    return render(request, 'voting/militante_edit_profile.html', context)

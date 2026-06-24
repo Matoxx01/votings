@@ -338,3 +338,82 @@ class MilitantePasswordResetForm(forms.Form):
             raise ValidationError("Las contraseñas no coinciden.")
         
         return cleaned_data
+
+
+class MilitanteEditProfileForm(forms.Form):
+    """Formulario para que el militante edite sus datos (excepto el RUT)"""
+    nombre = forms.CharField(
+        max_length=200,
+        label="Nombre",
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ingrese su nombre'
+        })
+    )
+    rut = forms.CharField(
+        max_length=20,
+        label="RUT (No editable)",
+        disabled=True,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly'
+        })
+    )
+    mail = forms.EmailField(
+        label="Correo Electrónico Actual",
+        disabled=True,
+        required=False,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'readonly': 'readonly'
+        })
+    )
+    password = forms.CharField(
+        label="Nueva Contraseña (Opcional)",
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Dejar en blanco para no cambiar',
+            'id': 'password-input'
+        }),
+        help_text="Mínimo 6 caracteres, 1 número y 1 mayúscula. Déjalo en blanco si no deseas cambiarla."
+    )
+    password_confirm = forms.CharField(
+        label="Confirmar Nueva Contraseña",
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Repita la nueva contraseña'
+        })
+    )
+
+    def __init__(self, *args, militante_rut=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.militante_rut = militante_rut
+
+    def clean_password(self):
+        password = self.cleaned_data.get('password')
+        if not password:
+            return password
+        
+        if len(password) < 6:
+            raise ValidationError("La contraseña debe tener al menos 6 caracteres.")
+        
+        if not re.search(r'[A-Z]', password):
+            raise ValidationError("La contraseña debe tener al menos una mayúscula.")
+        
+        if not re.search(r'[0-9]', password):
+            raise ValidationError("La contraseña debe tener al menos un número.")
+        
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_confirm = cleaned_data.get('password_confirm')
+        
+        if password and password != password_confirm:
+            self.add_error('password_confirm', "Las contraseñas no coinciden.")
+        
+        return cleaned_data
