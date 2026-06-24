@@ -51,7 +51,10 @@ class ExcelService:
             
             count = 0
             for index, row in df.iterrows():
-                rut = str(row['rut']).strip().upper()
+                rut_raw = row['rut']
+                if pd.isna(rut_raw):
+                    continue
+                rut = format_rut(rut_raw)
                 
                 if rut:
                     user_data, created = UserData.objects.get_or_create(

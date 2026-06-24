@@ -245,9 +245,9 @@ def process_vote(request, voting, subject, voter_data):
     lastname = voter_data.get('lastname', '')
     user_data_id = voter_data.get('user_data_id')
     
-    # Obtener el user_data
+    # Obtener el user_data con bloqueo de fila para evitar Race Conditions (doble voto)
     try:
-        user_data = UserData.objects.get(id=user_data_id)
+        user_data = UserData.objects.select_for_update().get(id=user_data_id)
     except UserData.DoesNotExist:
         messages.error(request, "Error: No se encontraron los datos de registro.")
         return redirect('voting:militante_login', voting_id=voting.id)
