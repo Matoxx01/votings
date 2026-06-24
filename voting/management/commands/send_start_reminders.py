@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from voting.models import Voting, Militante, UserData
 from voting.services import EmailService
+import time
 
 
 class Command(BaseCommand):
@@ -33,6 +34,9 @@ class Command(BaseCommand):
                 except Exception as e:
                     failed += 1
                     self.stderr.write(f"Error al enviar a {militante.mail}: {e}")
+                
+                # Retraso de 1 segundo entre cada militante registrado
+                time.sleep(1)
 
             # Marcar que ya se enviaron los recordatorios de inicio para esta votación
             voting.start_reminder_sent = True

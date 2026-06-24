@@ -97,6 +97,33 @@ class EmailService:
         )
 
     @staticmethod
+    def send_militante_welcome_email(to_email, nombre):
+        """
+        Envía un correo de bienvenida confirmando el registro exitoso del militante
+        
+        Args:
+            to_email: Correo del militante
+            nombre: Nombre del militante
+        """
+        subject = "¡Registro Completado Exitosamente! - Sistema de Votaciones"
+        
+        context = {
+            'nombre': nombre,
+        }
+        
+        html_message = render_to_string('voting/emails/militante_welcome_email.html', context)
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject,
+            plain_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [to_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+    @staticmethod
     def send_militante_registration_email(to_email, nombre, registration_link):
         """
         Envía un correo de invitación para registro de militante
