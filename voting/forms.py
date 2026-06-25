@@ -179,9 +179,9 @@ class MilitanteRegistrationForm(forms.Form):
             import json
             from django.conf import settings
 
-            # ── Rate limiting: 5 llamadas / 5 min por IP ──
+            # ── Rate limiting: 3 llamadas / 5 min por IP ──
             _request = getattr(self, '_http_request', None)
-            if _request and is_rate_limited(_request, 'api_regcivil', 5, 300):
+            if _request and is_rate_limited(_request, 'api_regcivil', 3, 300):
                 wait = get_wait_seconds(_request, 'api_regcivil', 300)
                 self.add_error(
                     'numero_documento',

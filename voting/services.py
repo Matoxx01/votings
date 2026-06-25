@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils.html import strip_tags
 from django.utils import timezone
 import time
+import pytz
 
 
 class EmailService:
@@ -276,8 +277,9 @@ class EmailService:
         """
         results = {'sent': 0, 'failed': 0, 'errors': []}
         
-        start_date = voting.start_date.strftime('%d/%m/%Y %H:%M')
-        finish_date = voting.finish_date.strftime('%d/%m/%Y %H:%M')
+        santiago_tz = pytz.timezone('America/Santiago')
+        start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+        finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
         
         # Obtener candidatos para la votación
         candidates = voting.subjects.all()
@@ -312,8 +314,9 @@ class EmailService:
         """
         results = {'sent': 0, 'failed': 0, 'errors': []}
         
-        start_date = voting.start_date.strftime('%d/%m/%Y %H:%M')
-        finish_date = voting.finish_date.strftime('%d/%m/%Y %H:%M')
+        santiago_tz = pytz.timezone('America/Santiago')
+        start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+        finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
         
         candidates = voting.subjects.all()
         
@@ -466,10 +469,11 @@ class EmailQueueService:
                 item.save()
                 
                 try:
+                    santiago_tz = pytz.timezone('America/Santiago')
                     if item.email_type == 'UPCOMING_VOTING':
                         voting = item.voting
-                        start_date = voting.start_date.strftime('%d/%m/%Y %H:%M')
-                        finish_date = voting.finish_date.strftime('%d/%m/%Y %H:%M')
+                        start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                        finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
                         candidates = voting.subjects.all()
                         
                         EmailService.send_upcoming_voting_email(
@@ -484,8 +488,8 @@ class EmailQueueService:
                         
                     elif item.email_type == 'UPCOMING_VOTING_UNREGISTERED':
                         voting = item.voting
-                        start_date = voting.start_date.strftime('%d/%m/%Y %H:%M')
-                        finish_date = voting.finish_date.strftime('%d/%m/%Y %H:%M')
+                        start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                        finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
                         candidates = voting.subjects.all()
                         registration_link = f"{item.base_url}/registro-militante/{item.token_obj.token}/"
                         

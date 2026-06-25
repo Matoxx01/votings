@@ -420,6 +420,9 @@ def militante_register(request, token):
                 finish_date__gt=now,
             ).distinct()
             
+            import pytz
+            santiago_tz = pytz.timezone('America/Santiago')
+            
             for voting in active_or_upcoming_votings:
                 if voting.start_date > now:
                     # La votación aún no comienza (Votación próxima)
@@ -429,8 +432,8 @@ def militante_register(request, token):
                             nombre=militante.nombre,
                             voting_title=voting.title,
                             voting_description=voting.description,
-                            start_date=voting.start_date.strftime('%d/%m/%Y %H:%M'),
-                            finish_date=voting.finish_date.strftime('%d/%m/%Y %H:%M'),
+                            start_date=voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M'),
+                            finish_date=voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M'),
                             candidates=voting.subjects.all(),
                         )
                     except Exception:
@@ -722,7 +725,7 @@ def enviar_codigo_correo(request):
         return JsonResponse({'success': False, 'message': 'Error al enviar el código. Intenta más tarde.'})
 
 @require_http_methods(["POST"])
-@rate_limit_json('validar_codigo', max_attempts=5, window_seconds=300)
+@rate_limit_json('validar_codigo', max_attempts=3, window_seconds=300)
 def validar_codigo_correo(request):
     """Valida el código asíncronamente y guarda estado verificado en sesión"""
     try:
