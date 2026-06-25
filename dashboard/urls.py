@@ -26,4 +26,5 @@ urlpatterns = [
     path('maintainers/<int:maintainer_id>/delete/', views.delete_maintainer, name='delete_maintainer'),
     path('maintainers/<int:maintainer_id>/send-password-reset/', views.send_password_reset_email, name='send_password_reset'),
     path('logs/cargas/', views.data_upload_logs, name='data_upload_logs'),
+    path('logs/cargas/reanudar/', views.resume_stuck_uploads, name='resume_stuck_uploads'),
 ]

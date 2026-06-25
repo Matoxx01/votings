@@ -437,3 +437,41 @@ class DataUploadLog(models.Model):
 
     def __str__(self):
         return f"{self.get_upload_type_display()} - {self.file_name} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+
+
+class EmailQueueItem(models.Model):
+    """Modelo para encolar correos y evitar pérdidas ante reinicios/despliegues"""
+    STATUS_CHOICES = (
+        ('PENDING', 'Pendiente'),
+        ('PROCESSING', 'Procesando'),
+        ('SENT', 'Enviado'),
+        ('FAILED', 'Fallido'),
+    )
+    EMAIL_TYPES = (
+        ('UPCOMING_VOTING', 'Votación Próxima (Militante)'),
+        ('UPCOMING_VOTING_UNREGISTERED', 'Votación Próxima (No Registrado)'),
+        ('REGISTRO_MILITANTE', 'Invitación Registro Militante'),
+    )
+    
+    upload_log = models.ForeignKey(DataUploadLog, on_delete=models.CASCADE, related_name='queue_items')
+    email_type = models.CharField(max_length=50, choices=EMAIL_TYPES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    recipient_email = models.EmailField()
+    recipient_name = models.CharField(max_length=255)
+    
+    # Datos de contexto para el envío
+    voting = models.ForeignKey('Voting', on_delete=models.SET_NULL, null=True, blank=True)
+    base_url = models.CharField(max_length=255, blank=True)
+    token_obj = models.ForeignKey('MilitanteRegistrationToken', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    error_message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email Queue Item"
+        verbose_name_plural = "Email Queue Items"
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.email_type} - {self.recipient_email} ({self.status})"

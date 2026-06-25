@@ -378,6 +378,7 @@ from django.db import close_old_connections
 def async_user_data_upload(log_id, voting_id, file_bytes, base_url):
     close_old_connections()
     try:
+        from voting.services import EmailQueueService
         log = DataUploadLog.objects.get(id=log_id)
         voting = Voting.objects.get(id=voting_id)
         excel_buffer = io.BytesIO(file_bytes)
@@ -393,26 +394,18 @@ def async_user_data_upload(log_id, voting_id, file_bytes, base_url):
         # 2. Notificar a usuarios pendientes de registro (con tokens válidos)
         tokens_to_notify = list(MilitanteRegistrationToken.objects.filter(rut__in=imported_ruts, used=False))
         
-        email_results = {'sent': 0, 'failed': 0, 'errors': []}
-        
-        if militantes_to_notify:
-            res1 = EmailService.send_bulk_upcoming_voting_emails(militantes_to_notify, voting)
-            email_results['sent'] += res1['sent']
-            email_results['failed'] += res1['failed']
-            email_results['errors'].extend(res1.get('errors', []))
-            
-        if tokens_to_notify:
-            res2 = EmailService.send_bulk_upcoming_voting_emails_for_unregistered(tokens_to_notify, voting, base_url)
-            email_results['sent'] += res2['sent']
-            email_results['failed'] += res2['failed']
-            email_results['errors'].extend(res2.get('errors', []))
-        
         log.total_rows = count_imported
         log.success_count = count_imported
-        log.emails_sent = email_results['sent']
-        log.emails_failed = email_results['failed']
-        log.details = {'email_errors': email_results['errors'], 'in_progress': False}
         log.save()
+
+        if militantes_to_notify:
+            EmailQueueService.queue_upcoming_voting_emails(militantes_to_notify, voting, log)
+            
+        if tokens_to_notify:
+            EmailQueueService.queue_upcoming_voting_emails_for_unregistered(tokens_to_notify, voting, base_url, log)
+        
+        # Procesar la cola en este mismo hilo
+        EmailQueueService.process_queue_for_log(log.id)
     except Exception as e:
         try:
             log = DataUploadLog.objects.get(id=log_id)
@@ -428,6 +421,7 @@ def async_user_data_upload(log_id, voting_id, file_bytes, base_url):
 def async_militante_invite(log_id, file_bytes, base_url):
     close_old_connections()
     try:
+        from voting.services import EmailQueueService
         log = DataUploadLog.objects.get(id=log_id)
         excel_buffer = io.BytesIO(file_bytes)
         
@@ -439,15 +433,13 @@ def async_militante_invite(log_id, file_bytes, base_url):
             log.save()
             return
             
-        # Enviar correos con delay
-        results = EmailService.send_bulk_registration_emails(users_data, base_url)
-        
         log.total_rows = len(users_data)
         log.success_count = len(users_data)
-        log.emails_sent = results['sent']
-        log.emails_failed = results['failed']
-        log.details = {'email_errors': results.get('errors', []), 'in_progress': False}
         log.save()
+
+        # Encolar y procesar correos
+        EmailQueueService.queue_registration_emails(users_data, base_url, log)
+        EmailQueueService.process_queue_for_log(log.id)
     except Exception as e:
         try:
             log = DataUploadLog.objects.get(id=log_id)
@@ -625,6 +617,25 @@ def data_upload_logs(request):
         'page_obj': page_obj,
     }
     return render(request, 'dashboard/data_upload_logs.html', context)
+
+
+@maintainer_login_required
+@no_auditor
+def resume_stuck_uploads(request):
+    """Vista para reanudar envíos de correos pendientes o destrabar cargas atascadas"""
+    from voting.services import EmailQueueService
+    from voting.models import DataUploadLog, EmailQueueItem
+    
+    logs_count = DataUploadLog.objects.filter(details__in_progress=True).count()
+    items_count = EmailQueueItem.objects.filter(status__in=['PENDING', 'PROCESSING']).count()
+    
+    if logs_count == 0 and items_count == 0:
+        messages.info(request, "No se encontraron cargas atascadas ni correos pendientes en la base de datos.")
+    else:
+        EmailQueueService.resume_all_pending_queues()
+        messages.success(request, f"Se inició la reanudación en segundo plano para {logs_count} cargas y {items_count} correos pendientes.")
+        
+    return redirect('dashboard:data_upload_logs')
 
 
 

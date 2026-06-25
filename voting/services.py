@@ -388,3 +388,183 @@ class EmailService:
                 results['errors'].append(f"{user['mail']}: {str(e)}")
         
         return results
+
+
+class EmailQueueService:
+    """Servicio para gestionar la cola de correos en base de datos"""
+
+    @staticmethod
+    def queue_upcoming_voting_emails(militantes, voting, upload_log):
+        from voting.models import EmailQueueItem
+        items = []
+        for militante in militantes:
+            items.append(EmailQueueItem(
+                upload_log=upload_log,
+                email_type='UPCOMING_VOTING',
+                status='PENDING',
+                recipient_email=militante.mail,
+                recipient_name=militante.nombre,
+                voting=voting,
+            ))
+        EmailQueueItem.objects.bulk_create(items)
+
+    @staticmethod
+    def queue_upcoming_voting_emails_for_unregistered(tokens, voting, base_url, upload_log):
+        from voting.models import EmailQueueItem
+        items = []
+        for token_obj in tokens:
+            items.append(EmailQueueItem(
+                upload_log=upload_log,
+                email_type='UPCOMING_VOTING_UNREGISTERED',
+                status='PENDING',
+                recipient_email=token_obj.mail,
+                recipient_name=token_obj.nombre,
+                voting=voting,
+                base_url=base_url,
+                token_obj=token_obj,
+            ))
+        EmailQueueItem.objects.bulk_create(items)
+
+    @staticmethod
+    def queue_registration_emails(users_data, base_url, upload_log):
+        from voting.models import EmailQueueItem, MilitanteRegistrationToken
+        items = []
+        for user in users_data:
+            # Crear token de registro si no existe o usar uno nuevo
+            token_obj = MilitanteRegistrationToken.create_token(
+                nombre=user['nombre'],
+                rut=user['rut'],
+                mail=user['mail']
+            )
+            items.append(EmailQueueItem(
+                upload_log=upload_log,
+                email_type='REGISTRO_MILITANTE',
+                status='PENDING',
+                recipient_email=user['mail'],
+                recipient_name=user['nombre'],
+                base_url=base_url,
+                token_obj=token_obj,
+            ))
+        EmailQueueItem.objects.bulk_create(items)
+
+    @staticmethod
+    def process_queue_for_log(log_id, delay=0.2):
+        from voting.models import DataUploadLog, EmailQueueItem
+        from django.db import close_old_connections
+        close_old_connections()
+        try:
+            upload_log = DataUploadLog.objects.get(id=log_id)
+            # Marcar in_progress True si no lo estaba
+            if not upload_log.details.get('in_progress'):
+                upload_log.details['in_progress'] = True
+                upload_log.save()
+
+            items = EmailQueueItem.objects.filter(upload_log=upload_log, status__in=['PENDING', 'PROCESSING']).order_by('created_at')
+            
+            for item in items:
+                item.status = 'PROCESSING'
+                item.save()
+                
+                try:
+                    if item.email_type == 'UPCOMING_VOTING':
+                        voting = item.voting
+                        start_date = voting.start_date.strftime('%d/%m/%Y %H:%M')
+                        finish_date = voting.finish_date.strftime('%d/%m/%Y %H:%M')
+                        candidates = voting.subjects.all()
+                        
+                        EmailService.send_upcoming_voting_email(
+                            to_email=item.recipient_email,
+                            nombre=item.recipient_name,
+                            voting_title=voting.title,
+                            voting_description=voting.description,
+                            start_date=start_date,
+                            finish_date=finish_date,
+                            candidates=candidates,
+                        )
+                        
+                    elif item.email_type == 'UPCOMING_VOTING_UNREGISTERED':
+                        voting = item.voting
+                        start_date = voting.start_date.strftime('%d/%m/%Y %H:%M')
+                        finish_date = voting.finish_date.strftime('%d/%m/%Y %H:%M')
+                        candidates = voting.subjects.all()
+                        registration_link = f"{item.base_url}/registro-militante/{item.token_obj.token}/"
+                        
+                        EmailService.send_upcoming_voting_with_registration_email(
+                            to_email=item.recipient_email,
+                            nombre=item.recipient_name,
+                            voting_title=voting.title,
+                            voting_description=voting.description,
+                            start_date=start_date,
+                            finish_date=finish_date,
+                            registration_link=registration_link,
+                            candidates=candidates,
+                        )
+                        
+                    elif item.email_type == 'REGISTRO_MILITANTE':
+                        registration_link = f"{item.base_url}/registro-militante/{item.token_obj.token}/"
+                        
+                        EmailService.send_militante_registration_email(
+                            to_email=item.recipient_email,
+                            nombre=item.recipient_name,
+                            registration_link=registration_link
+                        )
+
+                    item.status = 'SENT'
+                    item.save()
+                    
+                    upload_log.emails_sent += 1
+                    upload_log.save()
+                    
+                    time.sleep(delay)
+                    
+                except Exception as e:
+                    item.status = 'FAILED'
+                    item.error_message = str(e)
+                    item.save()
+                    
+                    upload_log.emails_failed += 1
+                    errors = upload_log.details.get('email_errors', [])
+                    errors.append(f"{item.recipient_email}: {str(e)}")
+                    upload_log.details['email_errors'] = errors
+                    upload_log.save()
+
+            # Finalizar log si ya no quedan items pendientes
+            pendientes = EmailQueueItem.objects.filter(upload_log=upload_log, status__in=['PENDING', 'PROCESSING']).exists()
+            if not pendientes:
+                upload_log.details['in_progress'] = False
+                upload_log.save()
+        except Exception as e:
+            try:
+                upload_log = DataUploadLog.objects.get(id=log_id)
+                upload_log.details['in_progress'] = False
+                upload_log.details['process_error'] = str(e)
+                upload_log.save()
+            except Exception:
+                pass
+        finally:
+            close_old_connections()
+
+    @staticmethod
+    def resume_all_pending_queues():
+        import threading
+        from voting.models import DataUploadLog, EmailQueueItem
+        from django.db import close_old_connections
+        close_old_connections()
+        try:
+            # Buscar logs con in_progress True
+            logs_in_progress = DataUploadLog.objects.filter(details__in_progress=True)
+            for log in logs_in_progress:
+                # Revertir items PROCESSING a PENDING por el reinicio
+                EmailQueueItem.objects.filter(upload_log=log, status='PROCESSING').update(status='PENDING')
+                
+                # Iniciar hilo de procesamiento
+                thread = threading.Thread(
+                    target=EmailQueueService.process_queue_for_log,
+                    args=(log.id,)
+                )
+                thread.daemon = True
+                thread.start()
+        except Exception:
+            pass
+        finally:
+            close_old_connections()
