@@ -540,8 +540,17 @@ class EmailQueueService:
 
     @staticmethod
     def process_queue_for_log(log_id, delay=0.2):
+        """
+        Procesa la cola de correos para un log específico.
+        
+        PROTECCIONES CONTRA ENVÍOS DUPLICADOS:
+        1. select_for_update(skip_locked=True): si otro hilo/worker ya tomó un item, se salta
+        2. transaction.atomic(): la selección y el marcado PROCESSING son una operación indivisible
+        3. Solo toma items PENDING, nunca resetea PROCESSING
+        4. email_errors limitado a 50 entradas para evitar JSON gigante (Error 500/1038)
+        """
         from voting.models import DataUploadLog, EmailQueueItem
-        from django.db import close_old_connections
+        from django.db import close_old_connections, transaction
         close_old_connections()
         try:
             upload_log = DataUploadLog.objects.get(id=log_id)
@@ -549,20 +558,32 @@ class EmailQueueService:
                 upload_log.details['in_progress'] = True
                 upload_log.save()
 
-            items = list(EmailQueueItem.objects.filter(upload_log=upload_log, status__in=['PENDING', 'PROCESSING']).order_by('created_at'))
-            
             santiago_tz = pytz.timezone('America/Santiago')
-            
-            # Procesar en lotes de hasta 100 correos (límite de la API Batch de Resend)
-            for i in range(0, len(items), 100):
-                batch_items = items[i:i+100]
-                
-                # Marcar en base de datos como PROCESSING
-                EmailQueueItem.objects.filter(id__in=[item.id for item in batch_items]).update(status='PROCESSING')
-                
+
+            while True:
+                # === FASE 1: Reclamar un lote de forma ATÓMICA ===
+                # select_for_update(skip_locked=True) garantiza que si otro hilo
+                # ya bloqueó estos items, este hilo los salta en vez de esperar.
+                # Ordenar por 'id' (no 'created_at') para evitar MySQL Error 1038.
+                with transaction.atomic():
+                    batch_items = list(
+                        EmailQueueItem.objects
+                        .select_for_update(skip_locked=True)
+                        .filter(upload_log_id=log_id, status='PENDING')
+                        .order_by('id')[:100]
+                    )
+                    if not batch_items:
+                        break  # No quedan items pendientes, salir del loop
+                    
+                    # Marcar como PROCESSING dentro de la misma transacción atómica
+                    EmailQueueItem.objects.filter(
+                        id__in=[item.id for item in batch_items]
+                    ).update(status='PROCESSING')
+
+                # === FASE 2: Construir payload para Resend Batch API ===
                 batch_payload = []
                 item_data_map = {}
-                
+
                 for item in batch_items:
                     try:
                         if item.email_type == 'UPCOMING_VOTING':
@@ -610,23 +631,25 @@ class EmailQueueService:
                         item.save()
                         upload_log.emails_failed += 1
                         errors = upload_log.details.get('email_errors', [])
-                        errors.append(f"{item.recipient_email}: {str(e)}")
-                        upload_log.details['email_errors'] = errors
+                        if len(errors) < 50:
+                            errors.append(f"{item.recipient_email}: {str(e)}")
+                            upload_log.details['email_errors'] = errors
                         upload_log.save()
-                
+
                 if not batch_payload:
                     continue
-                    
-                # Intentar enviar mediante la API Batch de Resend
+
+                # === FASE 3: Enviar por Resend Batch API (con fallback SMTP) ===
                 success = EmailService.send_resend_batch(batch_payload)
-                
+
                 if success:
-                    # Actualizar exitosamente todo el lote
-                    EmailQueueItem.objects.filter(id__in=[item.id for item in batch_items if item.id in item_data_map]).update(status='SENT')
-                    upload_log.emails_sent += len(batch_payload)
+                    # Marcar todo el lote como SENT de golpe
+                    sent_ids = [item.id for item in batch_items if item.id in item_data_map]
+                    EmailQueueItem.objects.filter(id__in=sent_ids).update(status='SENT')
+                    upload_log.emails_sent += len(sent_ids)
                     upload_log.save()
                 else:
-                    # Fallback: Enviar de forma individual mediante SMTP convencional
+                    # Fallback: enviar uno a uno por SMTP
                     for item in batch_items:
                         if item.id not in item_data_map:
                             continue
@@ -680,15 +703,14 @@ class EmailQueueService:
                             item.save()
                             upload_log.emails_failed += 1
                             errors = upload_log.details.get('email_errors', [])
-                            errors.append(f"{item.recipient_email}: {str(e)}")
-                            upload_log.details['email_errors'] = errors
+                            if len(errors) < 50:
+                                errors.append(f"{item.recipient_email}: {str(e)}")
+                                upload_log.details['email_errors'] = errors
                             upload_log.save()
 
-            # Finalizar log si ya no quedan items pendientes
-            pendientes = EmailQueueItem.objects.filter(upload_log=upload_log, status__in=['PENDING', 'PROCESSING']).exists()
-            if not pendientes:
-                upload_log.details['in_progress'] = False
-                upload_log.save()
+            # Finalizar log
+            upload_log.details['in_progress'] = False
+            upload_log.save()
         except Exception as e:
             try:
                 upload_log = DataUploadLog.objects.get(id=log_id)
@@ -702,24 +724,31 @@ class EmailQueueService:
 
     @staticmethod
     def resume_all_pending_queues():
+        """
+        Reanuda el procesamiento de colas con items PENDING.
+        
+        PROTECCIÓN: NO resetea items PROCESSING → PENDING.
+        Si un item está en PROCESSING, es porque un hilo lo está manejando activamente.
+        Resetearlo causaría envíos duplicados.
+        """
         import threading
         from voting.models import DataUploadLog, EmailQueueItem
         from django.db import close_old_connections
         close_old_connections()
         try:
-            # Buscar logs con in_progress True
             logs_in_progress = DataUploadLog.objects.filter(details__in_progress=True)
             for log in logs_in_progress:
-                # Revertir items PROCESSING a PENDING por el reinicio
-                EmailQueueItem.objects.filter(upload_log=log, status='PROCESSING').update(status='PENDING')
-                
-                # Iniciar hilo de procesamiento
-                thread = threading.Thread(
-                    target=EmailQueueService.process_queue_for_log,
-                    args=(log.id,)
-                )
-                thread.daemon = True
-                thread.start()
+                # Solo reanudar si hay items genuinamente PENDING
+                has_pending = EmailQueueItem.objects.filter(
+                    upload_log=log, status='PENDING'
+                ).exists()
+                if has_pending:
+                    thread = threading.Thread(
+                        target=EmailQueueService.process_queue_for_log,
+                        args=(log.id,)
+                    )
+                    thread.daemon = True
+                    thread.start()
         except Exception:
             pass
         finally:
