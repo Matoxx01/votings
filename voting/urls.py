@@ -8,6 +8,7 @@ urlpatterns = [
     path('media/<path:path>', views.serve_media, name='serve_media'),
     path('', views.index, name='index'),
     path('vota', views.vota, name='vota'),
+    path('votaciones-pendientes/', views.votaciones_pendientes, name='votaciones_pendientes'),
     path('region/<int:region_id>/', views.region_votings, name='region_votings'),
     path('votacion/<int:voting_id>/', views.voting_detail, name='voting_detail'),
     path('votacion/<int:voting_id>/registro/', views.register, name='register'),
@@ -26,5 +27,6 @@ urlpatterns = [
     path('login-militante/', views.militante_general_login, name='militante_general_login'),
     path('editar-usuario/', views.militante_edit_profile, name='militante_edit_profile'),
     path('olvide-contrasena/', views.militante_password_reset_request, name='militante_general_password_reset_request'),
+    path('reenviar-registro/', views.reenviar_registro, name='reenviar_registro'),
     # Postulación
 ]

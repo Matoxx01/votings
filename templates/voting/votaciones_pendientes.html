@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Votaciones Pendientes - Sistema de Votaciones{% endblock %}
+
+{% block content %}
+<div class="bg-dark text-white py-2">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <small>Usuario: <strong>{{ militante_name }}</strong></small>
+            </div>
+            <a href="{% url 'voting:militante_logout' %}" class="btn btn-outline-light btn-sm">
+                Cerrar Sesión
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="page-header">
+    <div class="container text-center">
+        <h1>Tus Votaciones Pendientes</h1>
+        <p>Tienes {{ total_count }} votación{{ total_count|pluralize:"es" }} pendiente{{ total_count|pluralize:"s" }}</p>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            {% for voting in pending_votings %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                                    <span class="text-white fw-bold">{{ forloop.counter }}</span>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1">{{ voting.title }}</h5>
+                                <p class="card-text text-muted mb-2">{{ voting.description|truncatewords:25 }}</p>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <span class="badge bg-success">Activa</span>
+                                    {% if voting.id_region and voting.id_region.id != 17 %}
+                                        <span class="badge bg-info">{{ voting.id_region.name }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <div class="d-grid gap-2 mt-4">
+                <a href="{% url 'voting:voting_detail' first_voting_id %}" class="btn btn-primary btn-lg">
+                    Siguiente
+                </a>
+            </div>
+
+            <div class="text-center mt-3">
+                <a href="{% url 'voting:militante_logout' %}" class="btn btn-secondary">
+                    Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

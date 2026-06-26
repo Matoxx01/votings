@@ -417,3 +417,31 @@ class MilitanteEditProfileForm(forms.Form):
             self.add_error('password_confirm', "Las contraseñas no coinciden.")
         
         return cleaned_data
+
+
+class ReenviarRegistroForm(forms.Form):
+    """Formulario para solicitar el reenvío del correo de registro"""
+    rut = forms.CharField(
+        max_length=20,
+        label="RUT",
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ej: 12345678-K'
+        })
+    )
+
+    def clean_rut(self):
+        """Valida y formatea el RUT"""
+        rut = self.cleaned_data.get('rut')
+        if not rut:
+            raise ValidationError("El RUT es requerido.")
+        
+        # Formatear el RUT
+        rut_formatted = format_rut(rut)
+        
+        # Validar formato
+        rut_pattern = r'^\d{1,8}-[0-9kK]$'
+        if not re.match(rut_pattern, rut_formatted):
+            raise ValidationError("El RUT debe tener el formato correcto (Ej: 12345678-K)")
+        
+        return rut_formatted

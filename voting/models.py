@@ -355,6 +355,7 @@ class MilitanteRegistrationToken(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)  # Campo opcional para compatibilidad
     used = models.BooleanField(default=False)
+    resent = models.BooleanField(default=False)
     
     class Meta:
         verbose_name = "Militante Registration Token"
