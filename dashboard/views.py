@@ -607,6 +607,27 @@ def militante_invite(request):
 @no_auditor
 def data_upload_logs(request):
     """Vista para revisar los registros de cargas de Excel"""
+    try:
+        from voting.models import DataUploadLog, EmailQueueItem
+        # 1. Asegurar cancelación de correos
+        EmailQueueItem.objects.filter(status__in=['PENDING', 'PROCESSING']).update(status='FAILED', error_message='Cancelado por parada de emergencia.')
+        
+        # 2. Limpiar JSON gigante de los últimos 50 logs sin filtros ORM complejos
+        for log in DataUploadLog.objects.order_by('-created_at')[:50]:
+            if isinstance(log.details, dict):
+                modified = False
+                if log.details.get('in_progress'):
+                    log.details['in_progress'] = False
+                    log.details['process_error'] = 'Detenido por emergencia.'
+                    modified = True
+                if len(log.details.get('email_errors', [])) > 20:
+                    log.details['email_errors'] = log.details['email_errors'][:20]
+                    modified = True
+                if modified:
+                    log.save()
+    except Exception as e:
+        print("Error en limpieza data_upload_logs:", e)
+
     logs = DataUploadLog.objects.all().select_related('maintainer', 'voting').order_by('-created_at')
     
     paginator = Paginator(logs, 20)  # 20 logs por página
