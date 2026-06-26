@@ -118,9 +118,12 @@
                                     <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Detalle de Errores de Correos:</h6>
                                     <hr>
                                     <ul class="mb-0" style="max-height: 200px; overflow-y: auto;">
-                                        {% for error in log.details.email_errors %}
+                                        {% for error in log.details.email_errors|slice:":20" %}
                                             <li>{{ error }}</li>
                                         {% endfor %}
+                                        {% if log.details.email_errors|length > 20 %}
+                                            <li class="text-muted small">... y {{ log.details.email_errors|length|add:"-20" }} errores más omitidos para no sobrecargar el navegador.</li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                                 {% else %}

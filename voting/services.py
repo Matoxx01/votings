@@ -702,25 +702,4 @@ class EmailQueueService:
 
     @staticmethod
     def resume_all_pending_queues():
-        import threading
-        from voting.models import DataUploadLog, EmailQueueItem
-        from django.db import close_old_connections
-        close_old_connections()
-        try:
-            # Buscar logs con in_progress True
-            logs_in_progress = DataUploadLog.objects.filter(details__in_progress=True)
-            for log in logs_in_progress:
-                # Revertir items PROCESSING a PENDING por el reinicio
-                EmailQueueItem.objects.filter(upload_log=log, status='PROCESSING').update(status='PENDING')
-                
-                # Iniciar hilo de procesamiento
-                thread = threading.Thread(
-                    target=EmailQueueService.process_queue_for_log,
-                    args=(log.id,)
-                )
-                thread.daemon = True
-                thread.start()
-        except Exception:
-            pass
-        finally:
-            close_old_connections()
+        return
