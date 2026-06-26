@@ -5,6 +5,9 @@ from django.utils.html import strip_tags
 from django.utils import timezone
 import time
 import pytz
+import os
+import json
+import urllib.request
 
 
 class EmailService:
@@ -392,6 +395,91 @@ class EmailService:
         
         return results
 
+    @staticmethod
+    def get_upcoming_voting_email_data(to_email, nombre, voting_title, voting_description, start_date, finish_date, candidates=None):
+        subject = f"Votación Próxima - {voting_title}"
+        context = {
+            'nombre': nombre,
+            'voting_title': voting_title,
+            'voting_description': voting_description,
+            'start_date': start_date,
+            'finish_date': finish_date,
+            'candidates': candidates,
+        }
+        html_message = render_to_string('voting/emails/upcoming_voting_email.html', context)
+        plain_message = strip_tags(html_message)
+        return {
+            'from': settings.DEFAULT_FROM_EMAIL,
+            'to': [to_email],
+            'subject': subject,
+            'html': html_message,
+            'text': plain_message,
+        }
+
+    @staticmethod
+    def get_upcoming_voting_with_registration_email_data(to_email, nombre, voting_title, voting_description, start_date, finish_date, registration_link, candidates=None):
+        subject = f"Próxima Votación y Registro - {voting_title}"
+        context = {
+            'nombre': nombre,
+            'voting_title': voting_title,
+            'voting_description': voting_description,
+            'start_date': start_date,
+            'finish_date': finish_date,
+            'registration_link': registration_link,
+            'candidates': candidates,
+        }
+        html_message = render_to_string('voting/emails/upcoming_voting_with_registration_email.html', context)
+        plain_message = strip_tags(html_message)
+        return {
+            'from': settings.DEFAULT_FROM_EMAIL,
+            'to': [to_email],
+            'subject': subject,
+            'html': html_message,
+            'text': plain_message,
+        }
+
+    @staticmethod
+    def get_militante_registration_email_data(to_email, nombre, registration_link):
+        subject = "Invitación para Registro - Sistema de Votaciones"
+        context = {
+            'nombre': nombre,
+            'registration_link': registration_link,
+        }
+        html_message = render_to_string('voting/emails/militante_registration_email.html', context)
+        plain_message = strip_tags(html_message)
+        return {
+            'from': settings.DEFAULT_FROM_EMAIL,
+            'to': [to_email],
+            'subject': subject,
+            'html': html_message,
+            'text': plain_message,
+        }
+
+    @staticmethod
+    def send_resend_batch(batch_payload):
+        """
+        Envía un lote de correos utilizando la API Batch de Resend.
+        Retorna True si el envío fue exitoso, o False si falló (para activar fallback).
+        """
+        api_key = os.getenv('RESEND_API_KEY', getattr(settings, 'EMAIL_HOST_PASSWORD', ''))
+        if not api_key:
+            return False
+            
+        url = "https://api.resend.com/emails/batch"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps(batch_payload).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers=headers, method='POST')
+        try:
+            with urllib.request.urlopen(req) as response:
+                if response.status in [200, 201]:
+                    return True
+                return False
+        except Exception:
+            return False
+
 
 class EmailQueueService:
     """Servicio para gestionar la cola de correos en base de datos"""
@@ -457,80 +545,144 @@ class EmailQueueService:
         close_old_connections()
         try:
             upload_log = DataUploadLog.objects.get(id=log_id)
-            # Marcar in_progress True si no lo estaba
             if not upload_log.details.get('in_progress'):
                 upload_log.details['in_progress'] = True
                 upload_log.save()
 
-            items = EmailQueueItem.objects.filter(upload_log=upload_log, status__in=['PENDING', 'PROCESSING']).order_by('created_at')
+            items = list(EmailQueueItem.objects.filter(upload_log=upload_log, status__in=['PENDING', 'PROCESSING']).order_by('created_at'))
             
-            for item in items:
-                item.status = 'PROCESSING'
-                item.save()
+            santiago_tz = pytz.timezone('America/Santiago')
+            
+            # Procesar en lotes de hasta 100 correos (límite de la API Batch de Resend)
+            for i in range(0, len(items), 100):
+                batch_items = items[i:i+100]
                 
-                try:
-                    santiago_tz = pytz.timezone('America/Santiago')
-                    if item.email_type == 'UPCOMING_VOTING':
-                        voting = item.voting
-                        start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
-                        finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
-                        candidates = voting.subjects.all()
-                        
-                        EmailService.send_upcoming_voting_email(
-                            to_email=item.recipient_email,
-                            nombre=item.recipient_name,
-                            voting_title=voting.title,
-                            voting_description=voting.description,
-                            start_date=start_date,
-                            finish_date=finish_date,
-                            candidates=candidates,
-                        )
-                        
-                    elif item.email_type == 'UPCOMING_VOTING_UNREGISTERED':
-                        voting = item.voting
-                        start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
-                        finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
-                        candidates = voting.subjects.all()
-                        registration_link = f"{item.base_url}/registro-militante/{item.token_obj.token}/"
-                        
-                        EmailService.send_upcoming_voting_with_registration_email(
-                            to_email=item.recipient_email,
-                            nombre=item.recipient_name,
-                            voting_title=voting.title,
-                            voting_description=voting.description,
-                            start_date=start_date,
-                            finish_date=finish_date,
-                            registration_link=registration_link,
-                            candidates=candidates,
-                        )
-                        
-                    elif item.email_type == 'REGISTRO_MILITANTE':
-                        registration_link = f"{item.base_url}/registro-militante/{item.token_obj.token}/"
-                        
-                        EmailService.send_militante_registration_email(
-                            to_email=item.recipient_email,
-                            nombre=item.recipient_name,
-                            registration_link=registration_link
-                        )
+                # Marcar en base de datos como PROCESSING
+                EmailQueueItem.objects.filter(id__in=[item.id for item in batch_items]).update(status='PROCESSING')
+                
+                batch_payload = []
+                item_data_map = {}
+                
+                for item in batch_items:
+                    try:
+                        if item.email_type == 'UPCOMING_VOTING':
+                            voting = item.voting
+                            start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                            finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                            candidates = voting.subjects.all()
+                            email_data = EmailService.get_upcoming_voting_email_data(
+                                to_email=item.recipient_email,
+                                nombre=item.recipient_name,
+                                voting_title=voting.title,
+                                voting_description=voting.description,
+                                start_date=start_date,
+                                finish_date=finish_date,
+                                candidates=candidates,
+                            )
+                        elif item.email_type == 'UPCOMING_VOTING_UNREGISTERED':
+                            voting = item.voting
+                            start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                            finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                            candidates = voting.subjects.all()
+                            registration_link = f"{item.base_url}/registro-militante/{item.token_obj.token}/"
+                            email_data = EmailService.get_upcoming_voting_with_registration_email_data(
+                                to_email=item.recipient_email,
+                                nombre=item.recipient_name,
+                                voting_title=voting.title,
+                                voting_description=voting.description,
+                                start_date=start_date,
+                                finish_date=finish_date,
+                                registration_link=registration_link,
+                                candidates=candidates,
+                            )
+                        elif item.email_type == 'REGISTRO_MILITANTE':
+                            registration_link = f"{item.base_url}/registro-militante/{item.token_obj.token}/"
+                            email_data = EmailService.get_militante_registration_email_data(
+                                to_email=item.recipient_email,
+                                nombre=item.recipient_name,
+                                registration_link=registration_link
+                            )
+                        batch_payload.append(email_data)
+                        item_data_map[item.id] = email_data
+                    except Exception as e:
+                        item.status = 'FAILED'
+                        item.error_message = str(e)
+                        item.save()
+                        upload_log.emails_failed += 1
+                        errors = upload_log.details.get('email_errors', [])
+                        errors.append(f"{item.recipient_email}: {str(e)}")
+                        upload_log.details['email_errors'] = errors
+                        upload_log.save()
+                
+                if not batch_payload:
+                    continue
+                    
+                # Intentar enviar mediante la API Batch de Resend
+                success = EmailService.send_resend_batch(batch_payload)
+                
+                if success:
+                    # Actualizar exitosamente todo el lote
+                    EmailQueueItem.objects.filter(id__in=[item.id for item in batch_items if item.id in item_data_map]).update(status='SENT')
+                    upload_log.emails_sent += len(batch_payload)
+                    upload_log.save()
+                else:
+                    # Fallback: Enviar de forma individual mediante SMTP convencional
+                    for item in batch_items:
+                        if item.id not in item_data_map:
+                            continue
+                        try:
+                            if item.email_type == 'UPCOMING_VOTING':
+                                voting = item.voting
+                                start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                                finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                                candidates = voting.subjects.all()
+                                EmailService.send_upcoming_voting_email(
+                                    to_email=item.recipient_email,
+                                    nombre=item.recipient_name,
+                                    voting_title=voting.title,
+                                    voting_description=voting.description,
+                                    start_date=start_date,
+                                    finish_date=finish_date,
+                                    candidates=candidates,
+                                )
+                            elif item.email_type == 'UPCOMING_VOTING_UNREGISTERED':
+                                voting = item.voting
+                                start_date = voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                                finish_date = voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M')
+                                candidates = voting.subjects.all()
+                                registration_link = f"{item.base_url}/registro-militante/{item.token_obj.token}/"
+                                EmailService.send_upcoming_voting_with_registration_email(
+                                    to_email=item.recipient_email,
+                                    nombre=item.recipient_name,
+                                    voting_title=voting.title,
+                                    voting_description=voting.description,
+                                    start_date=start_date,
+                                    finish_date=finish_date,
+                                    registration_link=registration_link,
+                                    candidates=candidates,
+                                )
+                            elif item.email_type == 'REGISTRO_MILITANTE':
+                                registration_link = f"{item.base_url}/registro-militante/{item.token_obj.token}/"
+                                EmailService.send_militante_registration_email(
+                                    to_email=item.recipient_email,
+                                    nombre=item.recipient_name,
+                                    registration_link=registration_link
+                                )
 
-                    item.status = 'SENT'
-                    item.save()
-                    
-                    upload_log.emails_sent += 1
-                    upload_log.save()
-                    
-                    time.sleep(delay)
-                    
-                except Exception as e:
-                    item.status = 'FAILED'
-                    item.error_message = str(e)
-                    item.save()
-                    
-                    upload_log.emails_failed += 1
-                    errors = upload_log.details.get('email_errors', [])
-                    errors.append(f"{item.recipient_email}: {str(e)}")
-                    upload_log.details['email_errors'] = errors
-                    upload_log.save()
+                            item.status = 'SENT'
+                            item.save()
+                            upload_log.emails_sent += 1
+                            upload_log.save()
+                            time.sleep(delay)
+                        except Exception as e:
+                            item.status = 'FAILED'
+                            item.error_message = str(e)
+                            item.save()
+                            upload_log.emails_failed += 1
+                            errors = upload_log.details.get('email_errors', [])
+                            errors.append(f"{item.recipient_email}: {str(e)}")
+                            upload_log.details['email_errors'] = errors
+                            upload_log.save()
 
             # Finalizar log si ya no quedan items pendientes
             pendientes = EmailQueueItem.objects.filter(upload_log=upload_log, status__in=['PENDING', 'PROCESSING']).exists()
