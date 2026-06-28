@@ -752,6 +752,14 @@ class EmailQueueService:
                                 upload_log.details['email_errors'] = errors
                             upload_log.save()
 
+                # Mantener activo el heartbeat del lock global y dar un pequeño respiro a la API de Resend
+                try:
+                    from voting.models import APICounter
+                    APICounter.objects.filter(name='START_REMINDER_LOCK').update(contador=int(time.time()))
+                    time.sleep(1)
+                except Exception:
+                    pass
+
             # Finalizar log
             upload_log.details['in_progress'] = False
             upload_log.save()

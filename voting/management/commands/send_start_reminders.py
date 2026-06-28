@@ -1,81 +1,88 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
-from voting.models import Voting, Militante, UserData, DataUploadLog
+from voting.models import Voting, Militante, UserData, DataUploadLog, APICounter
 from voting.services import EmailQueueService
 import time
 
 
 class Command(BaseCommand):
-    help = 'Encola y envía correos recordatorios cuando una votación empieza usando Resend Bulk API de forma secuencial y segura'
+    help = 'Encola todas las votaciones activas y procesa solo un bulk/votación a la vez para no colapsar Resend, con bloqueo global de concurrencia'
 
     def handle(self, *args, **options):
         now = timezone.now()
-        # Buscamos votaciones activas (start_date <= now <= finish_date) que no hayan enviado el recordatorio
-        votings = Voting.objects.filter(start_date__lte=now, finish_date__gte=now, start_reminder_sent=False).order_by('start_date')
+        current_time = int(time.time())
 
-        self.stdout.write(f"Votaciones activas pendientes de encolar: {votings.count()}")
+        # 1. Verificamos el bloqueo global en APICounter para garantizar que solo un proceso en todo el sistema envíe bulks a la vez
+        lock_obj, _ = APICounter.objects.get_or_create(name='START_REMINDER_LOCK', defaults={'contador': 0})
 
-        for voting in votings:
-            # Proteccion extrema contra concurrencia: usamos transacción atómica y bloqueo de fila
-            with transaction.atomic():
-                # Bloqueamos el registro de la votación para asegurarnos de que ningún otro proceso la modifique al mismo tiempo
-                locked_voting = Voting.objects.select_for_update().filter(pk=voting.pk, start_reminder_sent=False).first()
-                if not locked_voting:
-                    # Otro proceso ya la procesó
-                    continue
+        # Si otro proceso actualizó el lock hace menos de 5 minutos (300 segundos), significa que hay un envío en curso
+        if current_time - lock_obj.contador < 300:
+            self.stdout.write("AVISO: Ya hay un proceso enviando bulks a Resend actualmente (lock activo). Se respetará la cola y se enviará solo un bulk a la vez para no colapsar Resend.")
+            return
 
-                # Verificamos si ya existe un DataUploadLog para esta votación para evitar encolar duplicados
-                log_exists = DataUploadLog.objects.filter(upload_type='START_REMINDER', voting=locked_voting).exists()
-                if not log_exists:
-                    # Obtener ruts autorizados para la votación
-                    ruts = UserData.objects.filter(id_voting=locked_voting).values_list('rut', flat=True)
-                    militantes = Militante.objects.filter(rut__in=ruts, is_active=True)
+        # Adquirimos/renovamos el lock marcando el timestamp actual
+        APICounter.objects.filter(name='START_REMINDER_LOCK').update(contador=current_time)
 
-                    # Crear log de envío
-                    upload_log = DataUploadLog.objects.create(
-                        upload_type='START_REMINDER',
-                        voting=locked_voting,
-                        file_name=f"Recordatorio Votacion {locked_voting.id} - {locked_voting.title[:100]}",
-                        total_rows=militantes.count(),
-                        details={'in_progress': False}
-                    )
+        try:
+            # 2. Encolamos todas las votaciones activas que no hayan enviado el recordatorio
+            votings = Voting.objects.filter(start_date__lte=now, finish_date__gte=now, start_reminder_sent=False).order_by('start_date')
+            self.stdout.write(f"Votaciones activas pendientes de encolar: {votings.count()}")
 
-                    # Encolar los correos
-                    EmailQueueService.queue_voting_reminder_emails(militantes, locked_voting, upload_log)
-                    self.stdout.write(self.style.SUCCESS(f"Votación '{locked_voting.title}': {militantes.count()} correos puestos en cola."))
-                else:
-                    self.stdout.write(f"Votación '{locked_voting.title}': ya tenía correos en cola.")
+            for voting in votings:
+                with transaction.atomic():
+                    locked_voting = Voting.objects.select_for_update().filter(pk=voting.pk, start_reminder_sent=False).first()
+                    if not locked_voting:
+                        continue
 
-                # Marcamos inmediatamente como enviado para que no se vuelva a encolar en futuras ejecuciones
-                locked_voting.start_reminder_sent = True
-                locked_voting.save(update_fields=['start_reminder_sent'])
+                    log_exists = DataUploadLog.objects.filter(upload_type='START_REMINDER', voting=locked_voting).exists()
+                    if not log_exists:
+                        ruts = UserData.objects.filter(id_voting=locked_voting).values_list('rut', flat=True)
+                        militantes = Militante.objects.filter(rut__in=ruts, is_active=True)
 
-        # Procesar las colas secuencialmente: primero los de una votación y después las otras
-        # Buscamos todos los logs de START_REMINDER que tengan items pendientes
-        pending_logs = DataUploadLog.objects.filter(
-            upload_type='START_REMINDER',
-            queue_items__status='PENDING'
-        ).distinct().order_by('created_at')
+                        upload_log = DataUploadLog.objects.create(
+                            upload_type='START_REMINDER',
+                            voting=locked_voting,
+                            file_name=f"Recordatorio Votacion {locked_voting.id} - {locked_voting.title[:100]}",
+                            total_rows=militantes.count(),
+                            details={'in_progress': False}
+                        )
 
-        self.stdout.write(f"Logs de votaciones en cola para enviar: {pending_logs.count()}")
+                        EmailQueueService.queue_voting_reminder_emails(militantes, locked_voting, upload_log)
+                        self.stdout.write(self.style.SUCCESS(f"Votación '{locked_voting.title}': {militantes.count()} correos puestos en cola."))
+                    else:
+                        self.stdout.write(f"Votación '{locked_voting.title}': ya tenía correos en cola.")
 
-        total_sent = 0
-        total_failed = 0
+                    locked_voting.start_reminder_sent = True
+                    locked_voting.save(update_fields=['start_reminder_sent'])
 
-        for log in pending_logs:
-            self.stdout.write(f"Procesando cola para votación '{log.voting.title if log.voting else log.file_name}' (Log ID: {log.id})...")
-            # process_queue_for_log procesa lotes de 100 usando resend batch, de forma síncrona en este bucle
+            # 3. Procesar las colas: SOLO UN BULK A LA VEZ (tomamos solo el primer log pendiente)
+            pending_logs = DataUploadLog.objects.filter(
+                upload_type='START_REMINDER',
+                queue_items__status='PENDING'
+            ).distinct().order_by('created_at')
+
+            total_pending = pending_logs.count()
+            self.stdout.write(f"Logs de votaciones en cola total: {total_pending}")
+
+            if total_pending == 0:
+                self.stdout.write("No hay correos pendientes de envío.")
+                return
+
+            # Tomamos exclusivamente el primer log para procesar un solo bulk a la vez
+            log = pending_logs.first()
+            self.stdout.write(f"Procesando UN SOLO BULK a la vez: votación '{log.voting.title if log.voting else log.file_name}' (Log ID: {log.id})...")
+            
             EmailQueueService.process_queue_for_log(log.id)
             
-            # Refrescar log para ver resultados
             log.refresh_from_db()
             self.stdout.write(self.style.SUCCESS(
                 f"Votación '{log.voting.title if log.voting else log.file_name}': correos enviados={log.emails_sent}, fallidos={log.emails_failed}"
             ))
-            total_sent += log.emails_sent
-            total_failed += log.emails_failed
+            
+            if total_pending > 1:
+                self.stdout.write(self.style.NOTICE(f"Quedan {total_pending - 1} votaciones en cola que serán procesadas en la siguiente ejecución para no colapsar Resend."))
 
-        self.stdout.write(self.style.SUCCESS(
-            f"Resumen total de envíos en esta ejecución: enviados={total_sent}, fallidos={total_failed}"
-        ))
+        finally:
+            # Liberamos el bloqueo global al finalizar
+            APICounter.objects.filter(name='START_REMINDER_LOCK').update(contador=0)
