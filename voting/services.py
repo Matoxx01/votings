@@ -456,6 +456,23 @@ class EmailService:
         }
 
     @staticmethod
+    def get_voting_reminder_email_data(to_email, user_name, voting_title):
+        subject = f"Recordatorio: Votación en curso - {voting_title}"
+        context = {
+            'user_name': user_name,
+            'voting_title': voting_title,
+        }
+        html_message = render_to_string('voting/emails/reminder_email.html', context)
+        plain_message = strip_tags(html_message)
+        return {
+            'from': settings.DEFAULT_FROM_EMAIL,
+            'to': [to_email],
+            'subject': subject,
+            'html': html_message,
+            'text': plain_message,
+        }
+
+    @staticmethod
     def send_resend_batch(batch_payload):
         """
         Envía un lote de correos utilizando la API Batch de Resend.
@@ -492,6 +509,21 @@ class EmailQueueService:
             items.append(EmailQueueItem(
                 upload_log=upload_log,
                 email_type='UPCOMING_VOTING',
+                status='PENDING',
+                recipient_email=militante.mail,
+                recipient_name=militante.nombre,
+                voting=voting,
+            ))
+        EmailQueueItem.objects.bulk_create(items)
+
+    @staticmethod
+    def queue_voting_reminder_emails(militantes, voting, upload_log):
+        from voting.models import EmailQueueItem
+        items = []
+        for militante in militantes:
+            items.append(EmailQueueItem(
+                upload_log=upload_log,
+                email_type='VOTING_REMINDER',
                 status='PENDING',
                 recipient_email=militante.mail,
                 recipient_name=militante.nombre,
@@ -623,6 +655,12 @@ class EmailQueueService:
                                 nombre=item.recipient_name,
                                 registration_link=registration_link
                             )
+                        elif item.email_type == 'VOTING_REMINDER':
+                            email_data = EmailService.get_voting_reminder_email_data(
+                                to_email=item.recipient_email,
+                                user_name=item.recipient_name,
+                                voting_title=item.voting.title,
+                            )
                         batch_payload.append(email_data)
                         item_data_map[item.id] = email_data
                     except Exception as e:
@@ -690,6 +728,12 @@ class EmailQueueService:
                                     to_email=item.recipient_email,
                                     nombre=item.recipient_name,
                                     registration_link=registration_link
+                                )
+                            elif item.email_type == 'VOTING_REMINDER':
+                                EmailService.send_voting_reminder_email(
+                                    to_email=item.recipient_email,
+                                    user_name=item.recipient_name,
+                                    voting_title=item.voting.title,
                                 )
 
                             item.status = 'SENT'

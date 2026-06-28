@@ -417,6 +417,7 @@ class DataUploadLog(models.Model):
     UPLOAD_TYPES = (
         ('VOTANTES', 'Carga de Votantes'),
         ('REGISTRO_MILITANTES', 'Envío de Correos a Militantes'),
+        ('START_REMINDER', 'Envío Recordatorio Votación Activa'),
     )
     
     maintainer = models.ForeignKey('Maintainer', on_delete=models.SET_NULL, null=True, blank=True)
@@ -452,6 +453,7 @@ class EmailQueueItem(models.Model):
         ('UPCOMING_VOTING', 'Votación Próxima (Militante)'),
         ('UPCOMING_VOTING_UNREGISTERED', 'Votación Próxima (No Registrado)'),
         ('REGISTRO_MILITANTE', 'Invitación Registro Militante'),
+        ('VOTING_REMINDER', 'Votación Activa / En Curso'),
     )
     
     upload_log = models.ForeignKey(DataUploadLog, on_delete=models.CASCADE, related_name='queue_items')
