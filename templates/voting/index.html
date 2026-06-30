@@ -184,16 +184,16 @@
           <div class="card-img-top ratio ratio-16x9" style="background: #f8f9fa;">
             <img src="{% static 'images/boton-resoluciones.png' %}" alt="Resoluciones" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
-          <div class="card-body d-flex flex-column">
-            <h5 class="card-title">Resoluciones</h5>
-            <ul class="list-unstyled mb-3">
-              <li><b>• </b><a href="{% static 'docs/Resolusiones/Listado de Candidatos a Cabildos Regionales.pdf' %}" target="_blank"> Listado de Candidatos a Cabildos Regionales</a></li>
-              <li><b>• </b><a href="{% static 'docs/Resolusiones/Lista Final Directivas Regionales.pdf' %}" target="_blank"> Lista Final Directivas Regionales</a></li>
-              <li><b>• </b><a href="{% static 'docs/Resolusiones/E-04-2026, Califica Directivas Regionales.pdf' %}" target="_blank"> E-04-2026, Califica Directivas Regionales</a></li>
-              <li><b>• </b><a href="{% static 'docs/Resolusiones/E-5-2026, Cadidaturas a Concejeros Regionales.pdf' %}" target="_blank"> E-05-2026, Cadidaturas a Concejeros Regionales</a></li>
-              <li><b>• </b><a href="{% static 'docs/Resolusiones/E-06-E-2026 Atacama.pdf' %}" target="_blank"> E-06-E-2026 Atacama</a></li>
-              <li><b>• </b><a href="{% static 'docs/Resolusiones/Certificado Cierre de Plataforma.pdf' %}" target="_blank"> Certificado Cierre de Plataforma</a></li>
-            </ul>
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div>
+              <h5 class="card-title">Resoluciones</h5>
+              <p class="card-text text-muted" style="font-size: 0.93rem;">
+                Revisa el listado completo de resoluciones emitidas.
+              </p>
+            </div>
+            <a href="{% url 'voting:resoluciones' %}" class="btn btn-postulacion mt-3">
+              Ver Resoluciones
+            </a>
           </div>
         </div>
       </div>

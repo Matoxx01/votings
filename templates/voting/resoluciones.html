@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resoluciones - Sistema de Votaciones{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4 text-center" style="color: var(--gov-navy, #1B2A4A);">Resoluciones</h2>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <ul class="list-unstyled mb-0" style="font-size: 1.1rem; line-height: 1.8;">
+                        {% for doc in archivos %}
+                        <li class="mb-3 border-bottom pb-2">
+                            <b>• </b>
+                            <a href="{% static doc.ruta %}" target="_blank" style="color: #1B2A4A; text-decoration: none; font-weight: 500;">
+                                {{ doc.nombre }}
+                            </a>
+                        </li>
+                        {% empty %}
+                        <li class="text-muted text-center py-3">No hay resoluciones disponibles.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="{% url 'voting:index' %}" class="btn" style="background-color: #6c757d; color: white; border-radius: 8px; padding: 0.6rem 1.2rem;">Volver al Inicio</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

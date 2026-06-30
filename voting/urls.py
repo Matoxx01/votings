@@ -7,6 +7,7 @@ urlpatterns = [
     path('favicon.svg', views.favicon, name='favicon'),
     path('media/<path:path>', views.serve_media, name='serve_media'),
     path('', views.index, name='index'),
+    path('resoluciones/', views.resoluciones, name='resoluciones'),
     path('vota', views.vota, name='vota'),
     path('votaciones-pendientes/', views.votaciones_pendientes, name='votaciones_pendientes'),
     path('region/<int:region_id>/', views.region_votings, name='region_votings'),
