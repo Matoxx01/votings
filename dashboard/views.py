@@ -371,6 +371,53 @@ def user_statuses_api(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
+@maintainer_login_required
+@no_auditor
+def user_data_search_api(request):
+    """API para buscar militantes en tiempo real por nombre, RUT o correo."""
+    q = request.GET.get('q', '').strip()
+    
+    if not q or len(q) < 2:
+        return JsonResponse({'status': 'success', 'results': [], 'query': q})
+    
+    results = []
+    ruts_seen = set()
+    
+    # Buscar en Militantes registrados
+    militantes = Militante.objects.filter(
+        Q(nombre__icontains=q) | Q(rut__icontains=q) | Q(mail__icontains=q)
+    ).order_by('-created_at')[:50]
+    
+    for m in militantes:
+        results.append({
+            'nombre': m.nombre,
+            'rut': m.rut,
+            'mail': m.mail,
+            'registrado': True,
+            'fecha': m.created_at.strftime('%d/%m/%Y %H:%M') if m.created_at else '',
+        })
+        ruts_seen.add(m.rut)
+    
+    # Buscar en tokens pendientes (no registrados)
+    tokens = MilitanteRegistrationToken.objects.filter(
+        Q(nombre__icontains=q) | Q(rut__icontains=q) | Q(mail__icontains=q),
+        used=False,
+    ).order_by('-created_at')[:50]
+    
+    for t in tokens:
+        if t.rut not in ruts_seen:
+            results.append({
+                'nombre': t.nombre,
+                'rut': t.rut,
+                'mail': t.mail,
+                'registrado': False,
+                'fecha': t.created_at.strftime('%d/%m/%Y %H:%M') if t.created_at else '',
+            })
+            ruts_seen.add(t.rut)
+    
+    return JsonResponse({'status': 'success', 'results': results, 'query': q})
+
+
 import threading
 import io
 from django.db import close_old_connections
@@ -425,21 +472,31 @@ def async_militante_invite(log_id, file_bytes, base_url):
         log = DataUploadLog.objects.get(id=log_id)
         excel_buffer = io.BytesIO(file_bytes)
         
-        # Importar datos del Excel
-        users_data = ExcelService.import_militantes_from_excel(excel_buffer)
+        # Importar datos del Excel (ahora retorna dict con new_users y updated_users)
+        result = ExcelService.import_militantes_from_excel(excel_buffer)
         
-        if not users_data:
-            log.details = {'process_error': 'No se encontraron usuarios válidos para invitar (o ya estaban todos registrados).', 'in_progress': False}
+        new_users = result.get('new_users', [])
+        updated_users = result.get('updated_users', [])
+        total_users = new_users + updated_users
+        
+        if not total_users:
+            log.details = {
+                'process_error': 'No se encontraron usuarios válidos para invitar (o ya estaban todos registrados con el mismo correo).',
+                'in_progress': False
+            }
             log.save()
             return
             
-        log.total_rows = len(users_data)
-        log.success_count = len(users_data)
+        log.total_rows = len(total_users)
+        log.success_count = len(total_users)
+        log.details['new_count'] = len(new_users)
+        log.details['updated_count'] = len(updated_users)
         log.save()
 
-        # Encolar y procesar correos
-        EmailQueueService.queue_registration_emails(users_data, base_url, log)
-        EmailQueueService.process_queue_for_log(log.id)
+        # Encolar correos para nuevos usuarios y para usuarios con mail actualizado
+        if total_users:
+            EmailQueueService.queue_registration_emails(total_users, base_url, log)
+            EmailQueueService.process_queue_for_log(log.id)
     except Exception as e:
         try:
             log = DataUploadLog.objects.get(id=log_id)

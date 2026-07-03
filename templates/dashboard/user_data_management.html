@@ -55,8 +55,19 @@
 
             <!-- Lista de Usuarios -->
             <div class="card mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Listado de Usuarios</h5>
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Listado de Usuarios</h5>
+                    </div>
+                    <div class="position-relative">
+                        <input type="text" id="search-input" class="form-control" placeholder="Buscar por nombre, RUT o correo..." autocomplete="off">
+                        <div id="search-spinner" class="position-absolute top-50 end-0 translate-middle-y me-3 d-none">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Buscando...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <small id="search-hint" class="text-muted d-none mt-1">Escribe al menos 2 caracteres para buscar</small>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -70,7 +81,7 @@
                                     <th style="color: navy !important;">Fecha Inv./Reg.</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="users-tbody">
                                 {% for user in page_obj %}
                                 <tr>
                                     <td>{{ user.nombre }}</td>
@@ -99,7 +110,7 @@
                 
                 {% if page_obj.has_other_pages %}
                 <!-- Paginación -->
-                <div class="card-footer bg-white border-top-0 pt-3 pb-3">
+                <div class="card-footer bg-white border-top-0 pt-3 pb-3" id="pagination-container">
                     <nav aria-label="Navegación de páginas">
                         <ul class="pagination justify-content-center mb-0">
                             {% if page_obj.has_previous %}
@@ -164,7 +175,82 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        const searchInput = document.getElementById('search-input');
+        const searchSpinner = document.getElementById('search-spinner');
+        const searchHint = document.getElementById('search-hint');
+        const tbody = document.getElementById('users-tbody');
+        const paginationContainer = document.getElementById('pagination-container');
+        
+        // Guardar contenido original de la tabla
+        const originalTbody = tbody.innerHTML;
+        let debounceTimer = null;
+        let isSearching = false;
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(debounceTimer);
+            
+            if (query.length === 0) {
+                // Restaurar vista original
+                tbody.innerHTML = originalTbody;
+                if (paginationContainer) paginationContainer.style.display = '';
+                searchHint.classList.add('d-none');
+                searchSpinner.classList.add('d-none');
+                isSearching = false;
+                return;
+            }
+            
+            if (query.length === 1) {
+                searchHint.classList.remove('d-none');
+                searchSpinner.classList.add('d-none');
+                return;
+            }
+            
+            searchHint.classList.add('d-none');
+            searchSpinner.classList.remove('d-none');
+            
+            debounceTimer = setTimeout(function() {
+                fetch("{% url 'dashboard:user_data_search_api' %}?q=" + encodeURIComponent(query))
+                .then(response => response.json())
+                .then(data => {
+                    searchSpinner.classList.add('d-none');
+                    
+                    if (data.status === 'success') {
+                        isSearching = true;
+                        if (paginationContainer) paginationContainer.style.display = 'none';
+                        
+                        if (data.results.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron resultados para "<strong>' + query.replace(/</g, '&lt;') + '</strong>"</td></tr>';
+                        } else {
+                            let html = '';
+                            data.results.forEach(function(user) {
+                                const badge = user.registrado
+                                    ? '<span class="badge bg-success">Cuenta Activada</span>'
+                                    : '<span class="badge bg-warning text-dark">Pendiente Registro</span>';
+                                html += '<tr>' +
+                                    '<td>' + (user.nombre || '') + '</td>' +
+                                    '<td>' + (user.rut || '') + '</td>' +
+                                    '<td>' + (user.mail || '') + '</td>' +
+                                    '<td>' + badge + '</td>' +
+                                    '<td>' + (user.fecha || '') + '</td>' +
+                                '</tr>';
+                            });
+                            tbody.innerHTML = html;
+                        }
+                    }
+                })
+                .catch(error => {
+                    searchSpinner.classList.add('d-none');
+                    console.error("Error en búsqueda:", error);
+                });
+            }, 300);
+        });
+
+        // Status polling (solo cuando no se está buscando)
         function checkStatuses() {
+            if (isSearching) return;
+            
             const cells = document.querySelectorAll('.user-status-cell');
             const ruts = Array.from(cells).map(cell => cell.getAttribute('data-rut'));
             

@@ -76,7 +76,10 @@ class ExcelService:
     @staticmethod
     def import_militantes_from_excel(excel_file):
         """
-        Importa datos de militantes desde un archivo Excel para envío de correos
+        Importa datos de militantes desde un archivo Excel para envío de correos.
+        
+        Si un RUT ya existe como Militante y el mail del Excel es distinto,
+        actualiza el mail del Militante y lo marca para reenvío de invitación.
         
         Columnas:
         - A: RUT (se formatea)
@@ -87,8 +90,11 @@ class ExcelService:
             excel_file: Archivo Excel subido
             
         Returns:
-            list: Lista de diccionarios con {nombre, rut, mail}
+            dict: {'new_users': [...], 'updated_users': [...]}
+                  Cada elemento es un dict con {nombre, rut, mail}
         """
+        from voting.models import MilitanteRegistrationToken
+        
         try:
             df = pd.read_excel(excel_file, header=None)
             
@@ -116,12 +122,34 @@ class ExcelService:
                     })
                     ruts_in_df.add(rut)
             
-            # Consultar una sola vez a la base de datos para saber qué RUTs ya existen (evita N+1 queries)
-            existing_ruts = set(Militante.objects.filter(rut__in=ruts_in_df).values_list('rut', flat=True))
+            # Consultar militantes existentes con sus mails (evita N+1 queries)
+            existing_militantes = {
+                m.rut: m for m in Militante.objects.filter(rut__in=ruts_in_df)
+            }
             
-            users = [data for data in rows_data if data['rut'] not in existing_ruts]
+            new_users = []
+            updated_users = []
             
-            return users
+            for data in rows_data:
+                if data['rut'] not in existing_militantes:
+                    # RUT no existe → nuevo usuario
+                    new_users.append(data)
+                else:
+                    # RUT existe → verificar si el mail cambió
+                    militante = existing_militantes[data['rut']]
+                    if militante.mail.lower() != data['mail'].lower():
+                        # Mail distinto → actualizar mail del militante
+                        militante.mail = data['mail']
+                        militante.save()
+                        
+                        # Invalidar tokens de registro anteriores para este RUT
+                        MilitanteRegistrationToken.objects.filter(
+                            rut=data['rut'], used=False
+                        ).update(used=True)
+                        
+                        updated_users.append(data)
+            
+            return {'new_users': new_users, 'updated_users': updated_users}
         
         except Exception as e:
             raise Exception(f"Error al procesar el archivo Excel: {str(e)}")
