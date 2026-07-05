@@ -478,3 +478,36 @@ class EmailQueueItem(models.Model):
 
     def __str__(self):
         return f"{self.email_type} - {self.recipient_email} ({self.status})"
+
+
+class DocumentSection(models.Model):
+    """Sección de la Biblioteca de Documentos"""
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Sección de Documentos"
+        verbose_name_plural = "Secciones de Documentos"
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
+class Document(models.Model):
+    """Documento dentro de una sección de la Biblioteca"""
+    section = models.ForeignKey(DocumentSection, on_delete=models.CASCADE, related_name='documents')
+    name = models.CharField(max_length=300)
+    file = models.FileField(upload_to='documentos/')
+    order = models.IntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Documento"
+        verbose_name_plural = "Documentos"
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.section.name})"

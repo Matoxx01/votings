@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.hashers import make_password
 from django.db.models import Case, When, IntegerField
-from voting.models import Voting, Subject, Maintainer, Region
+from voting.models import Voting, Subject, Maintainer, Region, DocumentSection
 
 
 class MaintainerLoginForm(forms.Form):
@@ -155,4 +155,35 @@ class MaintainerCreateForm(forms.ModelForm):
         if commit:
             maintainer.save()
         return maintainer
+
+
+class DocumentSectionForm(forms.ModelForm):
+    """Formulario para crear/editar secciones de documentos"""
+    class Meta:
+        model = DocumentSection
+        fields = ['name', 'description']
+        labels = {
+            'name': 'Nombre de la Sección',
+            'description': 'Descripción',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Normativa'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Descripción breve de la sección (opcional)'}),
+        }
+
+
+class DocumentUploadForm(forms.Form):
+    """Formulario para subir un documento a una sección"""
+    name = forms.CharField(
+        label="Nombre del Documento",
+        max_length=300,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ej: Reglamento Elecciones Internas'
+        })
+    )
+    file = forms.FileField(
+        label="Archivo",
+        widget=forms.FileInput(attrs={'class': 'form-control'})
+    )
 

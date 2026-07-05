@@ -594,10 +594,7 @@
         </span>
         Sistema de Votaciones
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
+      <div class="collapse navbar-collapse d-flex justify-content-end" id="navbarNav">
         <ul class="navbar-nav ms-auto">
           {% if request.session.maintainer_id %}
           <li class="nav-item"></li>

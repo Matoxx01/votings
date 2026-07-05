@@ -182,6 +182,8 @@ def serve_media(request, path):
             content_type = 'image/webp'
         elif path.endswith('.gif'):
             content_type = 'image/gif'
+        elif path.lower().endswith('.pdf'):
+            content_type = 'application/pdf'
         
         response = FileResponse(open(media_path, 'rb'), content_type=content_type)
         response['Content-Disposition'] = f'inline; filename="{media_path.name}"'
@@ -190,42 +192,12 @@ def serve_media(request, path):
     return HttpResponse(status=404)
 
 
-def resoluciones(request):
-    """Vista para listar las resoluciones"""
-    import re
-    resoluciones_dir = Path(settings.BASE_DIR) / 'static' / 'docs' / 'Resolusiones'
-    archivos = []
-    
-    if resoluciones_dir.exists() and resoluciones_dir.is_dir():
-        for file_path in resoluciones_dir.glob('*.pdf'):
-            archivos.append({
-                'nombre': file_path.stem,
-                'ruta': f'docs/Resolusiones/{file_path.name}'
-            })
-            
-    def sort_key(item):
-        nombre = item['nombre']
-        
-        # Orden específico solicitado
-        if nombre == "Listado de Candidatos a Cabildos Regionales":
-            return (0, 0, nombre)
-        elif nombre == "Lista Final Directivas Regionales":
-            return (1, 0, nombre)
-        elif nombre == "Certificado Cierre de Plataforma":
-            return (4, 0, nombre)
-            
-        # Buscar el número de resolución después de Nº o N°
-        match = re.search(r'N[º°]\s*(\d+)', nombre)
-        if match:
-            # Resoluciones con número
-            return (2, int(match.group(1)), nombre)
-            
-        # Resto de documentos
-        return (3, 0, nombre)
-        
-    archivos.sort(key=sort_key)
-            
-    return render(request, 'voting/resoluciones.html', {'archivos': archivos})
+def biblioteca(request):
+    """Vista de la Biblioteca y Documentos"""
+    from voting.models import DocumentSection
+    sections = DocumentSection.objects.prefetch_related('documents').all()
+    return render(request, 'voting/biblioteca.html', {'sections': sections})
+
 
 
 def index(request):

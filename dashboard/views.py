@@ -7,8 +7,8 @@ from django.db import connection, transaction
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
-from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog
-from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm
+from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog, DocumentSection, Document
+from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm, DocumentSectionForm, DocumentUploadForm
 from dashboard.decorators import maintainer_login_required, admin_required, no_auditor
 from dashboard.services import ExcelService
 from voting.services import EmailService
@@ -1020,3 +1020,160 @@ def request_password_reset(request):
         return redirect('dashboard:request_password_reset')
     
     return render(request, 'dashboard/request_password_reset.html')
+
+
+# ============================================
+# GESTIÓN DE DOCUMENTOS (BIBLIOTECA)
+# ============================================
+
+@maintainer_login_required
+@no_auditor
+def documents_management(request):
+    """Vista principal de gestión de documentos de la Biblioteca"""
+    sections = DocumentSection.objects.prefetch_related('documents').all()
+    section_form = DocumentSectionForm()
+    upload_form = DocumentUploadForm()
+
+    context = {
+        'sections': sections,
+        'section_form': section_form,
+        'upload_form': upload_form,
+    }
+    return render(request, 'dashboard/documents_management.html', context)
+
+
+@maintainer_login_required
+@no_auditor
+@require_http_methods(["POST"])
+def create_document_section(request):
+    """Crear nueva sección de documentos"""
+    form = DocumentSectionForm(request.POST)
+    if form.is_valid():
+        section = form.save(commit=False)
+        # Asignar orden al final
+        max_order = DocumentSection.objects.aggregate(models_max=Max('order'))['models_max'] or 0
+        section.order = max_order + 1
+        section.save()
+        messages.success(request, f"Sección '{section.name}' creada correctamente.")
+    else:
+        messages.error(request, "Error al crear la sección. Verifica los datos.")
+    return redirect('dashboard:documents_management')
+
+
+@maintainer_login_required
+@no_auditor
+@require_http_methods(["POST"])
+def edit_document_section(request, section_id):
+    """Editar una sección de documentos existente"""
+    section = get_object_or_404(DocumentSection, id=section_id)
+    form = DocumentSectionForm(request.POST, instance=section)
+    if form.is_valid():
+        form.save()
+        messages.success(request, f"Sección '{section.name}' actualizada correctamente.")
+    else:
+        messages.error(request, "Error al actualizar la sección.")
+    return redirect('dashboard:documents_management')
+
+
+@maintainer_login_required
+@no_auditor
+@require_http_methods(["POST"])
+def delete_document_section(request, section_id):
+    """Eliminar una sección y todos sus documentos"""
+    section = get_object_or_404(DocumentSection, id=section_id)
+    section_name = section.name
+    # Eliminar archivos físicos de todos los documentos de esta sección
+    for doc in section.documents.all():
+        if doc.file:
+            try:
+                doc.file.delete(save=False)
+            except Exception:
+                pass
+    section.delete()
+    messages.success(request, f"Sección '{section_name}' y todos sus documentos eliminados.")
+    return redirect('dashboard:documents_management')
+
+
+@maintainer_login_required
+@no_auditor
+@require_http_methods(["POST"])
+def upload_document(request, section_id):
+    """Subir un documento a una sección"""
+    section = get_object_or_404(DocumentSection, id=section_id)
+    form = DocumentUploadForm(request.POST, request.FILES)
+    if form.is_valid():
+        name = form.cleaned_data['name']
+        file = form.cleaned_data['file']
+        # Asignar orden al final
+        max_order = section.documents.aggregate(models_max=Max('order'))['models_max'] or 0
+        Document.objects.create(
+            section=section,
+            name=name,
+            file=file,
+            order=max_order + 1,
+        )
+        messages.success(request, f"Documento '{name}' subido correctamente a '{section.name}'.")
+    else:
+        messages.error(request, "Error al subir el documento. Verifica los datos.")
+    return redirect('dashboard:documents_management')
+
+
+@maintainer_login_required
+@no_auditor
+@require_http_methods(["POST"])
+def edit_document(request, document_id):
+    """Editar el nombre especial de un documento"""
+    doc = get_object_or_404(Document, id=document_id)
+    new_name = request.POST.get('name', '').strip()
+    if new_name:
+        doc.name = new_name
+        doc.save()
+        messages.success(request, f"Nombre del documento actualizado a '{new_name}'.")
+    else:
+        messages.error(request, "El nombre del documento no puede estar vacío.")
+    return redirect('dashboard:documents_management')
+
+
+@maintainer_login_required
+@no_auditor
+@require_http_methods(["POST"])
+def delete_document(request, document_id):
+    """Eliminar un documento individual"""
+    doc = get_object_or_404(Document, id=document_id)
+    doc_name = doc.name
+    # Eliminar archivo físico
+    if doc.file:
+        try:
+            doc.file.delete(save=False)
+        except Exception:
+            pass
+    doc.delete()
+    messages.success(request, f"Documento '{doc_name}' eliminado correctamente.")
+    return redirect('dashboard:documents_management')
+
+
+from django.db.models import Max
+
+
+@maintainer_login_required
+@no_auditor
+@require_http_methods(["POST"])
+def reorder_documents(request):
+    """API para reordenar secciones y documentos vía AJAX"""
+    try:
+        data = json.loads(request.body)
+        item_type = data.get('type')  # 'section' o 'document'
+        ordered_ids = data.get('order', [])  # lista de IDs en el nuevo orden
+
+        if item_type == 'section':
+            for idx, section_id in enumerate(ordered_ids):
+                DocumentSection.objects.filter(id=section_id).update(order=idx)
+        elif item_type == 'document':
+            for idx, doc_id in enumerate(ordered_ids):
+                Document.objects.filter(id=doc_id).update(order=idx)
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Tipo inválido'}, status=400)
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

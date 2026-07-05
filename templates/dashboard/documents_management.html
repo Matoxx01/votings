@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Documentos - Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1>Gestión de Documentos</h1>
+                <p class="mb-0">Administra las secciones y documentos de la Biblioteca pública</p>
+            </div>
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-outline-light">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <!-- Crear nueva sección -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Nueva Sección
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'dashboard:create_document_section' %}">
+                        {% csrf_token %}
+                        <div class="row align-items-end">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">{{ section_form.name.label }}</label>
+                                {{ section_form.name }}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">{{ section_form.description.label }}</label>
+                                {{ section_form.description }}
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-plus-lg me-1"></i> Crear
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listado de secciones -->
+    {% if sections %}
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <h4 class="section-title">Secciones ({{ sections|length }})</h4>
+
+            <div id="sections-list">
+            {% for section in sections %}
+            <div class="card mb-4" data-section-id="{{ section.id }}">
+                <div class="card-header d-flex justify-content-between align-items-center" style="background: var(--gov-navy); color: #fff;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-grip-vertical" style="cursor: grab; opacity: 0.7;" title="Arrastrar para reordenar"></i>
+                        <i class="bi bi-folder2-open"></i>
+                        <span style="font-weight: 600;">{{ section.name }}</span>
+                        {% if section.description %}
+                        <small style="opacity: 0.7; margin-left: 0.5rem;">— {{ section.description|truncatechars:60 }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#editSection{{ section.id }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form method="post" action="{% url 'dashboard:delete_document_section' section.id %}" onsubmit="return confirm('¿Eliminar la sección «{{ section.name }}» y TODOS sus documentos?');" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Formulario editar sección (colapsable) -->
+                <div class="collapse" id="editSection{{ section.id }}">
+                    <div class="card-body" style="background: var(--gov-gray-50); border-bottom: 1px solid var(--gov-border);">
+                        <form method="post" action="{% url 'dashboard:edit_document_section' section.id %}">
+                            {% csrf_token %}
+                            <div class="row align-items-end">
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label">Nombre</label>
+                                    <input type="text" name="name" value="{{ section.name }}" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea name="description" class="form-control" rows="2">{{ section.description }}</textarea>
+                                </div>
+                                <div class="col-md-2 mb-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-check-lg me-1"></i> Guardar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Documentos de esta sección -->
+                    {% if section.documents.all %}
+                    <div class="table-responsive">
+                        <table class="table mb-3">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40px;">#</th>
+                                    <th>Nombre del Documento</th>
+                                    <th>Archivo</th>
+                                    <th style="width: 80px;">Orden</th>
+                                    <th style="width: 100px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="docs-list-{{ section.id }}">
+                                {% for doc in section.documents.all %}
+                                <tr data-doc-id="{{ doc.id }}">
+                                    <td>
+                                        <i class="bi bi-grip-vertical" style="cursor: grab; color: var(--gov-gray-500);"></i>
+                                    </td>
+                                    <td>
+                                        <i class="bi bi-file-earmark-text me-1" style="color: var(--gov-blue);"></i>
+                                        <strong>{{ doc.name }}</strong>
+                                    </td>
+                                    <td>
+                                        <a href="{{ doc.file.url }}" target="_blank" class="text-decoration-none" style="font-size: 0.85rem;">
+                                            <i class="bi bi-box-arrow-up-right me-1"></i>{{ doc.file.name|truncatechars:30 }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ doc.order }}</span>
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editDocModal{{ doc.id }}" title="Editar nombre">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <form method="post" action="{% url 'dashboard:delete_document' doc.id %}" onsubmit="return confirm('¿Eliminar «{{ doc.name }}»?');" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Eliminar documento">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+
+                                        <!-- Modal de Edición -->
+                                        <div class="modal fade" id="editDocModal{{ doc.id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <form method="post" action="{% url 'dashboard:edit_document' doc.id %}" class="modal-content">
+                                                    {% csrf_token %}
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title text-dark">Editar Nombre del Documento</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                                    </div>
+                                                    <div class="modal-body text-start">
+                                                        <div class="mb-3">
+                                                            <label class="form-label text-dark">Nombre del Documento</label>
+                                                            <input type="text" name="name" class="form-control" value="{{ doc.name }}" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-3"><i class="bi bi-info-circle me-1"></i> No hay documentos en esta sección.</p>
+                    {% endif %}
+
+                    <!-- Subir documento a esta sección -->
+                    <div class="mt-2 pt-3" style="border-top: 1px solid var(--gov-border);">
+                        <h6 class="mb-2"><i class="bi bi-cloud-upload me-1"></i> Subir documento a «{{ section.name }}»</h6>
+                        <form method="post" action="{% url 'dashboard:upload_document' section.id %}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="row align-items-end">
+                                <div class="col-md-5 mb-2">
+                                    <label class="form-label">Nombre del documento</label>
+                                    <input type="text" name="name" class="form-control" placeholder="Ej: Reglamento Elecciones" required>
+                                </div>
+                                <div class="col-md-5 mb-2">
+                                    <label class="form-label">Archivo</label>
+                                    <input type="file" name="file" class="form-control" required>
+                                </div>
+                                <div class="col-md-2 mb-2">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="bi bi-upload me-1"></i> Subir
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-folder-plus" style="font-size: 3rem; color: var(--gov-gray-300);"></i>
+                    <p class="text-muted mt-3 mb-0">No hay secciones creadas. Crea una sección arriba para comenzar a agregar documentos.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Reordenamiento de documentos mediante flechas
+document.addEventListener('DOMContentLoaded', function() {
+    // Drag & drop para reordenar documentos dentro de una sección
+    document.querySelectorAll('[id^="docs-list-"]').forEach(function(tbody) {
+        let dragged = null;
+        
+        tbody.querySelectorAll('tr').forEach(function(row) {
+            const grip = row.querySelector('.bi-grip-vertical');
+            if (!grip) return;
+            
+            grip.addEventListener('mousedown', function() {
+                row.setAttribute('draggable', 'true');
+            });
+            
+            row.addEventListener('dragstart', function(e) {
+                dragged = row;
+                row.style.opacity = '0.5';
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            
+            row.addEventListener('dragend', function() {
+                row.style.opacity = '';
+                row.removeAttribute('draggable');
+                dragged = null;
+            });
+            
+            row.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+            
+            row.addEventListener('drop', function(e) {
+                e.preventDefault();
+                if (dragged && dragged !== row) {
+                    const allRows = [...tbody.querySelectorAll('tr')];
+                    const draggedIdx = allRows.indexOf(dragged);
+                    const targetIdx = allRows.indexOf(row);
+                    
+                    if (draggedIdx < targetIdx) {
+                        row.parentNode.insertBefore(dragged, row.nextSibling);
+                    } else {
+                        row.parentNode.insertBefore(dragged, row);
+                    }
+                    
+                    // Enviar nuevo orden al servidor
+                    const newOrder = [...tbody.querySelectorAll('tr')].map(r => parseInt(r.dataset.docId));
+                    saveOrder('document', newOrder);
+                }
+            });
+        });
+    });
+    
+    function saveOrder(type, order) {
+        fetch("{% url 'dashboard:reorder_documents' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({ type: type, order: order }),
+        });
+    }
+});
+</script>
+{% endblock %}

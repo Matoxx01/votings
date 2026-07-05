@@ -28,4 +28,13 @@ urlpatterns = [
     path('maintainers/<int:maintainer_id>/send-password-reset/', views.send_password_reset_email, name='send_password_reset'),
     path('logs/cargas/', views.data_upload_logs, name='data_upload_logs'),
     path('logs/cargas/reanudar/', views.resume_stuck_uploads, name='resume_stuck_uploads'),
+    # Gestión de Documentos (Biblioteca)
+    path('documentos/', views.documents_management, name='documents_management'),
+    path('documentos/secciones/crear/', views.create_document_section, name='create_document_section'),
+    path('documentos/secciones/<int:section_id>/editar/', views.edit_document_section, name='edit_document_section'),
+    path('documentos/secciones/<int:section_id>/eliminar/', views.delete_document_section, name='delete_document_section'),
+    path('documentos/secciones/<int:section_id>/subir/', views.upload_document, name='upload_document'),
+    path('documentos/<int:document_id>/editar/', views.edit_document, name='edit_document'),
+    path('documentos/<int:document_id>/eliminar/', views.delete_document, name='delete_document'),
+    path('documentos/ordenar/', views.reorder_documents, name='reorder_documents'),
 ]
