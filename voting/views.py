@@ -195,7 +195,7 @@ def serve_media(request, path):
 def biblioteca(request):
     """Vista de la Biblioteca y Documentos"""
     from voting.models import DocumentSection
-    sections = DocumentSection.objects.prefetch_related('documents').all()
+    sections = DocumentSection.objects.prefetch_related('documents').filter(is_active=True)
     return render(request, 'voting/biblioteca.html', {'sections': sections})
 
 

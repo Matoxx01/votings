@@ -1068,7 +1068,9 @@ def edit_document_section(request, section_id):
     section = get_object_or_404(DocumentSection, id=section_id)
     form = DocumentSectionForm(request.POST, instance=section)
     if form.is_valid():
-        form.save()
+        section = form.save(commit=False)
+        section.is_active = request.POST.get('is_active') == 'on'
+        section.save()
         messages.success(request, f"Sección '{section.name}' actualizada correctamente.")
     else:
         messages.error(request, "Error al actualizar la sección.")

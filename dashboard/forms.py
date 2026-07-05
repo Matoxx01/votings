@@ -168,7 +168,7 @@ class DocumentSectionForm(forms.ModelForm):
         }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Normativa'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Descripción breve de la sección (opcional)'}),
+            'description': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Descripción breve de la sección (opcional)'}),
         }
 
 

@@ -64,6 +64,9 @@
                         <i class="bi bi-grip-vertical" style="cursor: grab; opacity: 0.7;" title="Arrastrar para reordenar"></i>
                         <i class="bi bi-folder2-open"></i>
                         <span style="font-weight: 600;">{{ section.name }}</span>
+                        {% if not section.is_active %}
+                        <span class="badge bg-secondary ms-2">Deshabilitada</span>
+                        {% endif %}
                         {% if section.description %}
                         <small style="opacity: 0.7; margin-left: 0.5rem;">— {{ section.description|truncatechars:60 }}</small>
                         {% endif %}
@@ -87,13 +90,19 @@
                         <form method="post" action="{% url 'dashboard:edit_document_section' section.id %}">
                             {% csrf_token %}
                             <div class="row align-items-end">
-                                <div class="col-md-4 mb-2">
+                                <div class="col-md-3 mb-2">
                                     <label class="form-label">Nombre</label>
                                     <input type="text" name="name" value="{{ section.name }}" class="form-control" required>
                                 </div>
-                                <div class="col-md-6 mb-2">
+                                <div class="col-md-5 mb-2">
                                     <label class="form-label">Descripción</label>
-                                    <textarea name="description" class="form-control" rows="2">{{ section.description }}</textarea>
+                                    <input type="text" name="description" value="{{ section.description }}" class="form-control" placeholder="Descripción breve de la sección (opcional)">
+                                </div>
+                                <div class="col-md-2 mb-2 d-flex align-items-center mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="is_active" id="isActive{{ section.id }}" {% if section.is_active %}checked{% endif %}>
+                                        <label class="form-check-label" for="isActive{{ section.id }}">Habilitar</label>
+                                    </div>
                                 </div>
                                 <div class="col-md-2 mb-2">
                                     <button type="submit" class="btn btn-primary w-100">
@@ -111,12 +120,12 @@
                     <div class="table-responsive">
                         <table class="table mb-3">
                             <thead class="table-light">
-                                <tr>
-                                    <th style="width: 40px;">#</th>
-                                    <th>Nombre del Documento</th>
-                                    <th>Archivo</th>
-                                    <th style="width: 80px;">Orden</th>
-                                    <th style="width: 100px;">Acciones</th>
+                                <tr style="color: navy !important;">
+                                    <th style="width: 40px; color: navy !important;">#</th>
+                                    <th style="color: navy !important;">Nombre del Documento</th>
+                                    <th style="color: navy !important;">Archivo</th>
+                                    <th style="width: 80px; color: navy !important;">Orden</th>
+                                    <th style="width: 100px; color: navy !important;">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="docs-list-{{ section.id }}">
