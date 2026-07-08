@@ -187,3 +187,30 @@ class DocumentUploadForm(forms.Form):
         widget=forms.FileInput(attrs={'class': 'form-control'})
     )
 
+
+class MaintainerPermissionsForm(forms.ModelForm):
+    """Formulario para editar los permisos de un Empleado"""
+    class Meta:
+        model = Maintainer
+        fields = [
+            'perm_gestionar_votaciones',
+            'perm_ver_estadisticas',
+            'perm_gestionar_usuarios',
+            'perm_gestionar_maintainers',
+            'perm_gestion_documentos'
+        ]
+        labels = {
+            'perm_gestionar_votaciones': 'Gestionar Votaciones',
+            'perm_ver_estadisticas': 'Ver Estadísticas',
+            'perm_gestionar_usuarios': 'Gestionar Usuarios',
+            'perm_gestionar_maintainers': 'Gestionar Maintainers',
+            'perm_gestion_documentos': 'Gestión de Documentos',
+        }
+        widgets = {
+            'perm_gestionar_votaciones': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'perm_ver_estadisticas': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'perm_gestionar_usuarios': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'perm_gestionar_maintainers': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'perm_gestion_documentos': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+

@@ -9,7 +9,7 @@ from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
 from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog, DocumentSection, Document
 from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm, DocumentSectionForm, DocumentUploadForm
-from dashboard.decorators import maintainer_login_required, admin_required, no_auditor
+from dashboard.decorators import maintainer_login_required, admin_required, no_auditor, permission_required
 from dashboard.services import ExcelService
 from voting.services import EmailService
 from voting.time_utils import get_real_now
@@ -174,10 +174,16 @@ def dashboard(request):
     ).count()
     total_votes = VotingRecord.objects.count()
     
+    is_admin = maintainer.id_role.name.lower() in ['administrador', 'admin']
+    is_empleado = maintainer.id_role.name.lower() == 'empleado'
+    
     context = {
         'total_votings': total_votings,
         'active_votings': active_votings,
         'total_votes': total_votes,
+        'is_admin': is_admin,
+        'is_empleado': is_empleado,
+        'maintainer': maintainer,
     }
     return render(request, 'dashboard/dashboard.html', context)
 
@@ -186,10 +192,25 @@ def dashboard(request):
 @no_auditor
 def votings_management(request):
     """Vista para gestionar votaciones"""
+    maintainer = Maintainer.objects.get(id=request.session.get('maintainer_id'))
+    is_admin = maintainer.id_role.name.lower() in ['administrador', 'admin']
+    is_empleado = maintainer.id_role.name.lower() == 'empleado'
+    
+    can_manage = is_admin or (is_empleado and maintainer.perm_gestionar_votaciones)
+    can_view_stats = is_admin or (is_empleado and maintainer.perm_ver_estadisticas)
+
+    if is_empleado and not (can_manage or can_view_stats):
+        messages.error(request, "No tienes permisos para acceder a esta sección.")
+        return redirect('dashboard:dashboard')
+
     votings = Voting.objects.all().order_by('-created_at')
     now = get_real_now()
     
     if request.method == 'POST':
+        if not can_manage:
+            messages.error(request, "No tienes permisos para crear votaciones.")
+            return redirect('dashboard:votings_management')
+            
         form = VotingForm(request.POST, request.FILES)
         if form.is_valid():
             voting = form.save()
@@ -202,12 +223,14 @@ def votings_management(request):
         'votings': votings,
         'form': form,
         'now': now,
+        'can_manage': can_manage,
+        'can_view_stats': can_view_stats,
     }
     return render(request, 'dashboard/votings_management.html', context)
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_votaciones')
 def voting_detail(request, voting_id):
     """Vista de detalle de una votación en el dashboard"""
     voting = get_object_or_404(Voting, id=voting_id)
@@ -247,7 +270,7 @@ def voting_detail(request, voting_id):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_votaciones')
 def subjects_management(request, voting_id):
     """Vista para gestionar subjects de una votación"""
     voting = get_object_or_404(Voting, id=voting_id)
@@ -281,7 +304,7 @@ def subjects_management(request, voting_id):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_votaciones')
 @require_http_methods(["POST"])
 def delete_subject(request, voting_id, subject_id):
     """Elimina un candidato/opción solo si la votación no está activa."""
@@ -299,7 +322,7 @@ def delete_subject(request, voting_id, subject_id):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_usuarios')
 def user_data_management(request):
     """Vista principal de gestión de usuarios - muestra opciones y lista de usuarios"""
     users_list = []
@@ -349,7 +372,7 @@ def user_data_management(request):
 from django.http import JsonResponse
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_usuarios')
 @require_http_methods(["POST"])
 def user_statuses_api(request):
     """API para obtener en vivo el estado de registro de una lista de RUTs."""
@@ -372,7 +395,7 @@ def user_statuses_api(request):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_usuarios')
 def user_data_search_api(request):
     """API para buscar militantes en tiempo real por nombre, RUT o correo."""
     q = request.GET.get('q', '').strip()
@@ -510,7 +533,7 @@ def async_militante_invite(log_id, file_bytes, base_url):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_usuarios')
 def user_data_upload(request):
     """Vista para cargar datos de usuarios desde Excel"""
     if request.method == 'POST':
@@ -593,7 +616,7 @@ def user_data_upload(request):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_usuarios')
 def militante_invite(request):
     """Vista para enviar invitaciones de registro a militantes desde Excel"""
     if request.method == 'POST':
@@ -661,7 +684,7 @@ def militante_invite(request):
     return render(request, 'dashboard/militante_invite.html', context)
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_usuarios')
 def data_upload_logs(request):
     """Vista para revisar los registros de cargas de Excel"""
     logs = DataUploadLog.objects.all().select_related('maintainer', 'voting').order_by('-created_at')
@@ -677,7 +700,7 @@ def data_upload_logs(request):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestionar_usuarios')
 def resume_stuck_uploads(request):
     """Vista para reanudar envíos de correos pendientes o destrabar cargas atascadas"""
     from voting.services import EmailQueueService
@@ -697,7 +720,7 @@ def resume_stuck_uploads(request):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_ver_estadisticas')
 def voting_statistics(request, voting_id):
     """Vista de estadísticas detalladas de una votación"""
     voting = get_object_or_404(Voting, id=voting_id)
@@ -757,7 +780,7 @@ def voting_statistics(request, voting_id):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_ver_estadisticas')
 def generate_report(request, voting_id):
     """Vista para generar reportes de votaciones (solo estadísticas)"""
     voting = get_object_or_404(Voting, id=voting_id)
@@ -854,19 +877,35 @@ def create_maintainer(request):
 def edit_maintainer(request, maintainer_id):
     """Vista para editar administrador"""
     maintainer = get_object_or_404(Maintainer, id=maintainer_id)
+    is_empleado = maintainer.id_role.name.lower() == 'empleado'
     
     if request.method == 'POST':
-        form = MaintainerEditForm(request.POST, instance=maintainer)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f"Administrador '{maintainer.name}' actualizado correctamente.")
-            return redirect('dashboard:maintainers_management')
+        if 'update_permissions' in request.POST and is_empleado:
+            from dashboard.forms import MaintainerPermissionsForm
+            form = MaintainerEditForm(instance=maintainer)
+            perm_form = MaintainerPermissionsForm(request.POST, instance=maintainer)
+            if perm_form.is_valid():
+                perm_form.save()
+                messages.success(request, f"Permisos de '{maintainer.name}' actualizados correctamente.")
+                return redirect('dashboard:edit_maintainer', maintainer_id=maintainer.id)
+        else:
+            from dashboard.forms import MaintainerPermissionsForm
+            form = MaintainerEditForm(request.POST, instance=maintainer)
+            perm_form = MaintainerPermissionsForm(instance=maintainer) if is_empleado else None
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Administrador '{maintainer.name}' actualizado correctamente.")
+                return redirect('dashboard:maintainers_management')
     else:
+        from dashboard.forms import MaintainerPermissionsForm
         form = MaintainerEditForm(instance=maintainer)
+        perm_form = MaintainerPermissionsForm(instance=maintainer) if is_empleado else None
     
     context = {
         'form': form,
+        'perm_form': perm_form,
         'maintainer': maintainer,
+        'is_empleado': is_empleado,
     }
     return render(request, 'dashboard/edit_maintainer.html', context)
 
@@ -1027,7 +1066,7 @@ def request_password_reset(request):
 # ============================================
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestion_documentos')
 def documents_management(request):
     """Vista principal de gestión de documentos de la Biblioteca"""
     sections = DocumentSection.objects.prefetch_related('documents').all()
@@ -1043,7 +1082,7 @@ def documents_management(request):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestion_documentos')
 @require_http_methods(["POST"])
 def create_document_section(request):
     """Crear nueva sección de documentos"""
@@ -1061,7 +1100,7 @@ def create_document_section(request):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestion_documentos')
 @require_http_methods(["POST"])
 def edit_document_section(request, section_id):
     """Editar una sección de documentos existente"""
@@ -1078,7 +1117,7 @@ def edit_document_section(request, section_id):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestion_documentos')
 @require_http_methods(["POST"])
 def delete_document_section(request, section_id):
     """Eliminar una sección y todos sus documentos"""
@@ -1097,7 +1136,7 @@ def delete_document_section(request, section_id):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestion_documentos')
 @require_http_methods(["POST"])
 def upload_document(request, section_id):
     """Subir un documento a una sección"""
@@ -1121,7 +1160,7 @@ def upload_document(request, section_id):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestion_documentos')
 @require_http_methods(["POST"])
 def edit_document(request, document_id):
     """Editar el nombre especial de un documento"""
@@ -1137,7 +1176,7 @@ def edit_document(request, document_id):
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestion_documentos')
 @require_http_methods(["POST"])
 def delete_document(request, document_id):
     """Eliminar un documento individual"""
@@ -1158,7 +1197,7 @@ from django.db.models import Max
 
 
 @maintainer_login_required
-@no_auditor
+@permission_required('perm_gestion_documentos')
 @require_http_methods(["POST"])
 def reorder_documents(request):
     """API para reordenar secciones y documentos vía AJAX"""

@@ -62,6 +62,13 @@ class Maintainer(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Permisos para el rol Empleado
+    perm_gestionar_votaciones = models.BooleanField(default=True)
+    perm_ver_estadisticas = models.BooleanField(default=True)
+    perm_gestionar_usuarios = models.BooleanField(default=True)
+    perm_gestionar_maintainers = models.BooleanField(default=False)
+    perm_gestion_documentos = models.BooleanField(default=True)
+
     class Meta:
         verbose_name = "Maintainer"
         verbose_name_plural = "Maintainers"
