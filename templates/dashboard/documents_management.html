@@ -297,6 +297,24 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify({ type: type, order: order }),
         });
     }
+
+    // Autocompletar nombre de documento al seleccionar archivo
+    document.querySelectorAll('input[type="file"][name="file"]').forEach(function(fileInput) {
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                let fileName = this.files[0].name;
+                let nameWithoutExtension = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
+                
+                let form = this.closest('form');
+                if (form) {
+                    let nameInput = form.querySelector('input[name="name"]');
+                    if (nameInput) {
+                        nameInput.value = nameWithoutExtension;
+                    }
+                }
+            }
+        });
+    });
 });
 </script>
 {% endblock %}
