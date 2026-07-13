@@ -38,6 +38,8 @@
                             <td>
                                 {% if log.upload_type == 'VOTANTES' %}
                                     <span class="badge bg-info">Votantes</span>
+                                {% elif log.upload_type == 'START_REMINDER' %}
+                                    <span class="badge bg-warning text-dark">Recordatorio Votación</span>
                                 {% else %}
                                     <span class="badge bg-secondary">Envío a Militantes</span>
                                 {% endif %}

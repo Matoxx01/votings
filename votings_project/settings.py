@@ -232,3 +232,6 @@ CACHES = {
         'LOCATION': 'rate-limit-cache',
     }
 }
+
+# Site Configuration
+SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')

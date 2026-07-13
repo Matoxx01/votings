@@ -43,7 +43,7 @@ class EmailService:
         )
 
     @staticmethod
-    def send_voting_reminder_email(to_email, user_name, voting_title):
+    def send_voting_reminder_email(to_email, user_name, voting_title, vote_link):
         """
         Envía un correo recordatorio para votar
         
@@ -51,12 +51,14 @@ class EmailService:
             to_email: Correo del votante
             user_name: Nombre del votante
             voting_title: Título de la votación
+            vote_link: Enlace para votar
         """
         subject = f"Recordatorio: Votación en curso - {voting_title}"
         
         context = {
             'user_name': user_name,
             'voting_title': voting_title,
+            'vote_link': vote_link,
         }
         
         html_message = render_to_string('voting/emails/reminder_email.html', context)
@@ -456,11 +458,13 @@ class EmailService:
         }
 
     @staticmethod
-    def get_voting_reminder_email_data(to_email, user_name, voting_title):
+    def get_voting_reminder_email_data(to_email, user_name, voting_title, vote_link):
         subject = f"Recordatorio: Votación en curso - {voting_title}"
+        
         context = {
             'user_name': user_name,
             'voting_title': voting_title,
+            'vote_link': vote_link,
         }
         html_message = render_to_string('voting/emails/reminder_email.html', context)
         plain_message = strip_tags(html_message)
@@ -517,7 +521,7 @@ class EmailQueueService:
         EmailQueueItem.objects.bulk_create(items)
 
     @staticmethod
-    def queue_voting_reminder_emails(militantes, voting, upload_log):
+    def queue_voting_reminder_emails(militantes, voting, base_url, upload_log):
         from voting.models import EmailQueueItem
         items = []
         for militante in militantes:
@@ -528,6 +532,7 @@ class EmailQueueService:
                 recipient_email=militante.mail,
                 recipient_name=militante.nombre,
                 voting=voting,
+                base_url=base_url,
             ))
         EmailQueueItem.objects.bulk_create(items)
 
@@ -656,10 +661,12 @@ class EmailQueueService:
                                 registration_link=registration_link
                             )
                         elif item.email_type == 'VOTING_REMINDER':
+                            vote_link = f"{item.base_url}/vota"
                             email_data = EmailService.get_voting_reminder_email_data(
                                 to_email=item.recipient_email,
                                 user_name=item.recipient_name,
                                 voting_title=item.voting.title,
+                                vote_link=vote_link,
                             )
                         batch_payload.append(email_data)
                         item_data_map[item.id] = email_data
@@ -730,10 +737,12 @@ class EmailQueueService:
                                     registration_link=registration_link
                                 )
                             elif item.email_type == 'VOTING_REMINDER':
+                                vote_link = f"{item.base_url}/vota"
                                 EmailService.send_voting_reminder_email(
                                     to_email=item.recipient_email,
                                     user_name=item.recipient_name,
                                     voting_title=item.voting.title,
+                                    vote_link=vote_link,
                                 )
 
                             item.status = 'SENT'

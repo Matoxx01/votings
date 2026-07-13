@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.db import transaction
 from voting.models import Voting, Militante, UserData, DataUploadLog, APICounter
 from voting.services import EmailQueueService
+from django.conf import settings
 import time
 
 
@@ -48,7 +49,7 @@ class Command(BaseCommand):
                             details={'in_progress': False}
                         )
 
-                        EmailQueueService.queue_voting_reminder_emails(militantes, locked_voting, upload_log)
+                        EmailQueueService.queue_voting_reminder_emails(militantes, locked_voting, settings.SITE_URL, upload_log)
                         self.stdout.write(self.style.SUCCESS(f"Votación '{locked_voting.title}': {militantes.count()} correos puestos en cola."))
                     else:
                         self.stdout.write(f"Votación '{locked_voting.title}': ya tenía correos en cola.")

@@ -612,10 +612,13 @@ def militante_register(request, token):
                 else:
                     # La votación ya inició y está en curso
                     try:
+                        base_url = f"{request.scheme}://{request.get_host()}"
+                        vote_link = f"{base_url}/vota"
                         EmailService.send_voting_reminder_email(
                             to_email=militante.mail,
                             user_name=militante.nombre,
                             voting_title=voting.title,
+                            vote_link=vote_link,
                         )
                     except Exception:
                         pass
