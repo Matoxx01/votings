@@ -7,7 +7,7 @@ from django.db import connection, transaction
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
-from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog, DocumentSection, Document
+from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog, DocumentSection, Document, FAQ
 from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm, DocumentSectionForm, DocumentUploadForm
 from dashboard.decorators import maintainer_login_required, admin_required, no_auditor, permission_required
 from dashboard.services import ExcelService
@@ -873,6 +873,7 @@ def create_maintainer(request):
     return render(request, 'dashboard/create_maintainer.html', context)
 
 
+
 @admin_required
 def edit_maintainer(request, maintainer_id):
     """Vista para editar administrador"""
@@ -1218,3 +1219,71 @@ def reorder_documents(request):
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+# ==========================================
+# GESTIÓN DE PREGUNTAS FRECUENTES (FAQ)
+# ==========================================
+
+@maintainer_login_required
+@permission_required('perm_gestionar_faq')
+def faq_management(request):
+    """Vista para gestionar las preguntas frecuentes"""
+    faqs = FAQ.objects.all().order_by('order', '-created_at')
+    
+    context = {
+        'faqs': faqs,
+        'page_title': 'Gestión de Preguntas Frecuentes'
+    }
+    return render(request, 'dashboard/faq_management.html', context)
+
+@maintainer_login_required
+@permission_required('perm_gestionar_faq')
+def create_faq(request):
+    """Vista para crear una nueva pregunta frecuente"""
+    from dashboard.forms import FAQForm
+    if request.method == 'POST':
+        form = FAQForm(request.POST)
+        if form.is_valid():
+            faq = form.save()
+            messages.success(request, 'Pregunta frecuente creada correctamente.')
+            return redirect('dashboard:faq_management')
+    else:
+        form = FAQForm()
+    
+    context = {
+        'form': form,
+        'page_title': 'Crear Pregunta Frecuente'
+    }
+    return render(request, 'dashboard/create_faq.html', context)
+
+@maintainer_login_required
+@permission_required('perm_gestionar_faq')
+def edit_faq(request, faq_id):
+    """Vista para editar una pregunta frecuente"""
+    from dashboard.forms import FAQForm
+    faq = get_object_or_404(FAQ, id=faq_id)
+    if request.method == 'POST':
+        form = FAQForm(request.POST, instance=faq)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Pregunta frecuente actualizada correctamente.')
+            return redirect('dashboard:faq_management')
+    else:
+        form = FAQForm(instance=faq)
+    
+    context = {
+        'form': form,
+        'page_title': 'Editar Pregunta Frecuente',
+        'faq': faq
+    }
+    return render(request, 'dashboard/create_faq.html', context)
+
+@maintainer_login_required
+@permission_required('perm_gestionar_faq')
+@require_http_methods(["POST"])
+def delete_faq(request, faq_id):
+    """Vista para eliminar una pregunta frecuente"""
+    faq = get_object_or_404(FAQ, id=faq_id)
+    faq.delete()
+    messages.success(request, 'Pregunta frecuente eliminada correctamente.')
+    return redirect('dashboard:faq_management')

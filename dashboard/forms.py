@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.hashers import make_password
 from django.db.models import Case, When, IntegerField
-from voting.models import Voting, Subject, Maintainer, Region, DocumentSection
+from voting.models import Voting, Subject, Maintainer, Region, DocumentSection, FAQ
 
 
 class MaintainerLoginForm(forms.Form):
@@ -197,7 +197,8 @@ class MaintainerPermissionsForm(forms.ModelForm):
             'perm_ver_estadisticas',
             'perm_gestionar_usuarios',
             'perm_gestionar_maintainers',
-            'perm_gestion_documentos'
+            'perm_gestion_documentos',
+            'perm_gestionar_faq'
         ]
         labels = {
             'perm_gestionar_votaciones': 'Gestionar Votaciones',
@@ -205,6 +206,7 @@ class MaintainerPermissionsForm(forms.ModelForm):
             'perm_gestionar_usuarios': 'Gestionar Usuarios',
             'perm_gestionar_maintainers': 'Gestionar Maintainers',
             'perm_gestion_documentos': 'Gestión de Documentos',
+            'perm_gestionar_faq': 'Gestión de Preguntas Frecuentes',
         }
         widgets = {
             'perm_gestionar_votaciones': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -212,5 +214,23 @@ class MaintainerPermissionsForm(forms.ModelForm):
             'perm_gestionar_usuarios': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'perm_gestionar_maintainers': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'perm_gestion_documentos': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'perm_gestionar_faq': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
+class FAQForm(forms.ModelForm):
+    """Formulario para la gestión de Preguntas Frecuentes"""
+    class Meta:
+        model = FAQ
+        fields = ['question', 'answer', 'order', 'is_active']
+        labels = {
+            'question': 'Pregunta',
+            'answer': 'Respuesta',
+            'order': 'Orden',
+            'is_active': 'Activa',
+        }
+        widgets = {
+            'question': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: ¿Cómo me registro?'}),
+            'answer': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Respuesta detallada...'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }

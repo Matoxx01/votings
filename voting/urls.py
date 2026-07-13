@@ -30,4 +30,7 @@ urlpatterns = [
     path('olvide-contrasena/', views.militante_password_reset_request, name='militante_general_password_reset_request'),
     path('reenviar-registro/', views.reenviar_registro, name='reenviar_registro'),
     # Postulación
+    
+    # Preguntas Frecuentes
+    path('preguntas-frecuentes/', views.faq_view, name='faq'),
 ]

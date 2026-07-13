@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Preguntas Frecuentes - Sistema de Votaciones{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Preguntas Frecuentes</h1>
+        <p class="lead">Respuestas a las dudas más comunes sobre el sistema</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            
+            {% if faqs %}
+                <div class="accordion shadow-sm" id="faqAccordion">
+                    {% for faq in faqs %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ faq.id }}">
+                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ faq.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse{{ faq.id }}">
+                                    <strong>{{ faq.question }}</strong>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ faq.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading{{ faq.id }}" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    {{ faq.answer|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info text-center py-4">
+                    <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                    <p class="mb-0 mt-3">Por el momento no hay preguntas frecuentes publicadas.</p>
+                </div>
+            {% endif %}
+
+            <div class="mt-5 text-center">
+                <a href="{% url 'voting:index' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver al Inicio
+                </a>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

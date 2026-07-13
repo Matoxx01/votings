@@ -37,4 +37,10 @@ urlpatterns = [
     path('documentos/<int:document_id>/editar/', views.edit_document, name='edit_document'),
     path('documentos/<int:document_id>/eliminar/', views.delete_document, name='delete_document'),
     path('documentos/ordenar/', views.reorder_documents, name='reorder_documents'),
+    
+    # Gestión de FAQ
+    path('faq/', views.faq_management, name='faq_management'),
+    path('faq/crear/', views.create_faq, name='create_faq'),
+    path('faq/<int:faq_id>/editar/', views.edit_faq, name='edit_faq'),
+    path('faq/<int:faq_id>/eliminar/', views.delete_faq, name='delete_faq'),
 ]

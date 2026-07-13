@@ -143,6 +143,21 @@
                     </div>
                 </div>
                 {% endif %}
+
+                {% if is_admin or is_empleado and maintainer.perm_gestionar_faq %}
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center py-4">
+                            <i class="bi bi-question-circle text-primary mb-3" style="font-size: 2.25rem;"></i>
+                            <h6 class="card-title">Gestión de FAQ</h6>
+                            <p class="card-text text-muted small">Administrar Preguntas Frecuentes de la página principal</p>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{% url 'dashboard:faq_management' %}" class="btn btn-primary btn-sm w-100">Acceder</a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

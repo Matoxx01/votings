@@ -11,7 +11,7 @@ from pathlib import Path
 import io
 import json
 import random
-from voting.models import Voting, Subject, UserData, Count, VotingRecord, Region, Militante, MilitanteRegistrationToken, MilitantePasswordResetToken
+from voting.models import Voting, Subject, UserData, Count, VotingRecord, Region, Militante, MilitanteRegistrationToken, MilitantePasswordResetToken, FAQ
 from voting.forms import VoterRegistrationForm, MilitanteRegistrationForm, MilitanteLoginForm, MilitantePasswordResetRequestForm, MilitantePasswordResetForm, MilitanteEditProfileForm, ReenviarRegistroForm
 from voting.services import EmailService
 from voting.time_utils import get_real_now
@@ -1061,3 +1061,18 @@ def reenviar_registro(request):
         'resent_already': resent_already,
     }
     return render(request, 'voting/reenviar_registro.html', context)
+
+
+def faq_view(request):
+    """Vista para mostrar las Preguntas Frecuentes al usuario"""
+    faqs = FAQ.objects.filter(is_active=True).order_by('order', '-created_at')
+    
+    militante_logged_in = 'militante_id' in request.session
+    militante_name = request.session.get('militante_name', '')
+    
+    context = {
+        'faqs': faqs,
+        'militante_logged_in': militante_logged_in,
+        'militante_name': militante_name,
+    }
+    return render(request, 'voting/faq.html', context)
