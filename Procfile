@@ -1,2 +1,2 @@
-web: cp -r -n media_seed/* media/ 2>/dev/null || true && python manage.py collectstatic --noinput && gunicorn votings_project.wsgi:application --bind 0.0.0.0:$PORT --timeout 300
+web: python copy_media.py && python manage.py collectstatic --noinput && gunicorn votings_project.wsgi:application --bind 0.0.0.0:$PORT --timeout 300
 release: python manage.py migrate
