@@ -97,7 +97,7 @@ class MilitanteInviteForm(forms.Form):
     file = forms.FileField(
         label="Archivo Excel",
         widget=forms.FileInput(attrs={'class': 'form-control'}),
-        help_text="Columna A: RUT, Columna B: Nombre, Columna C: Correo"
+        help_text="Columna A: RUT, Columna B: Nombre, Columna C: Correo, Columna D: Región (número 1-17)"
     )
 
 

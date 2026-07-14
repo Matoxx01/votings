@@ -28,6 +28,7 @@ urlpatterns = [
     path('login-militante/', views.militante_general_login, name='militante_general_login'),
     path('editar-usuario/', views.militante_edit_profile, name='militante_edit_profile'),
     path('olvide-contrasena/', views.militante_password_reset_request, name='militante_general_password_reset_request'),
+    path('verificar-rut-padron/', views.verificar_rut_padron, name='verificar_rut_padron'),
     path('reenviar-registro/', views.reenviar_registro, name='reenviar_registro'),
     # Postulación
     

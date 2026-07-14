@@ -4,7 +4,7 @@ from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.conf import settings
 from django.contrib.auth.hashers import make_password, check_password
 from pathlib import Path
@@ -997,73 +997,185 @@ def militante_edit_profile(request):
 
 @require_http_methods(["GET", "POST"])
 def reenviar_registro(request):
-    """Vista para solicitar el reenvío del correo de registro en sistema para militantes pendientes"""
-    contact_email = 'contacto@partidorepublicanodechile.cl'
-    sent_mail = None
-    resent_already = False
+    """Vista pública para que militantes del padrón se registren y creen su cuenta"""
+    from voting.forms import RegistroPublicoEtapa2Form, REGION_CHOICES
     
-    if request.method == 'POST':
-        # Rate limiting: 5 intentos / 5 min
-        limited, wait = rate_limit_check(request, 'reenviar_registro', 5, 300)
-        if limited:
-            messages.error(request, f"Demasiados intentos. Espera {wait} segundos antes de intentar nuevamente.")
-            return render(request, 'voting/reenviar_registro.html', {
-                'form': ReenviarRegistroForm(),
-                'contact_email': contact_email,
-            })
+    # Check if email was just verified via the verification code flow
+    if (request.session.get('correo_cambiado_verificado') and 
+        request.session.get('nuevo_correo_verificado') and
+        request.session.get('registro_publico_rut')):
+        request.session['registro_publico_correo_verificado'] = True
+        request.session['registro_publico_mail'] = request.session['nuevo_correo_verificado']
+    
+    # Determine which stage we're in
+    correo_verificado = request.session.get('registro_publico_correo_verificado', False)
+    rut = request.session.get('registro_publico_rut', '')
+    mail = request.session.get('registro_publico_mail', '')
+    nombre = request.session.get('registro_publico_nombre', '')
+    region_padron = request.session.get('registro_publico_region', None)
+    
+    etapa = 2 if (correo_verificado and rut and mail) else 1
+    
+    if request.method == 'POST' and etapa == 2:
+        if request.POST.get('action') == 'ir_etapa2':
+            # Solo redirigir (o volver a renderizar) a la etapa 2, sin validar el form
+            form2 = RegistroPublicoEtapa2Form()
+        else:
+            form2 = RegistroPublicoEtapa2Form(request.POST)
+            form2._http_request = request
+            form2._rut = rut
             
-        form = ReenviarRegistroForm(request.POST)
-        if form.is_valid():
-            rut = form.cleaned_data.get('rut')
-            
-            # 1. Verificar si ya es un militante completamente registrado
-            if Militante.objects.filter(rut=rut, is_active=True).exists():
-                messages.info(request, "Este RUT ya está completamente registrado en el sistema. Puedes iniciar sesión en 'Edita tu usuario' o para votar.")
-                return redirect('voting:vota')
+            if form2.is_valid():
+                password = form2.cleaned_data['password']
+                region = form2.cleaned_data.get('region')
                 
-            # 2. Buscar si tiene un token de registro pendiente (militante pendiente de registro)
-            token_obj = MilitanteRegistrationToken.objects.filter(rut=rut, used=False).order_by('-created_at').first()
-            
-            if not token_obj:
-                record_attempt(request, 'reenviar_registro', 300)
-                messages.error(request, f"No se encontró un registro pendiente para este RUT en la base de datos. Si crees que es un error, contacta a {contact_email}")
-                return render(request, 'voting/reenviar_registro.html', {
-                    'form': form,
-                    'contact_email': contact_email,
-                })
+                # Verify RUT not already registered (race condition check)
+                if Militante.objects.filter(rut=rut).exists():
+                    messages.error(request, "Este RUT ya está registrado en el sistema.")
+                    # Clean session
+                    for key in ['registro_publico_rut', 'registro_publico_mail', 'registro_publico_nombre', 
+                                'registro_publico_region', 'registro_publico_correo_verificado']:
+                        request.session.pop(key, None)
+                    return redirect('voting:vota')
                 
-            # 3. Verificar si ya se ha reenviado el registro (Límite 1 vez por usuario)
-            sent_mail = token_obj.mail
-            if token_obj.resent:
-                resent_already = True
-                messages.warning(request, "Ya se ha realizado el reenvío de registro para este usuario (límite de 1 reenvío por usuario).")
-            else:
-                # Proceder con el reenvío
-                base_url = f"{request.scheme}://{request.get_host()}"
-                registration_link = f"{base_url}/registro-militante/{token_obj.token}/"
+                # Create Militante
+                militante = Militante.objects.create(
+                    nombre=nombre,
+                    rut=rut,
+                    mail=mail,
+                    password=make_password(password),
+                    region=region if region else region_padron,
+                )
                 
+                # Mark all unused tokens for this RUT as used, update their mail/region
+                MilitanteRegistrationToken.objects.filter(rut=rut, used=False).update(
+                    used=True,
+                    mail=mail,
+                    region=region if region else region_padron,
+                )
+                
+                # Send welcome email
                 try:
-                    EmailService.send_militante_registration_email(
-                        to_email=token_obj.mail,
-                        nombre=token_obj.nombre,
-                        registration_link=registration_link
-                    )
-                    token_obj.resent = True
-                    token_obj.save()
-                    messages.success(request, "¡Correo de registro reenviado exitosamente!")
-                except Exception as e:
-                    messages.error(request, f"Error al enviar el correo: {str(e)}")
-                    sent_mail = None
-    else:
-        form = ReenviarRegistroForm()
+                    EmailService.send_militante_welcome_email(militante.mail, militante.nombre)
+                except Exception:
+                    pass
+                
+                # Notify about active/upcoming votings
+                now = get_real_now()
+                active_or_upcoming_votings = Voting.objects.filter(
+                    user_data__rut=militante.rut,
+                    finish_date__gt=now,
+                ).distinct()
+                
+                import pytz
+                santiago_tz = pytz.timezone('America/Santiago')
+                
+                for voting in active_or_upcoming_votings:
+                    if voting.start_date > now:
+                        try:
+                            EmailService.send_upcoming_voting_email(
+                                to_email=militante.mail,
+                                nombre=militante.nombre,
+                                voting_title=voting.title,
+                                voting_description=voting.description,
+                                start_date=voting.start_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M'),
+                                finish_date=voting.finish_date.astimezone(santiago_tz).strftime('%d/%m/%Y %H:%M'),
+                                candidates=voting.subjects.all(),
+                            )
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            base_url = f"{request.scheme}://{request.get_host()}"
+                            vote_link = f"{base_url}/vota"
+                            EmailService.send_voting_reminder_email(
+                                to_email=militante.mail,
+                                user_name=militante.nombre,
+                                voting_title=voting.title,
+                                vote_link=vote_link,
+                            )
+                        except Exception:
+                            pass
+                
+                # Clean session
+                for key in ['registro_publico_rut', 'registro_publico_mail', 'registro_publico_nombre',
+                            'registro_publico_region', 'registro_publico_correo_verificado',
+                            'correo_cambiado_verificado', 'nuevo_correo_verificado',
+                            'codigo_verificacion', 'codigo_verificacion_expira']:
+                    request.session.pop(key, None)
+                
+                messages.success(request, "¡Registro completado exitosamente! Ahora puedes iniciar sesión para votar.")
+                return redirect('voting:index')
         
-    context = {
-        'form': form,
-        'contact_email': contact_email,
-        'sent_mail': sent_mail,
-        'resent_already': resent_already,
-    }
+        # Form invalid — stay on stage 2
+        context = {
+            'etapa': 2,
+            'rut': rut,
+            'mail': mail,
+            'nombre': nombre,
+            'form2': form2,
+            'region_padron': region_padron,
+            'region_choices': REGION_CHOICES,
+        }
+        return render(request, 'voting/reenviar_registro.html', context)
+    
+    # GET request or stage 1
+    if etapa == 2:
+        form2 = RegistroPublicoEtapa2Form(initial={'region': region_padron} if region_padron else {})
+        context = {
+            'etapa': 2,
+            'rut': rut,
+            'mail': mail,
+            'nombre': nombre,
+            'form2': form2,
+            'region_padron': region_padron,
+            'region_choices': REGION_CHOICES,
+        }
+    else:
+        context = {
+            'etapa': 1,
+        }
+    
     return render(request, 'voting/reenviar_registro.html', context)
+
+
+@require_http_methods(["POST"])
+def verificar_rut_padron(request):
+    """AJAX: Verifica si un RUT existe en el padrón (MilitanteRegistrationToken sin usar)"""
+    import json
+    from voting.forms import format_rut
+    
+    limited, wait = rate_limit_check(request, 'verificar_rut_padron', 5, 300)
+    if limited:
+        return JsonResponse({'success': False, 'message': f'Demasiados intentos. Espera {wait} segundos.'})
+    
+    try:
+        data = json.loads(request.body)
+        rut_raw = data.get('rut', '')
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'success': False, 'message': 'Datos inválidos.'})
+    
+    if not rut_raw:
+        return JsonResponse({'success': False, 'message': 'El RUT es requerido.'})
+    
+    rut = format_rut(rut_raw)
+    
+    # Check if already fully registered
+    if Militante.objects.filter(rut=rut, is_active=True).exists():
+        return JsonResponse({'success': False, 'message': 'Este RUT ya tiene una cuenta registrada. Inicia sesión para acceder.', 'already_registered': True})
+    
+    # Check if in padrón (has unused token)
+    token = MilitanteRegistrationToken.objects.filter(rut=rut, used=False).order_by('-created_at').first()
+    if not token:
+        record_attempt(request, 'verificar_rut_padron', 300)
+        return JsonResponse({'success': False, 'message': 'Tu RUT no está en el padrón de militantes. Contacta a contacto@partidorepublicanodechile.cl'})
+    
+    # Store in session for later
+    request.session['registro_publico_rut'] = rut
+    request.session['registro_publico_nombre'] = token.nombre
+    request.session['registro_publico_region'] = token.region
+    
+    return JsonResponse({'success': True, 'nombre': token.nombre, 'message': 'RUT encontrado en el padrón.'})
 
 
 def faq_view(request):

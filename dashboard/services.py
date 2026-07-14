@@ -76,41 +76,60 @@ class ExcelService:
     @staticmethod
     def import_militantes_from_excel(excel_file):
         """
-        Importa datos de militantes desde un archivo Excel para envío de correos.
-        
-        Si un RUT ya existe como Militante y el mail del Excel es distinto,
-        actualiza el mail del Militante y lo marca para reenvío de invitación.
+        Importa datos de militantes desde un archivo Excel para actualizar el padrón.
         
         Columnas:
         - A: RUT (se formatea)
         - B: Nombre
-        - C: Mail
+        - C: Mail (opcional)
+        - D: Región (número 1-17, opcional)
+        
+        Lógica:
+        1. RUT existe en Militante (activo) → solo actualiza región si viene en el Excel
+        2. RUT existe en MilitanteRegistrationToken (pendiente) → actualiza mail/región;
+           si el mail cambió, marca para reenvío de invitación
+        3. RUT no existe → crea nuevo MilitanteRegistrationToken; incluye en envío solo si tiene mail
         
         Args:
             excel_file: Archivo Excel subido
             
         Returns:
-            dict: {'new_users': [...], 'updated_users': [...]}
-                  Cada elemento es un dict con {nombre, rut, mail}
+            dict: {
+                'new_users': [...],           # nuevos con mail (para envío)
+                'updated_users': [...],       # pendientes con mail cambiado (para reenvío)
+                'updated_active_count': int,  # activos con región actualizada
+                'partial_count': int          # nuevos sin mail (solo padrón)
+            }
         """
         from voting.models import MilitanteRegistrationToken
         
         try:
             df = pd.read_excel(excel_file, header=None)
             
-            if len(df.columns) < 3:
-                raise ValueError("El archivo debe tener al menos 3 columnas: RUT (A), Nombre (B), Mail (C)")
+            if len(df.columns) < 1:
+                raise ValueError("El archivo debe tener al menos 1 columna: RUT (A)")
             
             rows_data = []
             ruts_in_df = set()
             
             for index, row in df.iterrows():
                 rut_raw = row[0]  # Columna A
-                nombre = str(row[1]).strip() if pd.notna(row[1]) else ''  # Columna B
-                mail = str(row[2]).strip().lower() if pd.notna(row[2]) else ''  # Columna C
                 
-                if pd.isna(rut_raw) or not nombre or not mail:
+                if pd.isna(rut_raw):
                     continue
+                
+                nombre = str(row[1]).strip() if len(row) > 1 and pd.notna(row[1]) else ''  # Columna B
+                mail = str(row[2]).strip().lower() if len(row) > 2 and pd.notna(row[2]) else ''  # Columna C
+                
+                # Parsear región (columna D): int 1-17, None si vacío/inválido
+                region = None
+                if len(row) > 3 and pd.notna(row[3]):
+                    try:
+                        region_val = int(float(row[3]))
+                        if 1 <= region_val <= 17:
+                            region = region_val
+                    except (ValueError, TypeError):
+                        pass
                 
                 # Formatear RUT
                 rut = format_rut(rut_raw)
@@ -118,38 +137,86 @@ class ExcelService:
                     rows_data.append({
                         'nombre': nombre,
                         'rut': rut,
-                        'mail': mail
+                        'mail': mail,
+                        'region': region
                     })
                     ruts_in_df.add(rut)
             
-            # Consultar militantes existentes con sus mails (evita N+1 queries)
+            # Consultar militantes activos existentes
             existing_militantes = {
                 m.rut: m for m in Militante.objects.filter(rut__in=ruts_in_df)
             }
             
+            # Consultar tokens de registro pendientes (no usados)
+            existing_tokens = {
+                t.rut: t for t in MilitanteRegistrationToken.objects.filter(
+                    rut__in=ruts_in_df, used=False
+                )
+            }
+            
             new_users = []
             updated_users = []
+            updated_active_count = 0
+            partial_count = 0
             
             for data in rows_data:
-                if data['rut'] not in existing_militantes:
-                    # RUT no existe → nuevo usuario
-                    new_users.append(data)
-                else:
-                    # RUT existe → verificar si el mail cambió
-                    militante = existing_militantes[data['rut']]
-                    if militante.mail.lower() != data['mail'].lower():
-                        # Mail distinto → actualizar mail del militante
-                        militante.mail = data['mail']
+                rut = data['rut']
+                
+                if rut in existing_militantes:
+                    # 1. RUT existe como Militante activo → solo actualizar región
+                    militante = existing_militantes[rut]
+                    if data['region'] is not None and militante.region != data['region']:
+                        militante.region = data['region']
                         militante.save()
-                        
-                        # Invalidar tokens de registro anteriores para este RUT
-                        MilitanteRegistrationToken.objects.filter(
-                            rut=data['rut'], used=False
-                        ).update(used=True)
-                        
+                        updated_active_count += 1
+                
+                elif rut in existing_tokens:
+                    # 2. RUT existe como token pendiente → actualizar mail y/o región
+                    token = existing_tokens[rut]
+                    mail_changed = False
+                    
+                    if data['mail'] and token.mail.lower() != data['mail'].lower():
+                        token.mail = data['mail']
+                        mail_changed = True
+                    
+                    if data['region'] is not None:
+                        token.region = data['region']
+                    
+                    if data['nombre']:
+                        token.nombre = data['nombre']
+                    
+                    token.save()
+                    
+                    if mail_changed and data['mail']:
                         updated_users.append(data)
+                
+                else:
+                    # 3. RUT no existe → crear nuevo MilitanteRegistrationToken
+                    MilitanteRegistrationToken.create_token(
+                        nombre=data['nombre'],
+                        rut=rut,
+                        mail=data['mail']
+                    )
+                    # Actualizar región en el token recién creado
+                    if data['region'] is not None:
+                        new_token = MilitanteRegistrationToken.objects.filter(
+                            rut=rut, used=False
+                        ).order_by('-created_at').first()
+                        if new_token:
+                            new_token.region = data['region']
+                            new_token.save()
+                    
+                    if data['mail']:
+                        new_users.append(data)
+                    else:
+                        partial_count += 1
             
-            return {'new_users': new_users, 'updated_users': updated_users}
+            return {
+                'new_users': new_users,
+                'updated_users': updated_users,
+                'updated_active_count': updated_active_count,
+                'partial_count': partial_count
+            }
         
         except Exception as e:
             raise Exception(f"Error al procesar el archivo Excel: {str(e)}")

@@ -330,6 +330,7 @@ class Militante(models.Model):
     mail = models.EmailField(unique=True)
     password = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
+    region = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -356,14 +357,15 @@ class Militante(models.Model):
 
 class MilitanteRegistrationToken(models.Model):
     """Modelo para tokens de registro de militantes"""
-    nombre = models.CharField(max_length=200)
+    nombre = models.CharField(max_length=200, blank=True, default='')
     rut = models.CharField(max_length=20)
-    mail = models.EmailField()
+    mail = models.EmailField(blank=True, default='')
     token = models.CharField(max_length=255, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)  # Campo opcional para compatibilidad
     used = models.BooleanField(default=False)
     resent = models.BooleanField(default=False)
+    region = models.IntegerField(null=True, blank=True)
     
     class Meta:
         verbose_name = "Militante Registration Token"
@@ -424,7 +426,7 @@ class DataUploadLog(models.Model):
     """Modelo para registrar el resultado de cargas masivas desde Excel"""
     UPLOAD_TYPES = (
         ('VOTANTES', 'Carga de Votantes'),
-        ('REGISTRO_MILITANTES', 'Envío de Correos a Militantes'),
+        ('REGISTRO_MILITANTES', 'Actualizar Padrón'),
         ('START_REMINDER', 'Envío Recordatorio Votación Activa'),
     )
     

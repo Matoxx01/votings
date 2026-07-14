@@ -1,12 +1,11 @@
 {% extends 'base.html' %}
-
-{% block title %}Invitar Militantes - Dashboard{% endblock %}
+{% block title %}Actualizar Padrón - Dashboard{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div class="container">
-        <h1>Envío de Correos a Militantes</h1>
-        <p class="lead">Enviar invitaciones de registro desde archivo Excel</p>
+        <h1>Actualizar Padrón</h1>
+        <p class="lead">Actualizar el padrón de militantes desde archivo Excel</p>
     </div>
 </div>
 
@@ -15,7 +14,7 @@
         <div class="col-lg-8 mx-auto">
             <div class="card">
                 <div class="card-header bg-success">
-                    <h5 class="mb-0">Importar y Enviar Invitaciones</h5>
+                    <h5 class="mb-0">Importar y Actualizar Padrón</h5>
                 </div>
                 <div class="card-body">
                     {% if messages %}
@@ -32,11 +31,42 @@
                             <li><strong>Columna A:</strong> RUT (se formatea automáticamente a 12345678-K)</li>
                             <li><strong>Columna B:</strong> Nombre completo</li>
                             <li><strong>Columna C:</strong> Correo electrónico</li>
+                            <li><strong>Columna D:</strong> Región (número 1-17)</li>
                         </ul>
+                        <div class="mt-2">
+                            <a class="small" data-bs-toggle="collapse" href="#regionTable" role="button" aria-expanded="false" aria-controls="regionTable">
+                                📋 Ver tabla de regiones
+                            </a>
+                            <div class="collapse mt-2" id="regionTable">
+                                <table class="table table-sm table-bordered mb-0" style="font-size: 0.85rem;">
+                                    <thead class="table-light">
+                                        <tr><th>#</th><th>Región</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>1</td><td>Tarapacá</td></tr>
+                                        <tr><td>2</td><td>Antofagasta</td></tr>
+                                        <tr><td>3</td><td>Atacama</td></tr>
+                                        <tr><td>4</td><td>Coquimbo</td></tr>
+                                        <tr><td>5</td><td>Valparaíso</td></tr>
+                                        <tr><td>6</td><td>Libertador General Bernardo O'Higgins</td></tr>
+                                        <tr><td>7</td><td>Maule</td></tr>
+                                        <tr><td>8</td><td>Biobío</td></tr>
+                                        <tr><td>9</td><td>La Araucanía</td></tr>
+                                        <tr><td>10</td><td>Los Lagos</td></tr>
+                                        <tr><td>11</td><td>Aysén del General Carlos Ibáñez del Campo</td></tr>
+                                        <tr><td>12</td><td>Magallanes y de la Antártica Chilena</td></tr>
+                                        <tr><td>13</td><td>Metropolitana de Santiago</td></tr>
+                                        <tr><td>14</td><td>Los Ríos</td></tr>
+                                        <tr><td>15</td><td>Arica y Parinacota</td></tr>
+                                        <tr><td>16</td><td>Ñuble</td></tr>
+                                        <tr><td>17</td><td>S/Región</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                         <hr>
                         <small class="text-muted">
-                            ⚠️ Los correos se envían con un intervalo de 1 segundo entre cada uno.
-                            Los militantes ya registrados serán omitidos.
+                            ⚠️ Los militantes activos solo se les actualiza la región. Los pendientes de registro se les actualiza correo y región (si el correo cambió se reenvía invitación). Los nuevos sin correo se agregan al padrón sin enviar invitación.
                         </small>
                     </div>
 
@@ -58,7 +88,7 @@
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">
-                                Enviar Invitaciones
+                                Actualizar Padrón
                             </button>
                         </div>
                     </form>

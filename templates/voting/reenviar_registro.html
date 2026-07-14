@@ -1,75 +1,184 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Reenviar Correo de Registro - Sistema de Votaciones{% endblock %}
+{% block title %}Regístrate y crea tu cuenta - Sistema de Votaciones{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div class="container text-center">
-        <h1>Reenvío de Registro en Sistema</h1>
-        <p>Solicita el reenvío de tu invitación para registrarte como militante</p>
+        <h1>Regístrate y crea tu cuenta</h1>
+        {% if etapa == 1 %}
+        <p>Verifica tu identidad para crear tu cuenta como militante</p>
+        {% else %}
+        <p>Completa tu información para finalizar el registro</p>
+        {% endif %}
     </div>
 </div>
 
 <div class="container py-4">
     <div class="row">
-        <div class="col-lg-5 mx-auto">
+        <div class="col-lg-6 mx-auto">
             <div class="card">
-                <div class="card-body p-5">
-                    {% if sent_mail %}
-                        <div class="text-center mb-4">
-                            <i class="bi bi-envelope-check text-success" style="font-size: 3.5rem;"></i>
-                            <h4 class="card-title mt-2">Estado de tu Registro</h4>
-                            {% if resent_already %}
-                                <p class="text-warning mb-3">
-                                    <strong>Ya has solicitado el reenvío anteriormente.</strong><br>
-                                    Por seguridad, el sistema limita el reenvío a 1 vez por usuario.
-                                </p>
-                            {% else %}
-                                <p class="text-success mb-3">
-                                    <strong>¡Se ha reenviado tu invitación de registro exitosamente!</strong>
-                                </p>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Se ha enviado el registro a este correo electrónico:</label>
-                            <input type="text" class="form-control text-center bg-light fw-bold py-2" value="{{ sent_mail }}" readonly disabled>
-                        </div>
-
-                        <div class="alert alert-info mt-4 text-center" role="alert">
-                            <h6 class="alert-heading fw-bold mb-2">¿No es tu correo o no tienes acceso?</h6>
-                            <p class="mb-2 small">Si el correo que aparece arriba ya no es tuyo o no puedes acceder a él, necesitas actualizar tu información en el sistema.</p>
-                            <a href="https://datos.partidorepublicanodechile.cl/" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm mt-1 fw-bold">
-                                Actualiza tus datos aquí
-                            </a>
-                        </div>
-
-                        <div class="d-grid gap-2 mt-4">
-                            <a href="{% url 'voting:index' %}" class="btn btn-primary btn-lg">
-                                Entendido
-                            </a>
-                        </div>
-                    {% else %}
+                <div class="card-body p-4 p-md-5">
+                    
+                    {% if etapa == 1 %}
                         <p class="text-muted text-center mb-4">
-                            Ingresa tu RUT para verificar si estás en la base de datos como militante pendiente de registro y reenviarte el correo de acceso.
+                            Ingresa tu RUT para verificar si estás en el padrón de militantes.
                         </p>
                         
+                        <!-- Etapa 1: Verificar RUT y Correo -->
+                        <form id="form-verificar-rut" onsubmit="event.preventDefault(); verificarRUT();">
+                            <div class="mb-3">
+                                <label for="id_rut" class="form-label">RUT</label>
+                                <input type="text" id="id_rut" name="rut" class="form-control" placeholder="Ej: 12345678-K" required>
+                                <div class="invalid-feedback d-none" id="rut-error">El RUT debe tener el formato correcto (Ej: 12345678-K)</div>
+                            </div>
+                            <div class="d-grid gap-2 mb-4">
+                                <button type="submit" class="btn btn-outline-primary" id="btn-verificar-rut">
+                                    Verificar RUT
+                                </button>
+                            </div>
+                            <div id="rut-success" class="alert alert-success d-none mb-4">
+                                <i class="bi bi-check-circle-fill me-2"></i><span id="rut-success-msg"></span>
+                            </div>
+                            <div id="rut-error-alert" class="alert alert-danger d-none mb-4">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="rut-error-msg"></span>
+                            </div>
+                        </form>
+                        
+                        <div id="seccion-correo" class="d-none mt-4 border-top pt-4">
+                            <h5 class="mb-3">Verificación de Correo Electrónico</h5>
+                            <form id="form-enviar-codigo" onsubmit="event.preventDefault(); enviarCodigo();">
+                                <div class="mb-3">
+                                    <label for="id_correo" class="form-label">Correo electrónico</label>
+                                    <input type="email" id="id_correo" name="correo" class="form-control" placeholder="tu@correo.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="id_correo_confirm" class="form-label">Confirmar correo electrónico</label>
+                                    <input type="email" id="id_correo_confirm" name="correo_confirm" class="form-control" placeholder="tu@correo.com" required>
+                                    <div class="invalid-feedback d-none" id="correo-match-error">Los correos no coinciden.</div>
+                                </div>
+                                <div class="d-grid gap-2 mb-4">
+                                    <button type="submit" class="btn btn-outline-primary" id="btn-enviar-codigo">
+                                        Enviar Código de Verificación
+                                    </button>
+                                </div>
+                                <div id="codigo-success" class="alert alert-success d-none mb-4">
+                                    <i class="bi bi-check-circle-fill me-2"></i>Código enviado. Revisa tu bandeja de entrada o spam.
+                                </div>
+                                <div id="codigo-error-alert" class="alert alert-danger d-none mb-4">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="codigo-error-msg"></span>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div id="seccion-validar" class="d-none mt-4">
+                            <form id="form-validar-codigo" onsubmit="event.preventDefault(); validarCodigo();">
+                                <div class="mb-3">
+                                    <label for="id_codigo" class="form-label">Código de Verificación (6 dígitos)</label>
+                                    <input type="text" id="id_codigo" name="codigo" class="form-control text-center" style="letter-spacing: 10px; font-size: 1.5rem;" maxlength="6" required>
+                                </div>
+                                <div class="d-grid gap-2 mb-4">
+                                    <button type="submit" class="btn btn-primary" id="btn-validar-codigo">
+                                        Validar Código
+                                    </button>
+                                </div>
+                                <div id="validar-success" class="alert alert-success d-none mb-4">
+                                    <i class="bi bi-check-circle-fill me-2"></i>Correo verificado correctamente.
+                                </div>
+                                <div id="validar-error-alert" class="alert alert-danger d-none mb-4">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="validar-error-msg"></span>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <form method="post" id="form-siguiente" class="d-none">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="ir_etapa2">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    Siguiente
+                                </button>
+                            </form>
+                        </div>
+                        
+                    {% else %}
+                        
+                        <!-- Etapa 2: Completar Registro -->
                         <form method="post" class="needs-validation" novalidate>
                             {% csrf_token %}
                             
                             <div class="mb-3">
-                                <label for="{{ form.rut.id_for_label }}" class="form-label">{{ form.rut.label }}</label>
-                                {{ form.rut }}
-                                {% if form.rut.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.rut.errors }}
-                                    </div>
+                                <label class="form-label">RUT</label>
+                                <input type="text" class="form-control bg-light" value="{{ rut }}" readonly disabled>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">Correo Electrónico</label>
+                                <input type="text" class="form-control bg-light" value="{{ mail }}" readonly disabled>
+                            </div>
+                            
+                            <hr class="my-4">
+                            
+                            <div class="mb-3">
+                                <label for="{{ form2.region.id_for_label }}" class="form-label">{{ form2.region.label }}</label>
+                                {{ form2.region }}
+                                {% if form2.region.errors %}
+                                    <div class="invalid-feedback d-block">{{ form2.region.errors }}</div>
                                 {% endif %}
                             </div>
-
+                            
+                            <div class="mb-3">
+                                <label for="{{ form2.numero_documento.id_for_label }}" class="form-label">
+                                    {{ form2.numero_documento.label }}
+                                    <div class="d-inline-block position-relative ms-1">
+                                        <i class="bi bi-question-circle" 
+                                           onmouseover="document.getElementById('info-carnet').style.display='block'" 
+                                           onmouseout="document.getElementById('info-carnet').style.display='none'"
+                                           style="cursor: help; color: #0d6efd;"></i>
+                                        <div id="info-carnet" style="display: none; position: absolute; z-index: 1050; top: -10px; left: 25px; background: white; border: 1px solid #dee2e6; padding: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 300px;">
+                                            <img src="{% static 'carnet.png' %}" alt="Ejemplo Carnet" style="max-width: 100%; height: auto; border-radius: 4px;">
+                                        </div>
+                                    </div>
+                                </label>
+                                {{ form2.numero_documento }}
+                                {% if form2.numero_documento.errors %}
+                                    <div class="invalid-feedback d-block">{{ form2.numero_documento.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form2.password.id_for_label }}" class="form-label">{{ form2.password.label }}</label>
+                                <div class="input-group">
+                                    {{ form2.password }}
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('{{ form2.password.id_for_label }}', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                {% if form2.password.help_text %}
+                                    <div class="form-text">{{ form2.password.help_text }}</div>
+                                {% endif %}
+                                {% if form2.password.errors %}
+                                    <div class="invalid-feedback d-block">{{ form2.password.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="{{ form2.password_confirm.id_for_label }}" class="form-label">{{ form2.password_confirm.label }}</label>
+                                <div class="input-group">
+                                    {{ form2.password_confirm }}
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('{{ form2.password_confirm.id_for_label }}', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                {% if form2.password_confirm.errors %}
+                                    <div class="invalid-feedback d-block">{{ form2.password_confirm.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
                             <div class="d-grid gap-2 mt-4">
                                 <button type="submit" class="btn btn-primary btn-lg">
-                                    Verificar y Reenviar
+                                    Completar Registro
                                 </button>
                             </div>
                         </form>
@@ -87,6 +196,194 @@
 </div>
 
 <script>
+    // RUT Formatting
+    const inputRut = document.getElementById('id_rut');
+    if (inputRut) {
+        inputRut.addEventListener('input', function(e) {
+            let valor = e.target.value.replace(/[^0-9kK]/g, '').toUpperCase();
+            if (valor.length > 1) {
+                valor = valor.slice(0, -1) + '-' + valor.slice(-1);
+            }
+            e.target.value = valor;
+        });
+    }
+
+    // Toggle Password
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+
+    // AJAX CSRF Token setup
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // Funciones AJAX para Etapa 1
+    {% if etapa == 1 %}
+    function verificarRUT() {
+        const rutInput = document.getElementById('id_rut');
+        const rut = rutInput.value;
+        const btn = document.getElementById('btn-verificar-rut');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verificando...';
+        
+        document.getElementById('rut-success').classList.add('d-none');
+        document.getElementById('rut-error-alert').classList.add('d-none');
+        
+        fetch("{% url 'voting:verificar_rut_padron' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({rut: rut})
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = 'Verificar RUT';
+            
+            if (data.success) {
+                rutInput.readOnly = true;
+                btn.classList.add('d-none');
+                
+                document.getElementById('rut-success').classList.remove('d-none');
+                document.getElementById('rut-success-msg').textContent = '¡Hola ' + data.nombre + '! Ahora verifica tu correo.';
+                
+                document.getElementById('seccion-correo').classList.remove('d-none');
+            } else {
+                document.getElementById('rut-error-alert').classList.remove('d-none');
+                document.getElementById('rut-error-msg').textContent = data.message;
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = 'Verificar RUT';
+            document.getElementById('rut-error-alert').classList.remove('d-none');
+            document.getElementById('rut-error-msg').textContent = 'Error de conexión.';
+        });
+    }
+
+    function enviarCodigo() {
+        const correo = document.getElementById('id_correo').value;
+        const correoConfirm = document.getElementById('id_correo_confirm').value;
+        const btn = document.getElementById('btn-enviar-codigo');
+        
+        if (correo !== correoConfirm) {
+            document.getElementById('id_correo_confirm').classList.add('is-invalid');
+            document.getElementById('correo-match-error').classList.remove('d-none');
+            return;
+        }
+        
+        document.getElementById('id_correo_confirm').classList.remove('is-invalid');
+        document.getElementById('correo-match-error').classList.add('d-none');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
+        
+        document.getElementById('codigo-success').classList.add('d-none');
+        document.getElementById('codigo-error-alert').classList.add('d-none');
+        
+        fetch("{% url 'voting:enviar_codigo_correo' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({email: correo})
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = 'Reenviar Código';
+            
+            if (data.success) {
+                document.getElementById('id_correo').readOnly = true;
+                document.getElementById('id_correo_confirm').readOnly = true;
+                
+                document.getElementById('codigo-success').classList.remove('d-none');
+                document.getElementById('seccion-validar').classList.remove('d-none');
+            } else {
+                document.getElementById('codigo-error-alert').classList.remove('d-none');
+                document.getElementById('codigo-error-msg').textContent = data.message;
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = 'Enviar Código de Verificación';
+            document.getElementById('codigo-error-alert').classList.remove('d-none');
+            document.getElementById('codigo-error-msg').textContent = 'Error de conexión.';
+        });
+    }
+
+    function validarCodigo() {
+        const codigo = document.getElementById('id_codigo').value;
+        const correo = document.getElementById('id_correo').value;
+        const btn = document.getElementById('btn-validar-codigo');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Validando...';
+        
+        document.getElementById('validar-success').classList.add('d-none');
+        document.getElementById('validar-error-alert').classList.add('d-none');
+        
+        fetch("{% url 'voting:validar_codigo_correo' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({code: codigo, email: correo})
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = 'Validar Código';
+            
+            if (data.success) {
+                document.getElementById('id_codigo').readOnly = true;
+                btn.classList.add('d-none');
+                document.getElementById('btn-enviar-codigo').classList.add('d-none');
+                
+                document.getElementById('validar-success').classList.remove('d-none');
+                document.getElementById('form-siguiente').classList.remove('d-none');
+            } else {
+                document.getElementById('validar-error-alert').classList.remove('d-none');
+                document.getElementById('validar-error-msg').textContent = data.message;
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = 'Validar Código';
+            document.getElementById('validar-error-alert').classList.remove('d-none');
+            document.getElementById('validar-error-msg').textContent = 'Error de conexión.';
+        });
+    }
+    {% endif %}
+
     (function () {
         'use strict';
         window.addEventListener('load', function () {

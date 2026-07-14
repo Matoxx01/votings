@@ -12,13 +12,6 @@
 <a href="/vota" class="action-stripe action-stripe--vote">
   <span class="action-stripe__text">VOTA AQUÍ</span>
 </a>
-{% else %}
-<a href="https://datos.partidorepublicanodechile.cl/"
-   target="_blank" rel="noopener"
-   class="update-banner-link">
-  <img src="{% static 'images/actualizar.png' %}" alt="Actualiza tus datos aquí" class="update-banner-img update-banner-img--normal">
-  <img src="{% static 'images/actualizar-hover.png' %}" alt="Actualiza tus datos aquí" class="update-banner-img update-banner-img--hover">
-</a>
 {% endif %}
 
 <style>
@@ -189,13 +182,13 @@
           </div>
           <div class="card-body d-flex flex-column justify-content-between">
             <div>
-              <h5 class="card-title">Reenvío de registro en sistema</h5>
+              <h5 class="card-title">Regístrate y crea tu cuenta</h5>
               <p class="card-text text-muted" style="font-size: 0.93rem;">
-                Si estás pendiente de registro, ingresa tu RUT para verificar y reenviarte el correo de acceso.
+                Si estás en el padrón de militantes, regístrate aquí para crear tu cuenta y participar en las votaciones.
               </p>
             </div>
             <a href="{% url 'voting:reenviar_registro' %}" class="btn btn-postulacion mt-3">
-              Reenviar Correo
+              Registrarse
             </a>
           </div>
         </div>

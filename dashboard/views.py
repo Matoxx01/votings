@@ -495,25 +495,32 @@ def async_militante_invite(log_id, file_bytes, base_url):
         log = DataUploadLog.objects.get(id=log_id)
         excel_buffer = io.BytesIO(file_bytes)
         
-        # Importar datos del Excel (ahora retorna dict con new_users y updated_users)
+        # Importar datos del Excel
         result = ExcelService.import_militantes_from_excel(excel_buffer)
         
         new_users = result.get('new_users', [])
         updated_users = result.get('updated_users', [])
+        updated_active_count = result.get('updated_active_count', 0)
+        partial_count = result.get('partial_count', 0)
         total_users = new_users + updated_users
         
+        log.details['new_count'] = len(new_users)
+        log.details['updated_count'] = len(updated_users)
+        log.details['updated_active_count'] = updated_active_count
+        log.details['partial_count'] = partial_count
+        
         if not total_users:
-            log.details = {
-                'process_error': 'No se encontraron usuarios válidos para invitar (o ya estaban todos registrados con el mismo correo).',
-                'in_progress': False
-            }
+            # No hay correos que enviar, pero pudo haber actualizaciones de región
+            log.total_rows = updated_active_count + partial_count
+            log.success_count = updated_active_count + partial_count
+            log.details['in_progress'] = False
+            if updated_active_count == 0 and partial_count == 0:
+                log.details['process_error'] = 'No se encontraron usuarios válidos para procesar (o ya estaban todos registrados con el mismo correo).'
             log.save()
             return
             
-        log.total_rows = len(total_users)
-        log.success_count = len(total_users)
-        log.details['new_count'] = len(new_users)
-        log.details['updated_count'] = len(updated_users)
+        log.total_rows = len(total_users) + updated_active_count + partial_count
+        log.success_count = len(total_users) + updated_active_count + partial_count
         log.save()
 
         # Encolar correos para nuevos usuarios y para usuarios con mail actualizado
