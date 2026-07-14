@@ -79,6 +79,9 @@
                                     <th style="color: navy !important;">Correo</th>
                                     <th style="color: navy !important;">Estado</th>
                                     <th style="color: navy !important;">Fecha Inv./Reg.</th>
+                                    {% if is_admin %}
+                                    <th style="color: navy !important; text-align: center;">Acciones</th>
+                                    {% endif %}
                                 </tr>
                             </thead>
                             <tbody id="users-tbody">
@@ -95,6 +98,13 @@
                                         {% endif %}
                                     </td>
                                     <td>{{ user.fecha|date:"d/m/Y H:i" }}</td>
+                                    {% if is_admin %}
+                                    <td class="text-center">
+                                        <a href="{% url 'dashboard:edit_user_data' rut=user.rut %}" class="btn btn-sm btn-outline-primary" title="Editar Información">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </a>
+                                    </td>
+                                    {% endif %}
                                 </tr>
                                 {% empty %}
                                 <tr>
@@ -221,19 +231,33 @@
                         if (paginationContainer) paginationContainer.style.display = 'none';
                         
                         if (data.results.length === 0) {
+                            {% if is_admin %}
+                            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron resultados para "<strong>' + query.replace(/</g, '&lt;') + '</strong>"</td></tr>';
+                            {% else %}
                             tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron resultados para "<strong>' + query.replace(/</g, '&lt;') + '</strong>"</td></tr>';
+                            {% endif %}
                         } else {
                             let html = '';
                             data.results.forEach(function(user) {
                                 const badge = user.registrado
                                     ? '<span class="badge bg-success">Cuenta Activada</span>'
                                     : '<span class="badge bg-warning text-dark">Pendiente Registro</span>';
+                                
+                                let actionsHTML = '';
+                                {% if is_admin %}
+                                const editUrl = "{% url 'dashboard:edit_user_data' rut='__RUT__' %}".replace('__RUT__', user.rut);
+                                actionsHTML = '<td class="text-center">' +
+                                    '<a href="' + editUrl + '" class="btn btn-sm btn-outline-primary" title="Editar Información">' +
+                                    '<i class="fas fa-edit"></i> Editar</a></td>';
+                                {% endif %}
+                                
                                 html += '<tr>' +
                                     '<td>' + (user.nombre || '') + '</td>' +
                                     '<td>' + (user.rut || '') + '</td>' +
                                     '<td>' + (user.mail || '') + '</td>' +
                                     '<td>' + badge + '</td>' +
                                     '<td>' + (user.fecha || '') + '</td>' +
+                                    actionsHTML +
                                 '</tr>';
                             });
                             tbody.innerHTML = html;

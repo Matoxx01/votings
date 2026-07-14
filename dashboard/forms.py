@@ -101,6 +101,28 @@ class MilitanteInviteForm(forms.Form):
     )
 
 
+from voting.forms import REGION_CHOICES
+
+class AdminUserEditForm(forms.Form):
+    """Formulario para que un administrador edite los datos de un usuario (militante o token)"""
+    nombre = forms.CharField(
+        max_length=200,
+        label="Nombre Completo",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Juan Pérez'})
+    )
+    mail = forms.EmailField(
+        label="Correo Electrónico",
+        required=False,
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Ej: juan@example.com'})
+    )
+    region = forms.ChoiceField(
+        choices=REGION_CHOICES,
+        label="Región",
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+
 class MaintainerEditForm(forms.ModelForm):
     """Formulario para editar administradores (sin cambiar contraseña)"""
     class Meta:

@@ -17,6 +17,7 @@ urlpatterns = [
     path('votaciones/<int:voting_id>/estadisticas/', views.voting_statistics, name='voting_statistics'),
     path('votaciones/<int:voting_id>/reporte/', views.generate_report, name='report'),
     path('usuarios/', views.user_data_management, name='user_data_management'),
+    path('usuarios/<str:rut>/editar/', views.edit_user_data, name='edit_user_data'),
     path('usuarios/api/status/', views.user_statuses_api, name='user_statuses_api'),
     path('usuarios/api/search/', views.user_data_search_api, name='user_data_search_api'),
     path('usuarios/cargar/', views.user_data_upload, name='user_data_upload'),

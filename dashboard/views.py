@@ -363,10 +363,100 @@ def user_data_management(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Check if admin
+    maintainer_id = request.session.get('maintainer_id')
+    maintainer = Maintainer.objects.get(id=maintainer_id) if maintainer_id else None
+    is_admin = maintainer and maintainer.id_role.name.lower() in ['administrador', 'admin']
+
     context = {
         'page_obj': page_obj,
+        'is_admin': is_admin,
     }
     return render(request, 'dashboard/user_data_management.html', context)
+
+
+from dashboard.forms import AdminUserEditForm
+
+@maintainer_login_required
+@permission_required('perm_gestionar_usuarios')
+def edit_user_data(request, rut):
+    """Vista para que un administrador edite los datos de un militante (activo o pendiente)"""
+    maintainer_id = request.session.get('maintainer_id')
+    maintainer = Maintainer.objects.get(id=maintainer_id) if maintainer_id else None
+    is_admin = maintainer and maintainer.id_role.name.lower() in ['administrador', 'admin']
+    
+    if not is_admin:
+        messages.error(request, "No tienes permisos de administrador para editar usuarios.")
+        return redirect('dashboard:user_data_management')
+    
+    # Buscar si existe como activo y/o pendiente
+    militante = Militante.objects.filter(rut=rut).first()
+    tokens = MilitanteRegistrationToken.objects.filter(rut=rut)
+    token_pendiente = tokens.filter(used=False).first()
+    
+    if not militante and not tokens.exists():
+        messages.error(request, "Usuario no encontrado.")
+        return redirect('dashboard:user_data_management')
+    
+    # Determinar los datos iniciales
+    initial_data = {}
+    if militante:
+        initial_data = {
+            'nombre': militante.nombre,
+            'mail': militante.mail,
+            'region': militante.region if militante.region else 17,
+        }
+        is_registered = True
+    elif token_pendiente:
+        initial_data = {
+            'nombre': token_pendiente.nombre,
+            'mail': token_pendiente.mail,
+            'region': token_pendiente.region if token_pendiente.region else 17,
+        }
+        is_registered = False
+    else:
+        # Tiene tokens pero todos están usados y no hay militante? Raro, pero posible si lo borraron
+        token = tokens.first()
+        initial_data = {
+            'nombre': token.nombre,
+            'mail': token.mail,
+            'region': token.region if token.region else 17,
+        }
+        is_registered = False
+        
+    if request.method == 'POST':
+        form = AdminUserEditForm(request.POST)
+        if form.is_valid():
+            nombre = form.cleaned_data['nombre']
+            mail = form.cleaned_data['mail']
+            region = form.cleaned_data['region']
+            
+            # Actualizar Militante si existe
+            if militante:
+                militante.nombre = nombre
+                militante.mail = mail
+                militante.region = region
+                militante.save()
+                
+            # Actualizar todos los tokens pendientes de este RUT para consistencia
+            tokens.filter(used=False).update(
+                nombre=nombre,
+                mail=mail,
+                region=region
+            )
+            
+            messages.success(request, f"Datos de {nombre} actualizados correctamente.")
+            return redirect('dashboard:user_data_management')
+    else:
+        form = AdminUserEditForm(initial=initial_data)
+        
+    context = {
+        'form': form,
+        'rut': rut,
+        'is_registered': is_registered,
+        'user_name': initial_data.get('nombre', 'Usuario')
+    }
+    return render(request, 'dashboard/edit_user_data.html', context)
 
 
 from django.http import JsonResponse
