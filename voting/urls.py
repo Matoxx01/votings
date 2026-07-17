@@ -34,4 +34,5 @@ urlpatterns = [
     
     # Preguntas Frecuentes
     path('preguntas-frecuentes/', views.faq_view, name='faq'),
+    path('conoce-a-tus-candidatos/', views.candidatos, name='candidatos'),
 ]

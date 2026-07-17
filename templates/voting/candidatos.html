@@ -1,0 +1,800 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Conoce a tus Candidatos - Sistema de Votaciones{% endblock %}
+
+{% block hero %}
+<div class="hero-banner">
+    <img src="{% static 'images/banner-conoce.png' %}" alt="Conoce a tus Candidatos Banner">
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+    .accordion-button:not(.collapsed) {
+        color: #ffffff;
+        background-color: var(--gov-navy, #1B2A4A);
+        box-shadow: inset 0 -1px 0 rgba(0,0,0,.125);
+    }
+    .accordion-button:not(.collapsed)::after {
+        filter: brightness(0) invert(1);
+    }
+    .accordion-button {
+        font-family: 'Anton', 'Inter', Arial, sans-serif;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+    .candidatos-section h5 {
+        color: var(--gov-navy, #1B2A4A);
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 0.5rem;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+    .lista-title {
+        font-weight: bold;
+        color: #d32f2f;
+        margin-top: 1rem;
+    }
+    .candidato-item {
+        padding: 0.5rem 0;
+        border-bottom: 1px dashed #e9ecef;
+    }
+    .candidato-item:last-child {
+        border-bottom: none;
+    }
+    .role-badge {
+        font-size: 0.8rem;
+        background-color: #f8f9fa;
+        color: #6c757d;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        margin-right: 0.5rem;
+        border: 1px solid #dee2e6;
+        display: inline-block;
+        min-width: 160px;
+        text-align: center;
+    }
+    .cabildo-badge {
+        background-color: #e9ecef;
+        color: #495057;
+    }
+</style>
+<div class="container py-5">
+    <h2 class="text-center mb-5" style="font-family: 'Anton', 'Inter', sans-serif; color: var(--gov-navy, #1B2A4A);">Candidatos por Región</h2>
+    <div class="accordion shadow-sm" id="accordionRegiones">
+        <!-- Region 1 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading1">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1" aria-expanded="false" aria-controls="collapse1">
+                    Región de Arica y Parinacota
+                </button>
+            </h2>
+            <div id="collapse1" class="accordion-collapse collapse" aria-labelledby="heading1" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista Unidad Republicana - Un Solo Norte:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Alan Céspedes Medina</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Luis Francisco Araya Valdecchy</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Eduardo Federico Muñiz Solari</div>
+                    <div class="candidato-item"><span class="role-badge">Secretaria</span> Fabiola Alejandra Llanquín González</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorera</span> Silvana Andrea Lara Espinoza</div>
+                    <p class="lista-title">Lista encabezada por Jacqueline Carolina Boero Carvajal:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Jacqueline Carolina Boero Carvajal</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Carlos Miguel Alvarado Aguirre</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Víctor Manuel Sebastián Sepúlveda Ilabaca</div>
+                    <div class="candidato-item"><span class="role-badge">Secretaria</span> Blanca Amena Saldía Mercado</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorera</span> Janet Mónica Vásquez Mantilla</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Eduardo Andrés Jara Díaz</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> María Alejandra Eliana Véliz Muñoz</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Nicolás Enrique Ron Vargas</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Pollyana Duendy Alejandra Rivera Bigas</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Cristian Enrique Barrenechea Rivera</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Claudie Lisette Castillo Maureira</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Karina Yohanna Roco Cuevas</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 2 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading2">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2" aria-expanded="false" aria-controls="collapse2">
+                    Región de Tarapacá
+                </button>
+            </h2>
+            <div id="collapse2" class="accordion-collapse collapse" aria-labelledby="heading2" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista encabezada por Vladimir Anton Dimitri Nesvadba Matus:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Vladimir Anton Dimitri Nesvadba Matus</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Enrique Benito Martínez Arteaga</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Cristian Antonio Barra Fasciani</div>
+                    <div class="candidato-item"><span class="role-badge">Secretaria</span> Yasmina María Flores Riveros</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorera</span> Katherine Vanessa Flores Alvarado</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Felipe Ignacio Bolton Norambuena</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Gabriel Esteban Orellana Aros</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Rodrigo Adolfo Andrés González Reyes</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Patricio Guillermo Berenguela Álvarez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Cesar Mateo Parraguez</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Álvaro Mauricio Garay Fierro</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Fabian Neftalí Carrasco Reydet</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Marcelo González Borie</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Cintia Pfeng Pfeng</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Marianela Andrea Aguilera Aguilera</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 3 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading3">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3" aria-expanded="false" aria-controls="collapse3">
+                    Región de Antofagasta
+                </button>
+            </h2>
+            <div id="collapse3" class="accordion-collapse collapse" aria-labelledby="heading3" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="text-muted fst-italic">Elección dejada sin efecto por falta de listas válidamente aceptadas.</p>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Vania Su-jen Sandoval Burgos</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Alejandro Rodrigo Cifuentes Mancilla</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Roberto Carlos Soto Alballay</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Helen Dubith Carolaine Jara Araya</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Maribel Ivonne Rojas Badilla</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Salvador Ernesto Torres Reyes</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Silvia Verónica Monardes Ponce</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juan Alberto Santis Contreras</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Marisol Uberlinda Rodríguez Donoso</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Siomara Vanessa Molina Flores</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 4 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading4">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4" aria-expanded="false" aria-controls="collapse4">
+                    Región de Atacama
+                </button>
+            </h2>
+            <div id="collapse4" class="accordion-collapse collapse" aria-labelledby="heading4" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista encabezada por Fernando Javier Flores Fredes:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Fernando Javier Flores Fredes</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> José Andrés Hueche Godoy</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Cristina Alejandra Bravo Bassi</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Javier Ignacio Díaz Toro</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Rina Andrea del Carmen Lazo Valenzuela</div>
+                    <p class="lista-title">Lista encabezada por Rodrigo Andrés Illanes Illanes:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Rodrigo Andrés Illanes Illanes</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Mario Andrés Saavedra Pineda</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Dalva de los Ángeles Cepeda Castro</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Víctor Antonio Manríquez Tapia</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Patricia del Carmen Hurtado Loyola</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Karina Maribel Palleres Guzmán</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Jonathan Alexis Gómez Rojas</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Nicolás Alberto Rivera Molina</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Ignacio Urcullu Clement-Lund</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Carolina Loreto Rojas Domínguez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Sofía Cid Versalovic</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Fernando Javier Flores Fredes</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Nataly Francisca Maldonado Martínez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Marisol Eugenia Morales Fredes</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Adolfo Sadrac Godoy Carrasco</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Diego Ignacio Mulet Delgado</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Stephania Diana Alexsandra Godoy Dorador</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 5 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading5">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse5" aria-expanded="false" aria-controls="collapse5">
+                    Región de Coquimbo
+                </button>
+            </h2>
+            <div id="collapse5" class="accordion-collapse collapse" aria-labelledby="heading5" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista de Loreto Ignacia Ibarra Cortés:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Loreto Ignacia Ibarra Cortés</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Esteban Andrés Villalobos Gaete</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> María Verónica Pizarro García</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Cristobal Bernardo Andia Riveros</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Belén Auger Julien</div>
+                    <p class="lista-title">Lista de Francisco Corral Macías:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Francisco Corral Macías</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Víctor Andrés Venegas Aracena</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Johana Antonia Honores San Francisco</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Inés Marisol Cabrera Fernández</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Matías Antonio Vitar Miranda</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Carlos Cipriano Suárez Espinoza</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Luis Eliezer Ruz Espinoza</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Jacqueline Alejandra Cáceres Sepúlveda</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Diego Aurelio Benavente Carvajal</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Alejandra Andrea Valdovinos Jofre</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Aaron Eliu Aguilera Cortés</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Pedro Ariél López Rojas</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> José Felipe Pizarro García</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Jessica Lorena Díaz Cuello</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Mónica Alejandra Hidalgo Pizarro</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Paula Andrea Escalona Rovegno</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 6 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading6">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse6" aria-expanded="false" aria-controls="collapse6">
+                    Región de Valparaíso
+                </button>
+            </h2>
+            <div id="collapse6" class="accordion-collapse collapse" aria-labelledby="heading6" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista de Raimundo Jesús Palamara Stewart:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Raimundo Jesús Palamara Stewart</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Carolina Maritza Muñoz Pilquinao</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> José Manuel Basualto Albornoz</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Irene Andrea Ljubetic Villanueva</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Manuel Andrés Guarda Fernández</div>
+                    <p class="lista-title">Lista de Chiara Barchiesi Chávez:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Chiara Barchiesi Chávez</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Cristóbal Koch Chacón</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Miguel Pérez Ibacache</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Elsa Bueno Cortés</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Paulina Yáñez Gula</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Jorge Erwit Orrego Sandoval</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Patricio Enrique Riquelme Marambio</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Reinaldo Laurence Álvarez Vega</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Álvaro Antonio Guzmán Páez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Ema Paola Cárcamo Bernal</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Chantal Robert de la Mahotiere Flottes</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Hugo Jeremías Orellana Zamora</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Benjamín Alonzo Canelo Pizarro</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Manuel Jesús Palominos Pérez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Fernando Marcelo Astorga Terraza</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Ester Andrea Miquelarena Cabezas</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Ricardo Mauricio Grille Reyes</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Ivy Solange Núñez Cutbill</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Eduardo Mauricio González González</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Rolando Enrique Ramos Bañados</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Eugenio Abelardo Berrios Falcón</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> John Douglas Reid Echenique</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Miguel Eduardo Duaso Tapia</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Alicia Lidia Chamorro Aguilar</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 7 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading7">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse7" aria-expanded="false" aria-controls="collapse7">
+                    Región de Metropolitana
+                </button>
+            </h2>
+            <div id="collapse7" class="accordion-collapse collapse" aria-labelledby="heading7" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista encabezada por Ximena Leonora Méndez Balboltín:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Ximena Leonora Méndez Balboltín</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Carmen Laura Mc Intyre Astorga</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Alejandro Raúl Lería Silva</div>
+                    <div class="candidato-item"><span class="role-badge">Secretaria</span> Gabriela Inés Gallardo Fuentes</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Jorge Alfonso Guerrero Veliz</div>
+                    <p class="lista-title">Lista encabezada por Félix Rubén Teitelman Hass:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Félix Rubén Teitelman Hass</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Antonio Alfredo Vásquez Améstica</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Blanca Rosa Concha Marambio</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Juan Carlos Rodríguez Correa</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Lisette Albina Alvarado Gallegos</div>
+                    <p class="lista-title">Lista encabezada por Carlos Enrique Varea Benavidez:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Carlos Enrique Varea Benavidez</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Karolina de los Ángeles Aparicio González</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Brenda Paola Fernández Osorio</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Sergio Andrés Gálvez Troncoso</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Daniel Alexander Miranda Vieira</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> María José Beltrán Pérez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> David Octavio Gómez Contreras</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Víctor Francisco Villalobos Barra</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Joel Valdivia Calvin</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Solange Andrea Wolleter Dávila</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Martín Ignacio Muñoz Olivares</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juan Pablo Cerda Torrejón</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Mayorie Carolina Osses Figueroa</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> María Verónica Zamorano Zambrano</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Sergio Ignacio Villamán Ramírez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Francisco Letelier Monzó</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Boris Viera Vergara</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Rafael Antonio Vera Otero</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Paola Andrea Muñoz Alarcón</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Pedro Enrique Bolados Correa</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Carlos José Telleria Gutiérrez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Nicolás Diéguez Schröder</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Rodrigo Andrés Chávez Sepúlveda</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 8 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading8">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse8" aria-expanded="false" aria-controls="collapse8">
+                    Región de O'Higgins
+                </button>
+            </h2>
+            <div id="collapse8" class="accordion-collapse collapse" aria-labelledby="heading8" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista de Denisse Tamara León Rojas:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Denisse Tamara León Rojas</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Jorge Aníbal Yáñez González</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Alejandro Ángel Puja Campos</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Andrea Jeannere Becerra Valenzuela</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Juan Alberto León Solís Guajardo</div>
+                    <p class="lista-title">Lista de Patricia Besa Tagle:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Patricia Besa Tagle</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Mauricio Donoso Arellano</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> José Edgardo Ramón Meza Bañados</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> María del Pilar Zúñiga Zamorano</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Octavio Salvador Dinamarca Martínez</div>
+                    <p class="lista-title">Lista de Manuel Antonio Morales Burgos:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Manuel Antonio Morales Burgos</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Ignacia Rafaela San Martín Escobar</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Nicolás Alexis Donoso Saavedra</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Macarena Isabel Aguilera Castañeda</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Jesús del Carmen Orellana Prado</div>
+                    <p class="lista-title">Lista de Eduardo Montenegro Olivos:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Eduardo Montenegro Olivos</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Matilde Araya Céspedes</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Rodrigo Farías Contreras</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Ana María Palma Palma</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Leticia Cáceres Alarcón</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juan Carlos Mackay Jarpa</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Katia Estay Jopia</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Constanza Correa Costabal</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Héctor Labbe Valenzuela</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Pablo Alberto Casas Tejeda</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Osvaldo Alberto Cartagena Anguita</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Soledad Evelyn Oyarzo Almonacid</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Marcos Alberto Castro Abarca</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Dilan Sebastián Donoso Liberona</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Benjamín Ángel Hormazábal Medel</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Natalia del Pilar Lira Orellana</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Gladys Montserrat Esparza Silva</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Miguel David González Sequeida</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Angélica María Inostroza Munizaga</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Antonio Alfonso Aguilera Padilla</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 9 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading9">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse9" aria-expanded="false" aria-controls="collapse9">
+                    Región de Maule
+                </button>
+            </h2>
+            <div id="collapse9" class="accordion-collapse collapse" aria-labelledby="heading9" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista de Paulina Victoria Echeverría Cárdenas:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Paulina Victoria Echeverría Cárdenas</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Ilonka Pierina Silva Quinteros</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Eduardo Antonio Guerra Navarro</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Cristobal Antonio Retamal Cabeza</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Segundo Andrés Hojas del Valle</div>
+                    <p class="lista-title">Lista de Greis Marisel Parada Rojas:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Greis Marisel Parada Rojas</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Juan Pablo Cartes Santos</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Carmen Gloria Barros Orellana</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Lorena del Pilar León Reyes</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Juan Fernando Pérez Zapata</div>
+                    <p class="lista-title">Lista de Alex Esteban Salazar Llantén:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Alex Esteban Salazar Llantén</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Andrea de la Rosa Uzua Martínez</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Tomás Joaquín Burgos López</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Luis Felipe Contardo</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorera</span> Norma Carmona</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Gonzalo Antonio Larraín Paterakis</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Valeska Dahiana Fajardo Henríquez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Angélica María Pérez Martínez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juan Pablo Álvarez Faúndez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Christopher Roberto Ramírez Bravo</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Héctor Mauricio Melio Concha</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juvenal Marcelo Peña Fuentes</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Ana Luisa Fuentes Roco</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Manuel Alejandro Arriagada Rojas</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Francisco Andrés Yáñez Muñoz</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juan Pablo Urra Muñoz</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Carolina Alejandra Soto Morales</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Gonzalo Alberto Jofré Sandoval</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> José Benjamín Jiménez Villacura</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Jaime Alberto Rossel Moraga</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 10 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading10">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse10" aria-expanded="false" aria-controls="collapse10">
+                    Región de Ñuble
+                </button>
+            </h2>
+            <div id="collapse10" class="accordion-collapse collapse" aria-labelledby="heading10" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista de Jorge Luis Sánchez Fuentealba:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Jorge Luis Sánchez Fuentealba</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Miguel Alejandro Figueroa Arriagada</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> María Elena Acuña Olivera</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Claudia Carolina Puig Salvo</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Christopher Carlos Andrés Casanova González</div>
+                    <p class="lista-title">Lista de Cecilia Violeta Medina Meneses:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Cecilia Violeta Medina Meneses</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Héctor Rodolfo San Martín Osses</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Felipe Ignacio Fuentealba Godoy</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Camila Monserrat Bucarey Segundo</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Alexis Nilo Vira Cáceres</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Luis Hernán Carrasco Argomedo</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Luis Eduardo Galdames Toledo</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Patricio Alejandro Mora Toledo</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Pablo Ramiro González Figueroa</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Rodrigo Fernando Montenegro Sagredo</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Teresa Del Carmen Palacios Vergara</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Wendy Magdalena Oyarce Sepúlveda</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Pablo Alberto Monsalves Méndez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Oscar Juan Merino Morales</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Diego Eduardo Prado San Martín</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Sebastián Andrés Cartes Cáceres</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juan Carlos Burgos Labrin</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> José Antonio Videla Ponce</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Nicolás Fernando Zilleruelo Arriagada</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Diego José Fernández Mozo</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Carolina Leticia Mérida Poblete</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> David Hans Hube Garces</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juan Luis Enríquez Fuentes</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Macarena Edith Inojosa González</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> David Edgardo Rodríguez Toro</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 11 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading11">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse11" aria-expanded="false" aria-controls="collapse11">
+                    Región de Biobío
+                </button>
+            </h2>
+            <div id="collapse11" class="accordion-collapse collapse" aria-labelledby="heading11" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista de Yasna Marion Mardones Sáez:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidenta</span> Yasna Marion Mardones Sáez</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Angelo Mauricio Millamán López</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Sebastián Ignacio Guenante Arancibia</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Luis Alberto Santibáñez Bastidas</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Erika del Carmen Román Silva</div>
+                    <p class="lista-title">Lista de Renato Humberto Navarro Genta:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Renato Humberto Navarro Genta</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Oriana Patricia Offermann Perelló</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Felipe Salvo Almarza</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Claudio Lapostol Vargas</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Minerva Fernández Cifuentes</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Neftalí Nahuelqueo Llanquileo</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Ingrid Ivette de la Urde Salazar Mora</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Christian Luis Arellano Vera</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> James Daniel Argo Chávez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Paulina Ugalde Jaque</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Jacqueline Aida Delgado Contreras</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Eleana Del Carmen Fernández Neira</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> José Alejandro Caballero Gutiérrez</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Claudio Iván Pardo Santos</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> José Miguel Muñoz Sáez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Jonathan Alonso Bedwell Silva</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Eduardo Antonio Carrillo Neira</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> César Andrés Valenzuela Ramírez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Manuel Alejandro Pino Contreras</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Patricio Manuel Torres Bastías</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 12 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading12">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse12" aria-expanded="false" aria-controls="collapse12">
+                    Región de La Araucanía
+                </button>
+            </h2>
+            <div id="collapse12" class="accordion-collapse collapse" aria-labelledby="heading12" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista de Margot Marisol Isabel Wickel Navarrete:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Margot Marisol Isabel Wickel Navarrete</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Héctor Enrique Urban Astete</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Nicolás Alberto Donze Cabezas</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Carlos Alberto Libuy Loyola</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Grace Alison Floody Werner</div>
+                    <p class="lista-title">Lista de Jaime Lister Millar Cisternas:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Jaime Lister Millar Cisternas</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Justo Ernesto Gutiérrez Schweitzer</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Daisy Elizabeth Rodríguez Luengo</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Guido Alexis Calderón Peña</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Catalina Andrea Barros Celis</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Vilma Roxana Castillo Alvarado</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Patricio Andrés Ducommun Jiménez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Patricio Guillermo Barros Sáez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Carolina Maryoret Novoa Canario</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Stefani Del Pilar Alarcon Herrera</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Soledad del Carmen Lyon Duhart</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Alonso Ariel Hermosilla Hermosilla</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Oladis del Carmen Quevedo Riquelme</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juan Pablo Valdivieso Padilla</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Timoteo Abel Maripil Pincheira</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Mauricio Alejandro Opazo Navarrete</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Magdiel Alexander Jarpa Nahuelhuil</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Luis Miguel Quilaqueo Alarcón</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> José Miguel Inostroza Corral</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Olga María Luarte Vergara</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 13 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading13">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse13" aria-expanded="false" aria-controls="collapse13">
+                    Región de Los Ríos
+                </button>
+            </h2>
+            <div id="collapse13" class="accordion-collapse collapse" aria-labelledby="heading13" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista encabezada por Karin Alejandra Figueroa Zeballos:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Karin Alejandra Figueroa Zeballos</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Juan Arturo Curin Mora</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Joel Alberto Lineros Vásquez</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Nicolás Randolfo Montalbetti Randau</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Silvia García Leiva</div>
+                    <p class="lista-title">Lista encabezada por Rubén Ruiz Peña:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Rubén Ruiz Peña</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Nathalie Belén Veas Quintana</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Mireya Rosa Fernández Oñate</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Felipe Javier Yaeger Pacheco</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Bárbara Barrientos Briceño</div>
+                    <p class="lista-title">Lista encabezada por Juan Carlos Cárcamo Arellano:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Juan Carlos Cárcamo Arellano</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Ane Lobeth Contreras Álvarez</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Carolina Andrea Zúñiga Brito</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Cristian Israel Godoy Vera</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Juan Marcelo Ramírez Matus</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Claudia Alejandra Ropert Henríquez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Rodolfo Oscar Hott Krull</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Lucio Marcelo Miranda Ulloa</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Oriet Alejandra Montecinos Durán</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Roberto Hernán Ipinza Carmona</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Nora Berta Urtubia Rezzio</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Alberto Andrés Bello Carvajal</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Patricio Antonio Medina Medina</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 14 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading14">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse14" aria-expanded="false" aria-controls="collapse14">
+                    Región de Los Lagos
+                </button>
+            </h2>
+            <div id="collapse14" class="accordion-collapse collapse" aria-labelledby="heading14" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista encabezada por Raúl Humberto Monsalves Carrasco:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Raúl Humberto Monsalves Carrasco</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Pablo Andrés Águila Hermosilla</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Camila Francisca Isadora Villalobos Meneses</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Jimena Cristina Scheel Weil</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Luis Alejandro Novoa Rojas</div>
+                    <p class="lista-title">Lista encabezada por Guillermo Rigoberto Furkert Martínez:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Guillermo Rigoberto Furkert Martínez</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Valeska Ivon Ricouz Gómez</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Enso Antonio Chiguay Andrade</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Carlos Iván Ruiz Millaquen</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Valentina Anais Valdés Sánchez</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Luis Alejandro Palma Cárcamo</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Juan Carlos Mansilla Villarroel</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Jaime Andrés Chepillo Rodríguez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> María Elena Santana Avendaño</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Sandra Haro Linco</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Adolfo Enrique Aliaga Davis</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Ricardo Andrés Carrasco Quiroga</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Augusto Matías Eguiluz Loyola</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Mario Mauricio Hernández Vera</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> María Eugenia Angulo Solis</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Luis Alberto Hernández Soto</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Hardy Aliro Oyarzo Hernández</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Rodrigo Alfonso Contreras Oyarzo</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Aldo Matías Nardecchia Carrasco</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Héctor Leonardo Aguilera Mayorga</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 15 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading15">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse15" aria-expanded="false" aria-controls="collapse15">
+                    Región de Aysén
+                </button>
+            </h2>
+            <div id="collapse15" class="accordion-collapse collapse" aria-labelledby="heading15" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista de Luz Valeria Villegas Ojeda:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Luz Valeria Villegas Ojeda</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Orestes Lincoln Emilio Hernández Córdova</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Tomás Alfonso Godoy Jara</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Ema Cibel Morales Palma</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Cristian Domingo Baeza Vera</div>
+                    <p class="lista-title">Lista de Ramón Ignacio Henríquez Raglianti:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Ramón Ignacio Henríquez Raglianti</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Raúl Eduardo Osorio Moncada</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Amalia María Soledad Ibarra Andrade</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Miguel Eduardo Mansilla Mansilla</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Nieves Antonia Cuevas Torres</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Cristian Pablo Jaramillo Pineda</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> José Ernesto Machuca Torres</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Milton Hérnan Álvarez Moncada</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Marcela Beatriz Novoa Pérez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Fernando Eduardo Augusto San Cristóbal Brahm</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Gladys Del Carmen Palma Morales</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Pablo Hernán Povez Donoso</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Mery Magdalena Duamante Vásquez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Antonio Nelson Lara Del Río</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Julián Estefano Pizarro Fernández</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Region 16 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading16">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse16" aria-expanded="false" aria-controls="collapse16">
+                    Región de Magallanes
+                </button>
+            </h2>
+            <div id="collapse16" class="accordion-collapse collapse" aria-labelledby="heading16" data-bs-parent="#accordionRegiones">
+                <div class="accordion-body candidatos-section">
+                    <h5>Directivas</h5>
+                    <p class="lista-title">Lista encabezada por Sebastián Orlando Oyarzo Ojeda:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Sebastián Orlando Oyarzo Ojeda</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Evelyn Karina Aravena Gutiérrez</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Alejandro Álamo Cárdenas Aro</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Eduardo Felipe Hernández Zenteno</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Jacqueline María Cecilia Vargas Cárcamo</div>
+                    <p class="lista-title">Lista encabezada por Christian Gonzalo Demangel González:</p>
+                    <div class="candidato-item"><span class="role-badge">Presidente</span> Christian Gonzalo Demangel González</div>
+                    <div class="candidato-item"><span class="role-badge">Primer Vicepresidente</span> Ornella Alejandra Croce Mujica</div>
+                    <div class="candidato-item"><span class="role-badge">Segundo Vicepresidente</span> Catalina Andrea Alarcón Bustamante</div>
+                    <div class="candidato-item"><span class="role-badge">Secretario</span> Ida Ester MacLeod Cárdenas</div>
+                    <div class="candidato-item"><span class="role-badge">Tesorero</span> Rubén Danilo Avendaño Melo</div>
+                    <h5 class="mt-4">Cabildos</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Javier Arturo Romero Valenzuela</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Marcela Odette Leichtle Martínez</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Doris Denise Joumier Bárcena</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Constanza Andrea Barría Vera</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Mauricio Antonio Venegas Erices</div>
+                            <div class="candidato-item"><span class="role-badge cabildo-badge">Cabildo</span> Rodrigo Higuera Muñoz</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

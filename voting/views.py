@@ -1191,3 +1191,22 @@ def faq_view(request):
         'militante_name': militante_name,
     }
     return render(request, 'voting/faq.html', context)
+
+
+def candidatos(request):
+    """Vista para conocer a los candidatos por región"""
+    # Verificar si hay algún militante logueado
+    militante_logged_in = False
+    militante_name = None
+    for key in request.session.keys():
+        if key.startswith('militante_'):
+            militante_data = request.session[key]
+            militante_logged_in = True
+            militante_name = militante_data.get('name', 'Usuario')
+            break
+
+    context = {
+        'militante_logged_in': militante_logged_in,
+        'militante_name': militante_name,
+    }
+    return render(request, 'voting/candidatos.html', context)
