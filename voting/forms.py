@@ -177,6 +177,7 @@ class MilitanteRegistrationForm(forms.Form):
         if rut and numero_documento:
             import urllib.request
             import json
+            import ssl
             from django.conf import settings
 
             # ── Rate limiting: 3 llamadas / 5 min por IP ──
@@ -214,7 +215,10 @@ class MilitanteRegistrationForm(forms.Form):
             req = urllib.request.Request(url, json.dumps(data).encode('utf-8'), {'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'})
             
             try:
-                with urllib.request.urlopen(req, timeout=10) as response:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
                     res_data = json.loads(response.read().decode())
                     estado = res_data.get('estado')
                     estado_cedula = res_data.get('estadoCedula')
@@ -536,6 +540,7 @@ class RegistroPublicoEtapa2Form(forms.Form):
         if rut and numero_documento:
             import urllib.request
             import json
+            import ssl
             from django.conf import settings
 
             # ── Rate limiting: 3 llamadas / 5 min por IP ──
@@ -573,7 +578,10 @@ class RegistroPublicoEtapa2Form(forms.Form):
             req = urllib.request.Request(url, json.dumps(data).encode('utf-8'), {'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'})
 
             try:
-                with urllib.request.urlopen(req, timeout=10) as response:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
                     res_data = json.loads(response.read().decode())
                     estado = res_data.get('estado')
                     estado_cedula = res_data.get('estadoCedula')
