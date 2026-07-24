@@ -45,7 +45,7 @@
                         
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title">{{ voting.title }}</h5>
-                            <p class="card-text text-muted flex-grow-1">{{ voting.description|truncatewords:30 }}</p>
+                            <p class="card-text text-muted flex-grow-1">{{ voting.description|linebreaksbr }}</p>
                             
                             <div class="d-flex gap-2 mb-3 flex-wrap">
                                 {% if voting.is_open %}

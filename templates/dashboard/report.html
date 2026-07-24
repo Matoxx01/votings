@@ -196,7 +196,7 @@
         }
         
         const currentUrl = new URL(window.location.href);
-        const currentlyIncludes = currentUrl.searchParams.get('include_no_voto') !== 'false';
+        const currentlyIncludes = currentUrl.searchParams.get('include_no_voto') === 'true';
         
         if (currentlyIncludes === include) {
             setTimeout(() => {

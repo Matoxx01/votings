@@ -38,7 +38,7 @@
                             </div>
                             <div class="flex-grow-1">
                                 <h5 class="card-title mb-1">{{ voting.title }}</h5>
-                                <p class="card-text text-muted mb-2">{{ voting.description|truncatewords:25 }}</p>
+                                <p class="card-text text-muted mb-2">{{ voting.description|linebreaksbr }}</p>
                                 <div class="d-flex gap-2 flex-wrap">
                                     <span class="badge bg-success">Activa</span>
                                     {% if voting.id_region and voting.id_region.id != 17 %}

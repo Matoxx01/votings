@@ -900,7 +900,7 @@ def generate_report(request, voting_id):
     
     stats = []
     
-    include_no_voto = request.GET.get('include_no_voto', 'true') == 'true'
+    include_no_voto = request.GET.get('include_no_voto', 'false') == 'true'
     base_total = total_registered if include_no_voto else total_votes
 
     for subject in subjects:
