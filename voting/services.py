@@ -805,7 +805,7 @@ class EmailQueueService:
         close_old_connections()
         try:
             # Buscar logs que tengan al menos 1 email PENDING, sin importar si in_progress es True o False
-            logs_with_pending = DataUploadLog.objects.filter(emailqueueitem__status='PENDING').distinct()
+            logs_with_pending = DataUploadLog.objects.filter(queue_items__status='PENDING').distinct()
             
             for log in logs_with_pending:
                 # Solo reanudar si hay items genuinamente PENDING

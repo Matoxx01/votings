@@ -803,7 +803,7 @@ def resume_stuck_uploads(request):
     from voting.services import EmailQueueService
     from voting.models import DataUploadLog, EmailQueueItem
     
-    logs_count = DataUploadLog.objects.filter(emailqueueitem__status='PENDING').distinct().count()
+    logs_count = DataUploadLog.objects.filter(queue_items__status='PENDING').distinct().count()
     items_count = EmailQueueItem.objects.filter(status__in=['PENDING']).count()
     
     if logs_count == 0 and items_count == 0:
