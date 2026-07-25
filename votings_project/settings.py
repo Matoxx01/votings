@@ -26,7 +26,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-1tjd92ls0p7u$ai_iiu_&f9q#6$1@v@gy1fk25fhaf2l(gwhhm")
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    if os.getenv('DEBUG', 'False') == 'True':
+        SECRET_KEY = 'django-insecure-solo-para-dev-local'
+    else:
+        raise RuntimeError(
+            "SECRET_KEY no está definida en las variables de entorno. "
+            "El sistema NO puede arrancar en producción sin ella."
+        )
+
+# Llave dedicada e independiente para la integridad de votos (cadena HMAC).
+# Separada de SECRET_KEY para poder rotar esta última sin invalidar votos históricos.
+# IMPORTANTE: Al crear esta variable en producción por primera vez, su valor
+# DEBE ser idéntico al SECRET_KEY actual para no romper hashes ya emitidos.
+VOTE_HMAC_KEY = os.getenv('VOTE_HMAC_KEY', SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'

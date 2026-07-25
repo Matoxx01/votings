@@ -14,11 +14,19 @@ logger = logging.getLogger(__name__)
 
 
 def _get_client_ip(request):
-    """Obtiene la IP real del cliente, considerando proxies."""
+    """
+    Obtiene la IP real del cliente, considerando proxies.
+    
+    Railway (proxy único) envía X-Forwarded-For como: [IP-cliente], [IP-proxy].
+    Tomamos la penúltima IP (la que inyecta el proxy confiable), no la primera
+    que es controlable por el atacante y permitiría evadir el rate limiting.
+    """
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
-        # Tomar la primera IP (la del cliente original)
-        return x_forwarded_for.split(',')[0].strip()
+        ips = [ip.strip() for ip in x_forwarded_for.split(',')]
+        # Con 1 proxy confiable (Railway): la IP real es la penúltima
+        # Si solo hay 1 IP, es directamente la del cliente
+        return ips[-2] if len(ips) >= 2 else ips[0]
     return request.META.get('REMOTE_ADDR', '0.0.0.0')
 
 

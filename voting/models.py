@@ -224,7 +224,7 @@ class VotingRecord(models.Model):
             prev_chain_hash = VotingRecord._get_prev_chain_hash(self.id_voting_id, exclude_pk=self.pk)
         message = f"{self.id_voting_id}:{self.id_subject_id}:{self.pk}:{prev_chain_hash}"
         return hmac.new(
-            settings.SECRET_KEY.encode(),
+            settings.VOTE_HMAC_KEY.encode(),
             message.encode(),
             hashlib.sha256
         ).hexdigest()
@@ -243,7 +243,7 @@ class VotingRecord(models.Model):
         prev_hash = '0' * 64
         for record in records:
             expected = hmac.new(
-                settings.SECRET_KEY.encode(),
+                settings.VOTE_HMAC_KEY.encode(),
                 f"{record.id_voting_id}:{record.id_subject_id}:{record.pk}:{prev_hash}".encode(),
                 hashlib.sha256
             ).hexdigest()
