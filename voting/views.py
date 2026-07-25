@@ -11,7 +11,7 @@ from pathlib import Path
 import io
 import json
 import random
-from voting.models import Voting, Subject, UserData, Count, VotingRecord, Region, Militante, MilitanteRegistrationToken, MilitantePasswordResetToken, FAQ
+from voting.models import Voting, Subject, UserData, Count, VotingRecord, Region, Militante, MilitanteRegistrationToken, MilitantePasswordResetToken, FAQ, AccessKey
 from voting.forms import VoterRegistrationForm, MilitanteRegistrationForm, MilitanteLoginForm, MilitantePasswordResetRequestForm, MilitantePasswordResetForm, MilitanteEditProfileForm, ReenviarRegistroForm
 from voting.services import EmailService
 from voting.time_utils import get_real_now
@@ -484,6 +484,10 @@ def voting_statistics(request, voting_id):
     if finish_date_chile >= now_chile:
         messages.error(request, 'Las estadísticas estarán disponibles una vez que finalice el período de votación.')
         return redirect('voting:voting_detail', voting_id=voting_id)
+
+    # NUEVO: Verificación de llaves físicas
+    if not voting.report_unlocked:
+        return redirect('voting:unlock_report', voting_id=voting_id)
 
     subjects = voting.subjects.all()
     
@@ -1210,3 +1214,74 @@ def candidatos(request):
         'militante_name': militante_name,
     }
     return render(request, 'voting/candidatos.html', context)
+
+
+# ============================================
+# VISTAS DE DESBLOQUEO POR USB
+# ============================================
+
+def unlock_report(request, voting_id):
+    """Vista de pantalla negra con estrellas para desbloquear el reporte"""
+    voting = get_object_or_404(Voting, id=voting_id)
+    
+    # Si ya está desbloqueado, ir directo al reporte
+    if voting.report_unlocked:
+        return redirect('voting:statistics', voting_id=voting_id)
+        
+    required_keys = AccessKey.objects.count()
+    # Si no hay llaves configuradas en el sistema, desbloquear automáticamente
+    if required_keys == 0:
+        voting.report_unlocked = True
+        voting.save()
+        return redirect('voting:statistics', voting_id=voting_id)
+
+    # Limitar a máximo 5 llaves por diseño
+    if required_keys > 5:
+        required_keys = 5
+
+    next_param = request.GET.get('next')
+
+    context = {
+        'voting': voting,
+        'required_keys': required_keys,
+        'next_param': next_param,
+    }
+    return render(request, 'voting/unlock_report.html', context)
+
+@require_http_methods(["POST"])
+def api_validate_keys(request, voting_id):
+    """API para validar las llaves conectadas reportadas por el Agente USB"""
+    voting = get_object_or_404(Voting, id=voting_id)
+    
+    try:
+        data = json.loads(request.body)
+        connected_tokens = data.get('keys', [])
+        
+        # Obtener todas las llaves de la base de datos
+        db_keys = AccessKey.objects.all()
+        required_keys = db_keys.count()
+        if required_keys > 5:
+             required_keys = 5
+             
+        if required_keys == 0:
+             return JsonResponse({'success': True, 'unlocked': True})
+
+        # Contar cuántas llaves conectadas son válidas (están en la base de datos)
+        valid_count = 0
+        valid_tokens_found = set()
+        
+        for token in connected_tokens:
+            if token not in valid_tokens_found:
+                 if db_keys.filter(public_token=token).exists():
+                     valid_tokens_found.add(token)
+                     valid_count += 1
+                     
+        if valid_count >= required_keys:
+             voting.report_unlocked = True
+             voting.save()
+             return JsonResponse({'success': True, 'unlocked': True})
+             
+        return JsonResponse({'success': True, 'unlocked': False, 'valid_count': valid_count, 'required_keys': required_keys})
+             
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})

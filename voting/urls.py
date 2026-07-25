@@ -20,6 +20,11 @@ urlpatterns = [
     path('votacion/<int:voting_id>/voto-blanco/', views.vote_blank, name='vote_blank'),
     path('exito/', views.success, name='success'),
     path('estadisticas/<int:voting_id>/', views.voting_statistics, name='statistics'),
+    
+    # Desbloqueo por USB
+    path('estadisticas/<int:voting_id>/desbloquear/', views.unlock_report, name='unlock_report'),
+    path('estadisticas/<int:voting_id>/api/validar-llaves/', views.api_validate_keys, name='api_validate_keys'),
+
     # Rutas de militantes
     path('registro-militante/<str:token>/', views.militante_register, name='militante_register'),
     path('recuperar-contrasena-militante/<str:token>/', views.militante_password_reset, name='militante_password_reset'),

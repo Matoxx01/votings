@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desbloqueando Reporte...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 3rem;
+            letter-spacing: 2px;
+            color: #555;
+            text-transform: uppercase;
+        }
+
+        .stars-container {
+            display: flex;
+            gap: 30px;
+        }
+
+        .star {
+            width: 80px;
+            height: 80px;
+            background-image: url('{% static "favicon.png" %}');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: grayscale(100%) opacity(40%);
+            transition: all 0.5s ease-in-out;
+        }
+
+        .star.active {
+            filter: grayscale(0%) opacity(100%) drop-shadow(0 0 15px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 30px rgba(255, 215, 0, 0.5));
+            transform: scale(1.15);
+        }
+
+        #status {
+            margin-top: 4rem;
+            font-size: 1rem;
+            color: #777;
+            text-align: center;
+        }
+
+        .agent-error {
+            color: #ff4444 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Esperando Llaves de Seguridad</h1>
+
+    <div class="stars-container" id="starsContainer">
+        {% for i in "x"|ljust:required_keys %}
+            <div class="star" id="star-{{ forloop.counter }}"></div>
+        {% endfor %}
+    </div>
+
+    <div id="status">Conectando al agente USB local...</div>
+
+    <!-- CSRF Token para AJAX -->
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+    <script>
+        const requiredKeys = {{ required_keys }};
+        const votingId = {{ voting.id }};
+        const validateUrl = "{% url 'voting:api_validate_keys' voting.id %}";
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const statusDiv = document.getElementById('status');
+        
+        let ws;
+        let pollInterval;
+        let isUnlocked = false;
+
+        function updateStars(activeCount) {
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < activeCount) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        function validateKeysWithBackend(keys) {
+            if (isUnlocked) return;
+
+            fetch(validateUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ keys: keys })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.unlocked) {
+                        isUnlocked = true;
+                        updateStars(requiredKeys);
+                        statusDiv.innerText = "¡Reporte Desbloqueado!";
+                        statusDiv.style.color = "#4caf50";
+                        // Redirigir al reporte tras 1.5 segundos
+                        setTimeout(() => {
+                            {% if next_param == 'dashboard_stats' %}
+                                window.location.href = "{% url 'dashboard:voting_statistics' voting.id %}";
+                            {% elif next_param == 'dashboard_report' %}
+                                window.location.href = "{% url 'dashboard:report' voting.id %}";
+                            {% else %}
+                                window.location.href = "{% url 'voting:statistics' voting.id %}";
+                            {% endif %}
+                        }, 1500);
+                    } else {
+                        updateStars(data.valid_count);
+                        statusDiv.innerText = `Llaves conectadas: ${data.valid_count} de ${requiredKeys}`;
+                    }
+                } else {
+                    console.error("Error validando:", data.message);
+                }
+            })
+            .catch(err => console.error("Error AJAX:", err));
+        }
+
+        function connectAgent() {
+            ws = new WebSocket('ws://localhost:8765');
+
+            ws.onopen = function() {
+                statusDiv.innerText = "Agente conectado. Inserte las llaves USB.";
+                statusDiv.classList.remove('agent-error');
+                
+                // Pedir llaves cada 2 segundos
+                pollInterval = setInterval(() => {
+                    if (ws.readyState === WebSocket.OPEN && !isUnlocked) {
+                        ws.send(JSON.stringify({ action: 'POLL_KEYS' }));
+                    }
+                }, 2000);
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.action === 'KEYS_RESULT') {
+                    validateKeysWithBackend(data.keys);
+                }
+            };
+
+            ws.onerror = function() {
+                statusDiv.innerText = "Error: No se pudo conectar al Agente USB. Asegúrate de ejecutar usb_agent.py en esta PC.";
+                statusDiv.classList.add('agent-error');
+            };
+
+            ws.onclose = function() {
+                clearInterval(pollInterval);
+                if (!isUnlocked) {
+                    statusDiv.innerText = "Conexión perdida con el Agente USB. Reintentando...";
+                    setTimeout(connectAgent, 3000);
+                }
+            };
+        }
+
+        // Iniciar
+        if (requiredKeys > 0) {
+            connectAgent();
+        }
+    </script>
+</body>
+</html>

@@ -87,6 +87,7 @@ class Voting(models.Model):
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField()
     start_reminder_sent = models.BooleanField(default=False)
+    report_unlocked = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -539,3 +540,17 @@ class FAQ(models.Model):
 
     def __str__(self):
         return self.question
+
+
+class AccessKey(models.Model):
+    """Modelo para las llaves de seguridad (pendrives)"""
+    name = models.CharField(max_length=100)
+    public_token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Access Key"
+        verbose_name_plural = "Access Keys"
+
+    def __str__(self):
+        return self.name

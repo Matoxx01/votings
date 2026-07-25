@@ -44,4 +44,9 @@ urlpatterns = [
     path('faq/crear/', views.create_faq, name='create_faq'),
     path('faq/<int:faq_id>/editar/', views.edit_faq, name='edit_faq'),
     path('faq/<int:faq_id>/eliminar/', views.delete_faq, name='delete_faq'),
+    
+    # Gestión de Llaves USB
+    path('llaves-usb/', views.access_keys_management, name='access_keys_management'),
+    path('llaves-usb/api/generar/', views.api_generate_key, name='api_generate_key'),
+    path('llaves-usb/<int:key_id>/eliminar/', views.delete_access_key, name='delete_access_key'),
 ]

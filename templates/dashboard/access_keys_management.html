@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Gestión de Llaves de Seguridad (USB)</h1>
+        <p class="lead">Configurar pendrives físicos para desbloquear reportes</p>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-end mb-4">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newKeyModal">
+            <i class="fas fa-plus me-1"></i> Configurar Nueva Llave
+        </button>
+    </div>
+
+<div class="alert alert-info d-flex align-items-start">
+    <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+    <div>
+        <h6 class="alert-heading fw-bold mb-1">Importante</h6>
+        <p class="mb-1">Se requieren entre 1 y 5 llaves para la máxima seguridad. Actualmente tienes <strong>{{ keys.count }}</strong> llaves configuradas.</p>
+        <p class="mb-0 small">Para configurar llaves, asegúrate de tener el script <code>usb_agent.py</code> ejecutándose en tu computadora.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr style="color: navy !important;">
+                        <th style="color: navy !important;">Nombre</th>
+                        <th style="color: navy !important;">Token Público</th>
+                        <th style="color: navy !important;">Fecha de Creación</th>
+                        <th style="color: navy !important;" class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key in keys %}
+                    <tr>
+                        <td><strong>{{ key.name }}</strong></td>
+                        <td><code class="text-muted">{{ key.public_token }}</code></td>
+                        <td>{{ key.created_at|date:"d/m/Y H:i" }}</td>
+                        <td class="text-end">
+                            <form action="{% url 'dashboard:delete_access_key' key.id %}" method="POST" class="d-inline" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta llave? Los pendrives que la contengan dejarán de funcionar para desbloquear reportes.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">
+                            <i class="fas fa-usb fa-3x mb-3 opacity-50"></i>
+                            <p class="mb-0">No hay llaves configuradas. Los reportes se desbloquearán automáticamente.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Llave -->
+<div class="modal fade" id="newKeyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configurar Nueva Llave USB</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="agentStatus" class="alert alert-warning">
+                    Conectando con el Agente Local de USB...
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Nombre de la Llave</label>
+                    <input type="text" id="keyName" class="form-control" placeholder="Ej. Llave del Presidente de Mesa">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Seleccionar Pendrive</label>
+                    <div class="d-flex gap-2">
+                        <select id="usbSelect" class="form-select" disabled>
+                            <option>Buscando dispositivos...</option>
+                        </select>
+                        <button class="btn btn-outline-secondary" type="button" onclick="scanUSB()" id="btnScan" disabled>
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnAssign" disabled onclick="assignKey()">
+                    <i class="fas fa-save me-1"></i> Asignar Llave
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const generateUrl = "{% url 'dashboard:api_generate_key' %}";
+    const csrfToken = '{{ csrf_token }}';
+    
+    let ws;
+    const agentStatus = document.getElementById('agentStatus');
+    const usbSelect = document.getElementById('usbSelect');
+    const btnScan = document.getElementById('btnScan');
+    const btnAssign = document.getElementById('btnAssign');
+    const keyNameInput = document.getElementById('keyName');
+    
+    function connectAgent() {
+        ws = new WebSocket('ws://localhost:8765');
+
+        ws.onopen = function() {
+            agentStatus.className = 'alert alert-success';
+            agentStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>Agente Conectado. Listo para operar.';
+            btnScan.disabled = false;
+            scanUSB();
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            if (data.action === 'SCAN_RESULT') {
+                usbSelect.innerHTML = '';
+                if (data.drives.length === 0) {
+                    usbSelect.innerHTML = '<option value="">No se encontraron pendrives</option>';
+                    btnAssign.disabled = true;
+                } else {
+                    data.drives.forEach(drive => {
+                        const opt = document.createElement('option');
+                        opt.value = drive;
+                        opt.text = drive;
+                        usbSelect.appendChild(opt);
+                    });
+                    btnAssign.disabled = false;
+                }
+                usbSelect.disabled = false;
+            } else if (data.action === 'WRITE_RESULT') {
+                if (data.success) {
+                    alert('Llave escrita exitosamente en el pendrive.');
+                    window.location.reload();
+                } else {
+                    alert('Error escribiendo en el USB: ' + data.error);
+                    btnAssign.disabled = false;
+                    btnAssign.innerHTML = '<i class="fas fa-save me-1"></i> Asignar Llave';
+                }
+            }
+        };
+
+        ws.onerror = function() {
+            agentStatus.className = 'alert alert-danger';
+            agentStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error: No se pudo conectar al Agente USB. Asegúrate de ejecutar <code>python usb_agent.py</code> en tu PC.';
+            usbSelect.disabled = true;
+            btnScan.disabled = true;
+            btnAssign.disabled = true;
+        };
+    }
+
+    function scanUSB() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            usbSelect.innerHTML = '<option>Escaneando...</option>';
+            usbSelect.disabled = true;
+            btnAssign.disabled = true;
+            ws.send(JSON.stringify({ action: 'SCAN' }));
+        }
+    }
+
+    function assignKey() {
+        const name = keyNameInput.value.trim();
+        const drive = usbSelect.value;
+        
+        if (!name) {
+            alert('Por favor ingresa un nombre para la llave.');
+            return;
+        }
+        if (!drive) {
+            alert('Por favor selecciona un pendrive.');
+            return;
+        }
+        
+        btnAssign.disabled = true;
+        btnAssign.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generando...';
+        
+        // 1. Pedir al backend generar y registrar la llave
+        fetch(generateUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ name: name })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 2. Enviar el token generado al Agente Local para escribirlo en el USB
+                btnAssign.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Escribiendo USB...';
+                ws.send(JSON.stringify({
+                    action: 'WRITE',
+                    drive: drive,
+                    token: data.token
+                }));
+            } else {
+                alert('Error del servidor: ' + data.message);
+                btnAssign.disabled = false;
+                btnAssign.innerHTML = '<i class="fas fa-save me-1"></i> Asignar Llave';
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error de conexión con el servidor.');
+            btnAssign.disabled = false;
+            btnAssign.innerHTML = '<i class="fas fa-save me-1"></i> Asignar Llave';
+        });
+    }
+
+    // Intentar conectar cuando se abre el modal
+    document.getElementById('newKeyModal').addEventListener('show.bs.modal', function () {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            connectAgent();
+        } else {
+            scanUSB();
+        }
+    });
+</script>
+</div>
+{% endblock %}

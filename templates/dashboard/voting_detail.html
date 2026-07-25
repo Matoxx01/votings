@@ -38,27 +38,17 @@
                         <thead>
                             <tr>
                                 <th>Nombre</th>
-                                {% if not voting.is_open %}<th>Votos</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
-                            {% for subject in stats %}
+                            {% for subject in subjects %}
                                 <tr>
-                                    <td><strong>{{ subject.subject.name }}</strong></td>
-                                    {% if not voting.is_open %}
-                                        <td><span class="badge bg-info">{{ subject.votes }} votos</span></td>
-                                    {% endif %}
+                                    <td><strong>{{ subject.name }}</strong></td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-                {% if voting.is_open %}
-                    <div class="alert alert-warning d-flex align-items-center gap-2 mt-2" role="alert">
-                    <i class="bi bi-lock-fill flex-shrink-0" style="font-size: 1.1rem;"></i>
-                        Los votos estarán visibles una vez que finalice el período de votación.
-                    </div>
-                {% endif %}
             {% else %}
                 <div class="alert alert-warning">
                     No hay subjects creados para esta votación.

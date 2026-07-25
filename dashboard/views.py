@@ -7,7 +7,7 @@ from django.db import connection, transaction
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
-from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog, DocumentSection, Document, FAQ
+from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog, DocumentSection, Document, FAQ, AccessKey
 from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm, DocumentSectionForm, DocumentUploadForm
 from dashboard.decorators import maintainer_login_required, admin_required, no_auditor, permission_required
 from dashboard.services import ExcelService
@@ -831,6 +831,10 @@ def voting_statistics(request, voting_id):
         messages.error(request, 'Las estadísticas solo están disponibles una vez finalizada la votación.')
         return redirect('dashboard:votings_management')
 
+    # PROTECCIÓN USB: Si no se ha desbloqueado con las llaves, redirigir a la pantalla de desbloqueo
+    if not voting.report_unlocked:
+        return redirect('voting:unlock_report', voting_id=voting.id)
+
     subjects = voting.subjects.all()
     
     # Contar total de RUTs registrados y votos realizados
@@ -890,6 +894,11 @@ def generate_report(request, voting_id):
     if finish_date_chile >= now_chile:
         messages.error(request, 'El reporte solo está disponible una vez finalizada la votación.')
         return redirect('dashboard:votings_management')
+
+    # PROTECCIÓN USB: Si no se ha desbloqueado con las llaves, redirigir a la pantalla de desbloqueo
+    if not voting.report_unlocked:
+        from django.urls import reverse
+        return redirect(f"{reverse('voting:unlock_report', args=[voting.id])}?next=dashboard_report")
 
     subjects = voting.subjects.all()
     
@@ -1384,3 +1393,59 @@ def delete_faq(request, faq_id):
     faq.delete()
     messages.success(request, 'Pregunta frecuente eliminada correctamente.')
     return redirect('dashboard:faq_management')
+
+
+# ============================================
+# GESTIÓN DE LLAVES USB
+# ============================================
+
+from django.http import JsonResponse
+import uuid
+import hashlib
+
+@maintainer_login_required
+@permission_required('perm_gestionar_votaciones')
+def access_keys_management(request):
+    """Vista para listar y gestionar llaves USB"""
+    keys = AccessKey.objects.all().order_by('-created_at')
+    
+    context = {
+        'keys': keys,
+        'page_title': 'Gestión de Llaves USB'
+    }
+    return render(request, 'dashboard/access_keys_management.html', context)
+
+@maintainer_login_required
+@permission_required('perm_gestionar_votaciones')
+@require_http_methods(["POST"])
+def api_generate_key(request):
+    """API que genera un token seguro y lo registra en la base de datos"""
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', 'Llave sin nombre')
+        
+        # Limitar a máximo 5 llaves por diseño
+        if AccessKey.objects.count() >= 5:
+             return JsonResponse({'success': False, 'message': 'Se ha alcanzado el límite de 5 llaves configuradas.'})
+        
+        # Generar un UUID seguro
+        secure_token = str(uuid.uuid4())
+        
+        # Crear la llave en DB (se guarda el token público directamente o un hash, aquí guardaremos el token ya que se requiere coincidencia exacta)
+        # Para mayor seguridad, el token en la BD podría ser un hash, pero la validación frontend espera match exacto. Guardaremos el token tal cual como public_token.
+        AccessKey.objects.create(name=name, public_token=secure_token)
+        
+        # Retornar el token al cliente (Dashboard JS) para que lo envíe al Agente Local por WebSocket y lo escriba en el USB
+        return JsonResponse({'success': True, 'token': secure_token, 'message': 'Llave generada en el servidor.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@maintainer_login_required
+@permission_required('perm_gestionar_votaciones')
+@require_http_methods(["POST"])
+def delete_access_key(request, key_id):
+    """Elimina una llave configurada"""
+    key = get_object_or_404(AccessKey, id=key_id)
+    key.delete()
+    messages.success(request, 'Llave eliminada correctamente.')
+    return redirect('dashboard:access_keys_management')
