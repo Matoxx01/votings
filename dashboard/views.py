@@ -803,8 +803,8 @@ def resume_stuck_uploads(request):
     from voting.services import EmailQueueService
     from voting.models import DataUploadLog, EmailQueueItem
     
-    logs_count = DataUploadLog.objects.filter(details__in_progress=True).count()
-    items_count = EmailQueueItem.objects.filter(status__in=['PENDING', 'PROCESSING']).count()
+    logs_count = DataUploadLog.objects.filter(emailqueueitem__status='PENDING').distinct().count()
+    items_count = EmailQueueItem.objects.filter(status__in=['PENDING']).count()
     
     if logs_count == 0 and items_count == 0:
         messages.info(request, "No se encontraron cargas atascadas ni correos pendientes en la base de datos.")

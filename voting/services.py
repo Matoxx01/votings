@@ -768,6 +768,13 @@ class EmailQueueService:
                     time.sleep(1)
                 except Exception:
                     pass
+                
+                # IMPORTANTE: Cerrar la conexión a la BD al final de cada lote.
+                # Django abrirá una nueva automáticamente en el siguiente lote.
+                # Esto evita el error 2006 (MySQL server has gone away) causado 
+                # porque el proxy de Railway corta conexiones de larga duración.
+                from django.db import connection
+                connection.close()
 
             # Finalizar log
             upload_log.details['in_progress'] = False
@@ -797,13 +804,22 @@ class EmailQueueService:
         from django.db import close_old_connections
         close_old_connections()
         try:
-            logs_in_progress = DataUploadLog.objects.filter(details__in_progress=True)
-            for log in logs_in_progress:
+            # Buscar logs que tengan al menos 1 email PENDING, sin importar si in_progress es True o False
+            logs_with_pending = DataUploadLog.objects.filter(emailqueueitem__status='PENDING').distinct()
+            
+            for log in logs_with_pending:
                 # Solo reanudar si hay items genuinamente PENDING
                 has_pending = EmailQueueItem.objects.filter(
                     upload_log=log, status='PENDING'
                 ).exists()
                 if has_pending:
+                    # Si estaba detenido por un error previo, limpiarlo para poder reanudar
+                    if not log.details.get('in_progress'):
+                        log.details['in_progress'] = True
+                        if 'process_error' in log.details:
+                            del log.details['process_error']
+                        log.save()
+                        
                     thread = threading.Thread(
                         target=EmailQueueService.process_queue_for_log,
                         args=(log.id,)

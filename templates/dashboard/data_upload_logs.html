@@ -109,29 +109,35 @@
                                     <hr>
                                     <p class="mb-0">El archivo se está procesando actualmente en el servidor. Los contadores y el estado final se actualizarán automáticamente en cuanto el proceso termine.</p>
                                 </div>
-                                {% elif log.details.process_error %}
-                                <div class="alert alert-danger mt-3 mb-0">
-                                    <h6 class="alert-heading"><i class="bi bi-x-circle"></i> Error Crítico en la Carga/Proceso:</h6>
-                                    <hr>
-                                    <p class="mb-0">{{ log.details.process_error }}</p>
-                                </div>
-                                {% elif log.details.email_errors %}
-                                <div class="alert alert-warning mt-3 mb-0">
-                                    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Detalle de Errores de Correos:</h6>
-                                    <hr>
-                                    <ul class="mb-0" style="max-height: 200px; overflow-y: auto;">
-                                        {% for error in log.details.email_errors|slice:":20" %}
-                                            <li>{{ error }}</li>
-                                        {% endfor %}
-                                        {% if log.details.email_errors|length > 20 %}
-                                            <li class="text-muted small">... y {{ log.details.email_errors|length|add:"-20" }} errores más omitidos para no sobrecargar el navegador.</li>
-                                        {% endif %}
-                                    </ul>
-                                </div>
                                 {% else %}
-                                <div class="alert alert-success mt-3 mb-0">
-                                    <i class="bi bi-check-circle"></i> Todos los registros y correos fueron procesados con éxito.
-                                </div>
+                                    {% if log.details.process_error %}
+                                    <div class="alert alert-danger mt-3 mb-0">
+                                        <h6 class="alert-heading"><i class="bi bi-x-circle"></i> Error Crítico en la Carga/Proceso:</h6>
+                                        <hr>
+                                        <p class="mb-0">{{ log.details.process_error }}</p>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if log.details.email_errors %}
+                                    <div class="alert alert-warning mt-3 mb-0">
+                                        <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Detalle de Errores de Correos:</h6>
+                                        <hr>
+                                        <ul class="mb-0" style="max-height: 200px; overflow-y: auto;">
+                                            {% for error in log.details.email_errors|slice:":20" %}
+                                                <li>{{ error }}</li>
+                                            {% endfor %}
+                                            {% if log.details.email_errors|length > 20 %}
+                                                <li class="text-muted small">... y {{ log.details.email_errors|length|add:"-20" }} errores más omitidos para no sobrecargar el navegador.</li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if not log.details.process_error and not log.details.email_errors %}
+                                    <div class="alert alert-success mt-3 mb-0">
+                                        <i class="bi bi-check-circle"></i> Todos los registros y correos fueron procesados con éxito.
+                                    </div>
+                                    {% endif %}
                                 {% endif %}
                               </div>
                               <div class="modal-footer">
