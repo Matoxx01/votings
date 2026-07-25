@@ -554,3 +554,63 @@ class AccessKey(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SecurityEvent(models.Model):
+    """Registro persistente de eventos de seguridad para auditoría"""
+    EVENT_TYPES = (
+        ('LOGIN_FAILED', 'Login Fallido'),
+        ('LOGIN_SUCCESS', 'Login Exitoso'),
+        ('RATE_LIMITED', 'Rate Limited'),
+        ('CHAIN_INTEGRITY_OK', 'Cadena Íntegra'),
+        ('CHAIN_INTEGRITY_FAIL', 'Cadena Alterada'),
+        ('VOTE_ANOMALY', 'Anomalía de Voto'),
+        ('PASSWORD_RESET', 'Reset Contraseña'),
+        ('IP_BLOCKED', 'IP Bloqueada'),
+        ('IP_UNBLOCKED', 'IP Desbloqueada'),
+    )
+    SEVERITY_CHOICES = (
+        ('INFO', 'Información'),
+        ('MEDIUM', 'Media'),
+        ('HIGH', 'Alta'),
+        ('CRITICAL', 'Crítica'),
+    )
+
+    event_type = models.CharField(max_length=30, choices=EVENT_TYPES, db_index=True)
+    severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True, db_index=True)
+    user_agent = models.TextField(blank=True)
+    description = models.TextField()
+
+    # Relaciones opcionales para contexto
+    voting = models.ForeignKey('Voting', on_delete=models.SET_NULL, null=True, blank=True)
+    militante_rut = models.CharField(max_length=20, blank=True, db_index=True)
+    maintainer = models.ForeignKey('Maintainer', on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Metadatos extra flexibles
+    details = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Evento de Seguridad"
+        verbose_name_plural = "Eventos de Seguridad"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.severity}] {self.get_event_type_display()} - {self.ip_address} ({self.created_at})"
+
+
+class SecurityBlockedIP(models.Model):
+    """IPs bloqueadas permanentemente por un administrador"""
+    ip_address = models.GenericIPAddressField(unique=True)
+    reason = models.TextField()
+    blocked_by = models.ForeignKey('Maintainer', on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "IP Bloqueada"
+        verbose_name_plural = "IPs Bloqueadas"
+
+    def __str__(self):
+        return f"{self.ip_address} - {'Activa' if self.is_active else 'Inactiva'}"

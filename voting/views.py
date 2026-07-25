@@ -16,6 +16,7 @@ from voting.forms import VoterRegistrationForm, MilitanteRegistrationForm, Milit
 from voting.services import EmailService
 from voting.time_utils import get_real_now
 from voting.rate_limit import rate_limit_check, record_attempt, rate_limit_json
+from voting.security import SecurityService
 
 
 @require_http_methods(["GET", "POST"])
@@ -32,6 +33,7 @@ def vota(request):
         limited, wait = rate_limit_check(request, 'login_militante', 5, 300)
         if limited:
             messages.error(request, f"Demasiados intentos. Espera {wait} segundos antes de intentar nuevamente.")
+            SecurityService.log_event('RATE_LIMITED', 'HIGH', f'Rate limit alcanzado en login militante', request=request)
             return render(request, 'voting/vota.html', {
                 'form': MilitanteLoginForm(),
                 'contact_email': contact_email,
@@ -46,6 +48,7 @@ def vota(request):
                 militante = Militante.objects.get(rut=rut, is_active=True)
             except Militante.DoesNotExist:
                 record_attempt(request, 'login_militante', 300)
+                SecurityService.log_event('LOGIN_FAILED', 'MEDIUM', f'Login fallido: RUT {rut} no encontrado', request=request, militante_rut=rut)
                 messages.error(
                     request,
                     f"No estás validado. Contacta a {contact_email}"
@@ -58,6 +61,7 @@ def vota(request):
             # Verificar contraseña
             if not check_password(password, militante.password):
                 record_attempt(request, 'login_militante', 300)
+                SecurityService.log_event('LOGIN_FAILED', 'MEDIUM', f'Login fallido: contraseña incorrecta para RUT {rut}', request=request, militante_rut=rut)
                 messages.error(request, "Contraseña incorrecta.")
                 return render(request, 'voting/vota.html', {
                     'form': form,
@@ -103,6 +107,7 @@ def vota(request):
             request.session.modified = True
 
             messages.success(request, f"¡Bienvenido/a {militante.nombre}!")
+            SecurityService.log_event('LOGIN_SUCCESS', 'INFO', f'Login militante exitoso: {militante.nombre} (RUT {rut})', request=request, militante_rut=rut)
             return redirect('voting:votaciones_pendientes')
     else:
         form = MilitanteLoginForm()

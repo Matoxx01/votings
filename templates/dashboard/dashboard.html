@@ -173,6 +173,21 @@
                     </div>
                 </div>
                 {% endif %}
+
+                {% if is_admin %}
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-danger">
+                        <div class="card-body text-center py-4">
+                            <i class="bi bi-shield-check text-danger mb-3" style="font-size: 2.25rem;"></i>
+                            <h6 class="card-title text-danger">Centro de Seguridad</h6>
+                            <p class="card-text text-muted small">Auditoría, logs e integridad en vivo</p>
+                        </div>
+                        <div class="card-footer bg-danger bg-opacity-10 border-top-0">
+                            <a href="{% url 'dashboard:security_center' %}" class="btn btn-danger btn-sm w-100">Acceder</a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

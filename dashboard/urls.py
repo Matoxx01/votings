@@ -49,4 +49,12 @@ urlpatterns = [
     path('llaves-usb/', views.access_keys_management, name='access_keys_management'),
     path('llaves-usb/api/generar/', views.api_generate_key, name='api_generate_key'),
     path('llaves-usb/<int:key_id>/eliminar/', views.delete_access_key, name='delete_access_key'),
+    
+    # Centro de Seguridad
+    path('seguridad/', views.security_center, name='security_center'),
+    path('seguridad/verificar-cadena/<int:voting_id>/', views.verify_chain_api, name='verify_chain_api'),
+    path('seguridad/bloquear-ip/', views.block_ip_api, name='block_ip_api'),
+    path('seguridad/desbloquear-ip/<int:block_id>/', views.unblock_ip_api, name='unblock_ip_api'),
+    path('seguridad/usuario-info/', views.security_user_info_api, name='security_user_info_api'),
+    path('seguridad/eventos/exportar/', views.export_security_events, name='export_security_events'),
 ]

@@ -14,6 +14,7 @@ from dashboard.services import ExcelService
 from voting.services import EmailService
 from voting.time_utils import get_real_now
 from voting.rate_limit import rate_limit_check, record_attempt
+from voting.security import SecurityService
 from datetime import timedelta
 import json
 import logging
@@ -102,6 +103,7 @@ def login_view(request):
         limited, wait = rate_limit_check(request, 'login_dashboard', 5, 600)
         if limited:
             messages.error(request, f"Demasiados intentos de login. Espera {wait} segundos.")
+            SecurityService.log_event('RATE_LIMITED', 'HIGH', f'Rate limit alcanzado en login dashboard', request=request)
             return render(request, 'dashboard/login.html', {'form': MaintainerLoginForm()})
 
         form = MaintainerLoginForm(request.POST)
@@ -116,12 +118,15 @@ def login_view(request):
                     request.session['maintainer_id'] = maintainer.id
                     request.session['maintainer_name'] = f"{maintainer.name} {maintainer.lastname}"
                     messages.success(request, f"Bienvenido, {maintainer.name}!")
+                    SecurityService.log_event('LOGIN_SUCCESS', 'INFO', f'Login dashboard exitoso: {maintainer.name} {maintainer.lastname}', request=request, maintainer=maintainer)
                     return redirect('dashboard:dashboard')
                 else:
                     record_attempt(request, 'login_dashboard', 600)
+                    SecurityService.log_event('LOGIN_FAILED', 'HIGH', f'Login dashboard fallido: contraseña incorrecta para {mail}', request=request)
                     messages.error(request, "Correo o contraseña incorrectos.")
             except Maintainer.DoesNotExist:
                 record_attempt(request, 'login_dashboard', 600)
+                SecurityService.log_event('LOGIN_FAILED', 'HIGH', f'Login dashboard fallido: correo {mail} no encontrado', request=request)
                 messages.error(request, "Correo o contraseña incorrectos.")
     else:
         form = MaintainerLoginForm()
@@ -1449,3 +1454,216 @@ def delete_access_key(request, key_id):
     key.delete()
     messages.success(request, 'Llave eliminada correctamente.')
     return redirect('dashboard:access_keys_management')
+
+# --- CENTRO DE SEGURIDAD ---
+
+@maintainer_login_required
+@admin_required
+def security_center(request):
+    from voting.models import SecurityEvent, SecurityBlockedIP, Voting
+    from voting.security import SecurityService
+    from django.core.paginator import Paginator
+    from django.db.models import Q
+    
+    # Resumen
+    summary = SecurityService.get_events_summary(hours=24)
+    blocked_ips_count = SecurityBlockedIP.objects.filter(is_active=True).count()
+    
+    # Filtros
+    events = SecurityEvent.objects.all()
+    
+    severity = request.GET.get('severity')
+    if severity:
+        events = events.filter(severity=severity)
+        
+    event_type = request.GET.get('event_type')
+    if event_type:
+        events = events.filter(event_type=event_type)
+        
+    ip = request.GET.get('ip')
+    if ip:
+        events = events.filter(ip_address__icontains=ip)
+        
+    voting_id = request.GET.get('voting_id')
+    if voting_id:
+        events = events.filter(voting_id=voting_id)
+        
+    # Paginación
+    paginator = Paginator(events, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Datos para los selectores
+    active_votings = Voting.objects.filter(
+        start_date__lte=get_real_now(),
+        finish_date__gte=get_real_now()
+    ).order_by('-created_at')
+    
+    all_votings = Voting.objects.all().order_by('-created_at')
+    
+    blocked_ips = SecurityBlockedIP.objects.filter(is_active=True).order_by('-created_at')
+    
+    # Última verificación
+    last_chain_check = SecurityEvent.objects.filter(
+        event_type__in=['CHAIN_INTEGRITY_OK', 'CHAIN_INTEGRITY_FAIL']
+    ).first()
+    
+    context = {
+        'summary': summary,
+        'blocked_ips_count': blocked_ips_count,
+        'page_obj': page_obj,
+        'active_votings': active_votings,
+        'all_votings': all_votings,
+        'blocked_ips': blocked_ips,
+        'last_chain_check': last_chain_check,
+    }
+    return render(request, 'dashboard/security_center.html', context)
+
+
+@maintainer_login_required
+@admin_required
+@require_http_methods(["POST"])
+def verify_chain_api(request, voting_id):
+    from voting.security import SecurityService
+    ok, broken_at, total_votes = SecurityService.verify_voting_chain(voting_id)
+    return JsonResponse({
+        'ok': ok,
+        'broken_at': broken_at,
+        'total_votes': total_votes
+    })
+
+
+@maintainer_login_required
+@admin_required
+@require_http_methods(["POST"])
+def block_ip_api(request):
+    from voting.security import SecurityService
+    from voting.models import Maintainer
+    
+    ip_address = request.POST.get('ip_address')
+    reason = request.POST.get('reason')
+    
+    if ip_address and reason:
+        maintainer = Maintainer.objects.get(id=request.session['maintainer_id'])
+        SecurityService.block_ip(ip_address, reason, maintainer)
+        messages.success(request, f"IP {ip_address} bloqueada permanentemente.")
+    else:
+        messages.error(request, "Datos incompletos para bloquear la IP.")
+        
+    return redirect('dashboard:security_center')
+
+
+@maintainer_login_required
+@admin_required
+@require_http_methods(["POST"])
+def unblock_ip_api(request, block_id):
+    from voting.security import SecurityService
+    from voting.models import Maintainer
+    
+    maintainer = Maintainer.objects.get(id=request.session['maintainer_id'])
+    success = SecurityService.unblock_ip(block_id, maintainer)
+    
+    if success:
+        messages.success(request, "IP desbloqueada exitosamente.")
+    else:
+        messages.error(request, "No se encontró el bloqueo especificado.")
+        
+    return redirect('dashboard:security_center')
+
+
+@maintainer_login_required
+@admin_required
+def security_user_info_api(request):
+    rut = request.GET.get('rut')
+    if not rut:
+        return JsonResponse({'found': False})
+        
+    from voting.models import Militante, UserData, SecurityEvent, Region
+    
+    try:
+        militante = Militante.objects.get(rut=rut)
+        
+        region_name = None
+        if militante.region:
+            region_obj = Region.objects.filter(id=militante.region).first()
+            region_name = region_obj.name if region_obj else f"Región {militante.region}"
+
+        # Votaciones
+        user_data = UserData.objects.filter(rut=rut).select_related('id_voting')
+        votaciones = []
+        for ud in user_data:
+            votaciones.append({
+                'title': ud.id_voting.title,
+                'has_voted': ud.has_voted
+            })
+            
+        # Eventos
+        events = SecurityEvent.objects.filter(militante_rut=rut).order_by('-created_at')[:10]
+        eventos = []
+        for e in events:
+            eventos.append({
+                'fecha': e.created_at.strftime("%d/%m/%Y %H:%M:%S"),
+                'tipo': e.get_event_type_display(),
+                'ip': e.ip_address
+            })
+            
+        return JsonResponse({
+            'found': True,
+            'rut': militante.rut,
+            'nombre': militante.nombre,
+            'mail': militante.mail,
+            'region': region_name,
+            'is_active': militante.is_active,
+            'created_at': militante.created_at.strftime("%d/%m/%Y"),
+            'votaciones': votaciones,
+            'eventos': eventos
+        })
+    except Militante.DoesNotExist:
+        return JsonResponse({'found': False})
+
+
+@maintainer_login_required
+@admin_required
+def export_security_events(request):
+    import csv
+    from django.http import HttpResponse
+    from voting.models import SecurityEvent
+    
+    events = SecurityEvent.objects.all().order_by('-created_at')
+    
+    severity = request.GET.get('severity')
+    if severity:
+        events = events.filter(severity=severity)
+        
+    event_type = request.GET.get('event_type')
+    if event_type:
+        events = events.filter(event_type=event_type)
+        
+    ip = request.GET.get('ip')
+    if ip:
+        events = events.filter(ip_address__icontains=ip)
+        
+    voting_id = request.GET.get('voting_id')
+    if voting_id:
+        events = events.filter(voting_id=voting_id)
+        
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="eventos_seguridad.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Fecha', 'Severidad', 'Tipo', 'IP', 'RUT Militante', 'Maintainer', 'Votacion', 'Descripcion', 'Detalles'])
+    
+    for e in events:
+        writer.writerow([
+            e.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            e.get_severity_display(),
+            e.get_event_type_display(),
+            e.ip_address,
+            e.militante_rut,
+            f"{e.maintainer.name} {e.maintainer.lastname}" if e.maintainer else "",
+            e.voting.title if e.voting else "",
+            e.description,
+            str(e.details)
+        ])
+        
+    return response
