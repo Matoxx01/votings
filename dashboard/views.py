@@ -927,6 +927,9 @@ def generate_report(request, voting_id):
             'percentage': round(percentage * 100, 2),
         })
     
+    # Ordenar opciones por votos (de mayor a menor)
+    stats.sort(key=lambda x: x['votes'], reverse=True)
+    
     # Agregar opción "No Voto"
     if include_no_voto:
         no_vote_percentage = (no_votes / base_total) if base_total > 0 else 0
