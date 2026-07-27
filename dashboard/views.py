@@ -7,7 +7,7 @@ from django.db import connection, transaction
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count as DbCount, Q
 from django.utils import timezone
-from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog, DocumentSection, Document, FAQ, AccessKey
+from voting.models import Maintainer, Voting, Subject, UserData, VotingRecord, Count, Role, PasswordResetToken, Militante, MilitanteRegistrationToken, DataUploadLog, DocumentSection, Document, FAQ, AccessKey, Region
 from dashboard.forms import MaintainerLoginForm, VotingForm, SubjectForm, UserDataUploadForm, MaintainerEditForm, MaintainerCreateForm, MilitanteInviteForm, DocumentSectionForm, DocumentUploadForm
 from dashboard.decorators import maintainer_login_required, admin_required, no_auditor, permission_required
 from dashboard.services import ExcelService
@@ -936,11 +936,62 @@ def generate_report(request, voting_id):
             'percentage': round(no_vote_percentage * 100, 2),
         })
     
+    # === PARTICIPACIÓN POR REGIÓN ===
+    # Obtener todos los RUTs del padrón y cuáles votaron
+    all_user_data = UserData.objects.filter(id_voting=voting).values_list('rut', 'has_voted')
+    voting_ruts = set()
+    voted_ruts = set()
+    for rut, has_voted in all_user_data:
+        voting_ruts.add(rut)
+        if has_voted:
+            voted_ruts.add(rut)
+    
+    # Militantes activos (registrados) con su región
+    militantes_qs = Militante.objects.filter(rut__in=voting_ruts).values_list('rut', 'region')
+    militante_region = {rut: (region if region else 17) for rut, region in militantes_qs}
+    registered_ruts = set(militante_region.keys())
+    
+    # Pendientes de registro con su región
+    pending_qs = MilitanteRegistrationToken.objects.filter(
+        rut__in=voting_ruts, used=False
+    ).values_list('rut', 'region')
+    pending_region = {}
+    for rut, region in pending_qs:
+        if rut not in registered_ruts:  # Solo si no está ya registrado
+            pending_region[rut] = region if region else 17
+    pending_ruts = set(pending_region.keys())
+    
+    # Construir datos por región
+    regions = Region.objects.all().order_by('id')
+    region_stats = []
+    for region in regions:
+        r_voted = sum(1 for rut in voted_ruts if militante_region.get(rut) == region.id)
+        r_active_no_vote = sum(1 for rut in (registered_ruts - voted_ruts) if militante_region.get(rut) == region.id)
+        r_pending = sum(1 for rut in pending_ruts if pending_region.get(rut) == region.id)
+        r_total = r_voted + r_active_no_vote + r_pending
+        r_participation = round((r_voted / (r_voted + r_active_no_vote) * 100), 1) if (r_voted + r_active_no_vote) > 0 else 0
+        
+        region_stats.append({
+            'region': region,
+            'voted': r_voted,
+            'active_no_vote': r_active_no_vote,
+            'pending': r_pending,
+            'total': r_total,
+            'participation': r_participation,
+        })
+    
+    # Totales globales para gráfico de registro
+    total_militantes_registered = len(registered_ruts)
+    total_militantes_pending = len(pending_ruts)
+    
     context = {
         'voting': voting,
         'stats': stats,
         'total_votes': total_votes,
         'total_registered': total_registered,
+        'region_stats': region_stats,
+        'total_militantes_registered': total_militantes_registered,
+        'total_militantes_pending': total_militantes_pending,
     }
     return render(request, 'dashboard/report.html', context)
 
@@ -1483,6 +1534,10 @@ def security_center(request):
     ip = request.GET.get('ip')
     if ip:
         events = events.filter(ip_address__icontains=ip)
+    
+    rut = request.GET.get('rut')
+    if rut:
+        events = events.filter(militante_rut__icontains=rut)
         
     voting_id = request.GET.get('voting_id')
     if voting_id:
@@ -1642,6 +1697,10 @@ def export_security_events(request):
     ip = request.GET.get('ip')
     if ip:
         events = events.filter(ip_address__icontains=ip)
+    
+    rut = request.GET.get('rut')
+    if rut:
+        events = events.filter(militante_rut__icontains=rut)
         
     voting_id = request.GET.get('voting_id')
     if voting_id:

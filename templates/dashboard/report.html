@@ -131,6 +131,95 @@
             </div>
         </div>
 
+        <!-- Gráfico de Registro: Registrados vs Pendientes -->
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-3">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0 text-white"><i class="bi bi-people-fill me-2"></i>Estado de Registro de Militantes</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <canvas id="registrationChart" style="max-height: 280px;"></canvas>
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <div class="border rounded p-2">
+                                    <p class="text-muted small mb-0">Registrados</p>
+                                    <h4 class="mb-0 text-success">{{ total_militantes_registered }}</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="border rounded p-2">
+                                    <p class="text-muted small mb-0">Pendientes</p>
+                                    <h4 class="mb-0 text-warning">{{ total_militantes_pending }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-3">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0 text-white"><i class="bi bi-bar-chart-fill me-2"></i>Participación por Región</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="regionBarChart" style="max-height: 280px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Participación por Región -->
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0 text-white"><i class="bi bi-geo-alt-fill me-2"></i>Detalle de Participación por Región</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="regionTable">
+                                <thead class="bg-primary text-white">
+                                    <tr>
+                                        <th>Región</th>
+                                        <th class="text-center">Votaron</th>
+                                        <th class="text-center">No Votaron</th>
+                                        <th class="text-center">Pendientes Registro</th>
+                                        <th class="text-center">Total</th>
+                                        <th class="text-center">% Participación</th>
+                                        <th>Barra</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rs in region_stats %}
+                                        <tr>
+                                            <td><strong>{{ rs.region.name }}</strong></td>
+                                            <td class="text-center"><span class="badge bg-success">{{ rs.voted }}</span></td>
+                                            <td class="text-center"><span class="badge bg-danger">{{ rs.active_no_vote }}</span></td>
+                                            <td class="text-center"><span class="badge bg-warning text-dark">{{ rs.pending }}</span></td>
+                                            <td class="text-center"><strong>{{ rs.total }}</strong></td>
+                                            <td class="text-center"><strong>{{ rs.participation }}%</strong></td>
+                                            <td>
+                                                <div class="progress" style="height: 22px; background-color: #e9ecef;">
+                                                    {% if rs.participation > 0 %}
+                                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ rs.participation }}%; display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; font-size: 11px;" aria-valuenow="{{ rs.participation }}" aria-valuemin="0" aria-valuemax="100">
+                                                            {{ rs.participation }}%
+                                                        </div>
+                                                    {% else %}
+                                                        <span style="padding: 3px 8px; color: #999; font-size: 11px;">0%</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-lg-12">
                 <a href="{% url 'dashboard:voting_detail' voting.id %}" class="btn btn-secondary">
@@ -298,6 +387,94 @@
                 }
             }
         });
+
+        // Gráfico de Registro (Registrados vs Pendientes)
+        const ctxReg = document.getElementById('registrationChart').getContext('2d');
+        new Chart(ctxReg, {
+            type: 'doughnut',
+            data: {
+                labels: ['Registrados (Cuenta Activa)', 'Pendientes de Registro'],
+                datasets: [{
+                    data: [{{ total_militantes_registered }}, {{ total_militantes_pending }}],
+                    backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(234, 179, 8, 0.8)'],
+                    borderColor: ['rgba(34, 197, 94, 1)', 'rgba(234, 179, 8, 1)'],
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                ...chartOptions,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Participación por Región (Barras apiladas)
+        const regionLabels = [{% for rs in region_stats %}'{{ rs.region.name|truncatechars:15 }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const regionVoted = [{% for rs in region_stats %}{{ rs.voted }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const regionNoVote = [{% for rs in region_stats %}{{ rs.active_no_vote }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const regionPending = [{% for rs in region_stats %}{{ rs.pending }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+        const ctxRegion = document.getElementById('regionBarChart').getContext('2d');
+        new Chart(ctxRegion, {
+            type: 'bar',
+            data: {
+                labels: regionLabels,
+                datasets: [
+                    {
+                        label: 'Votaron',
+                        data: regionVoted,
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1,
+                        borderRadius: 2,
+                    },
+                    {
+                        label: 'No Votaron',
+                        data: regionNoVote,
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 1,
+                        borderRadius: 2,
+                    },
+                    {
+                        label: 'Pendientes Registro',
+                        data: regionPending,
+                        backgroundColor: 'rgba(234, 179, 8, 0.8)',
+                        borderColor: 'rgba(234, 179, 8, 1)',
+                        borderWidth: 1,
+                        borderRadius: 2,
+                    }
+                ]
+            },
+            options: {
+                ...chartOptions,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: { size: 9 }
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
     {% endif %}
 </script>
 
@@ -377,6 +554,20 @@
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
+
+        .bg-danger {
+            background: #dc3545 !important;
+            color: #fff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .bg-warning {
+            background: #ffc107 !important;
+            color: #212529 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
         
         /* Gráficos */
         canvas {
@@ -395,8 +586,15 @@
         
         .col-lg-6, .col-md-4, .col-lg-12 {
             page-break-inside: avoid;
-            width: 100%;
-            margin-bottom: 0;
+        }
+
+        /* Tabla de regiones: forzar que entre en una página */
+        #regionTable {
+            font-size: 9px !important;
+        }
+
+        #regionTable th, #regionTable td {
+            padding: 4px 6px !important;
         }
         
         /* Tablas */
@@ -439,20 +637,45 @@
         }
         
         .progress-bar {
-            background: #1B2A4A !important;
-            color: #fff !important;
-            font-size: 10px;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+        }
+
+        .progress-bar:not(.bg-success) {
+            background: #1B2A4A !important;
+            color: #fff !important;
+        }
+        
+        .progress-bar.bg-success {
+            background: #166534 !important;
+            color: #fff !important;
         }
         
         /* Badges */
         .badge {
             border: 1px solid #000 !important;
-            color: #fff !important;
-            background: #0e7490 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+        }
+
+        .badge.bg-info {
+            color: #fff !important;
+            background: #0e7490 !important;
+        }
+
+        .badge.bg-success {
+            color: #fff !important;
+            background: #166534 !important;
+        }
+
+        .badge.bg-danger {
+            color: #fff !important;
+            background: #dc3545 !important;
+        }
+
+        .badge.bg-warning {
+            color: #212529 !important;
+            background: #ffc107 !important;
         }
         
         /* Opacidad */
@@ -521,6 +744,22 @@
         
         .card .card-body h3 {
             color: #fff !important;
+        }
+
+        .card .card-body h4 {
+            color: #000 !important;
+        }
+
+        .text-success {
+            color: #166534 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .text-warning {
+            color: #b45309 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
     }
 </style>

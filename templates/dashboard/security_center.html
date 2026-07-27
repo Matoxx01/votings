@@ -130,7 +130,7 @@
         </div>
         <div class="card-body border-bottom">
             <form method="GET" class="row g-2 align-items-end">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small">Severidad</label>
                     <select name="severity" class="form-select form-select-sm">
                         <option value="">Todas</option>
@@ -140,7 +140,7 @@
                         <option value="INFO" class="text-primary fw-bold" {% if request.GET.severity == 'INFO' %}selected{% endif %}>Info</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small">Tipo de Evento</label>
                     <select name="event_type" class="form-select form-select-sm">
                         <option value="">Todos</option>
@@ -157,6 +157,10 @@
                 <div class="col-md-2">
                     <label class="form-label small">IP</label>
                     <input type="text" name="ip" class="form-control form-control-sm" value="{{ request.GET.ip }}" placeholder="Ej: 190.20...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">RUT</label>
+                    <input type="text" name="rut" class="form-control form-control-sm" value="{{ request.GET.rut }}" placeholder="Ej: 12345678-9">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">Votación</label>
