@@ -202,7 +202,7 @@
                                             <td>
                                                 <div class="progress" style="height: 22px; background-color: #e9ecef;">
                                                     {% if rs.participation > 0 %}
-                                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ rs.participation }}%; display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; font-size: 11px;" aria-valuenow="{{ rs.participation }}" aria-valuemin="0" aria-valuemax="100">
+                                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ rs.participation|unlocalize }}%; display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; font-size: 11px;" aria-valuenow="{{ rs.participation|unlocalize }}" aria-valuemin="0" aria-valuemax="100">
                                                             {{ rs.participation }}%
                                                         </div>
                                                     {% else %}
@@ -591,10 +591,17 @@
         /* Tabla de regiones: forzar que entre en una página */
         #regionTable {
             font-size: 9px !important;
+            table-layout: auto;
+            width: 100%;
         }
 
         #regionTable th, #regionTable td {
-            padding: 4px 6px !important;
+            padding: 3px 4px !important;
+        }
+        
+        #regionTable th[style*="min-width"] {
+            min-width: 0 !important;
+            width: 60px !important;
         }
         
         /* Tablas */
