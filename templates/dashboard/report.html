@@ -114,10 +114,9 @@
                                                 <div class="progress" style="height: 25px; background-color: #e9ecef;">
                                                     {% if stat.percentage > 0 %}
                                                         <div class="progress-bar" role="progressbar" style="width: {{ stat.percentage|unlocalize }}%; background: var(--gov-blue); display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; font-size: 12px;" aria-valuenow="{{ stat.percentage|unlocalize }}" aria-valuemin="0" aria-valuemax="100">
-                                                            {{ stat.percentage|floatformat:1 }}%
                                                         </div>
                                                     {% else %}
-                                                        <span style="padding: 5px; color: #999; font-size: 12px;">0%</span>
+                                                        <span style="padding: 5px; color: #999; font-size: 12px;"></span>
                                                     {% endif %}
                                                 </div>
                                             </td>
@@ -203,10 +202,9 @@
                                                 <div class="progress" style="height: 22px; background-color: #e9ecef;">
                                                     {% if rs.participation > 0 %}
                                                         <div class="progress-bar bg-success" role="progressbar" style="width: {{ rs.participation|unlocalize }}%; display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; font-size: 11px;" aria-valuenow="{{ rs.participation|unlocalize }}" aria-valuemin="0" aria-valuemax="100">
-                                                            {{ rs.participation }}%
                                                         </div>
                                                     {% else %}
-                                                        <span style="padding: 3px 8px; color: #999; font-size: 11px;">0%</span>
+                                                        <span style="padding: 3px 8px; color: #999; font-size: 11px;"></span>
                                                     {% endif %}
                                                 </div>
                                             </td>
