@@ -181,19 +181,19 @@
                             <table class="table table-hover" id="regionTable">
                                 <thead class="bg-primary text-white">
                                     <tr>
-                                        <th>Región</th>
+                                        <th style="max-width: 160px;">Región</th>
                                         <th class="text-center">Votaron</th>
                                         <th class="text-center">No Votaron</th>
-                                        <th class="text-center">Pendientes Registro</th>
+                                        <th class="text-center">Pend. Registro</th>
                                         <th class="text-center">Total</th>
-                                        <th class="text-center">% Participación</th>
-                                        <th>Barra</th>
+                                        <th class="text-center">% Part.</th>
+                                        <th style="min-width: 140px;">Barra</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for rs in region_stats %}
                                         <tr>
-                                            <td><strong>{{ rs.region.name }}</strong></td>
+                                            <td style="max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ rs.region.name }}"><strong>{{ rs.region.name }}</strong></td>
                                             <td class="text-center"><span class="badge bg-success">{{ rs.voted }}</span></td>
                                             <td class="text-center"><span class="badge bg-danger">{{ rs.active_no_vote }}</span></td>
                                             <td class="text-center"><span class="badge bg-warning text-dark">{{ rs.pending }}</span></td>

@@ -989,7 +989,7 @@ def generate_report(request, voting_id):
         'stats': stats,
         'total_votes': total_votes,
         'total_registered': total_registered,
-        'region_stats': region_stats,
+        'region_stats': sorted(region_stats, key=lambda x: x['participation'], reverse=True),
         'total_militantes_registered': total_militantes_registered,
         'total_militantes_pending': total_militantes_pending,
     }
