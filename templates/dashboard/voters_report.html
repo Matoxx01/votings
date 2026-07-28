@@ -57,9 +57,9 @@
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th style="color: navy !important;">RUT</th>
-                        <th style="color: navy !important;">NOMBRE</th>
-                        <th style="color: navy !important;" class="text-center">VOTO (SÍ/NO)</th>
+                        <th style="color: navy !important; cursor: pointer;" onclick="toggleSort('rut')" class="user-select-none">RUT <i id="sortIcon-rut" class="bi bi-arrow-down-up ms-1 text-muted small"></i></th>
+                        <th style="color: navy !important; cursor: pointer;" onclick="toggleSort('nombre')" class="user-select-none">NOMBRE <i id="sortIcon-nombre" class="bi bi-arrow-down-up ms-1 text-muted small"></i></th>
+                        <th style="color: navy !important; cursor: pointer;" class="text-center user-select-none" onclick="toggleSort('has_voted')">VOTO (SÍ/NO) <i id="sortIcon-has_voted" class="bi bi-arrow-down-up ms-1 text-muted small"></i></th>
                         <th style="color: navy !important;" class="text-end d-print-none">ACCIONES</th>
                     </tr>
                 </thead>
@@ -73,6 +73,14 @@
                 </tbody>
             </table>
         </div>
+        </div>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center d-print-none border-top">
+        <span id="paginationInfo" class="small text-muted">Mostrando 0 de 0</span>
+        <nav>
+            <ul class="pagination pagination-sm mb-0" id="paginationControls">
+            </ul>
+        </nav>
     </div>
 </div>
 
@@ -100,6 +108,12 @@
 <style>
 /* Estilos para impresión profesional */
 @media print {
+    @page {
+        margin: 0; /* Elimina la URL y Fecha por defecto del navegador */
+    }
+    body {
+        margin: 1.5cm; /* Restaura un margen seguro para el contenido */
+    }
     body * {
         visibility: hidden;
     }
@@ -137,11 +151,114 @@
 
 <script>
     let searchTimeout = null;
+    let allVoters = []; // Store all fetched voters
+    let currentPage = 1;
+    const itemsPerPage = 15;
+    let currentSort = 'nombre';
+    let sortAsc = true;
     
     const votingSelect = document.getElementById('votingSelect');
     const searchInput = document.getElementById('searchInput');
     const tableBody = document.getElementById('votersTableBody');
     const printTitle = document.getElementById('printVotingTitle');
+    const paginationControls = document.getElementById('paginationControls');
+    const paginationInfo = document.getElementById('paginationInfo');
+
+    function renderTable() {
+        if (allVoters.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No se encontraron usuarios habilitados.</td></tr>`;
+            paginationInfo.innerText = "Mostrando 0 de 0";
+            paginationControls.innerHTML = "";
+            return;
+        }
+
+        // Apply sorting
+        let sortedVoters = [...allVoters];
+        sortedVoters.sort((a, b) => {
+            let valA = a[currentSort];
+            let valB = b[currentSort];
+            
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+            
+            if (valA < valB) return sortAsc ? -1 : 1;
+            if (valA > valB) return sortAsc ? 1 : -1;
+            return 0;
+        });
+
+        // Apply pagination
+        const totalPages = Math.ceil(sortedVoters.length / itemsPerPage);
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedVoters = sortedVoters.slice(startIndex, startIndex + itemsPerPage);
+
+        // Update Icons
+        ['rut', 'nombre', 'has_voted'].forEach(col => {
+            const icon = document.getElementById(`sortIcon-${col}`);
+            if (icon) {
+                if (col === currentSort) {
+                    icon.className = `bi bi-arrow-${sortAsc ? 'down' : 'up'} ms-1 text-primary small fw-bold`;
+                } else {
+                    icon.className = 'bi bi-arrow-down-up ms-1 text-muted small';
+                }
+            }
+        });
+
+        // Render Rows
+        let html = '';
+        paginatedVoters.forEach(voter => {
+            html += `<tr style="color: navy;">
+                <td><code>${voter.rut}</code></td>
+                <td class="fw-bold">${voter.nombre}</td>
+                <td class="text-center">
+                    ${voter.has_voted ? 
+                        '<span class="badge bg-success" title="Sí"><i class="bi bi-check-circle" style="font-size: 1.2rem;"></i></span>' : 
+                        '<span class="badge bg-danger" title="No"><i class="bi bi-x-circle" style="font-size: 1.2rem;"></i></span>'
+                    }
+                </td>
+                <td class="text-end d-print-none">
+                    <button class="btn btn-sm btn-outline-primary" onclick="showUserInfo('${voter.rut}')" title="Ver Detalles">
+                        <i class="bi bi-person-lines-fill"></i> Detalles
+                    </button>
+                </td>
+            </tr>`;
+        });
+        tableBody.innerHTML = html;
+
+        // Render Pagination
+        paginationInfo.innerText = `Mostrando ${startIndex + 1} a ${Math.min(startIndex + itemsPerPage, sortedVoters.length)} de ${sortedVoters.length}`;
+        
+        let pHtml = '';
+        pHtml += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">&laquo;</a></li>`;
+        
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pHtml += `<li class="page-item ${currentPage === i ? 'active' : ''}"><a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a></li>`;
+        }
+        
+        pHtml += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">&raquo;</a></li>`;
+        paginationControls.innerHTML = pHtml;
+    }
+
+    window.changePage = function(page) {
+        currentPage = page;
+        renderTable();
+    };
+
+    window.toggleSort = function(col) {
+        if (currentSort === col) {
+            sortAsc = !sortAsc;
+        } else {
+            currentSort = col;
+            sortAsc = true;
+        }
+        currentPage = 1; // reset to first page on sort
+        renderTable();
+    };
 
     function loadData() {
         const votingId = votingSelect.value;
@@ -156,6 +273,9 @@
             </tr>`;
             searchInput.disabled = true;
             printTitle.innerText = "Reporte de Votantes";
+            paginationControls.innerHTML = '';
+            paginationInfo.innerText = '';
+            allVoters = [];
             return;
         }
         
@@ -167,34 +287,16 @@
         fetch(`{% url 'dashboard:voters_report_data_api' %}?voting_id=${votingId}&search=${encodeURIComponent(search)}`)
             .then(res => res.json())
             .then(data => {
-                if (data.voters.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No se encontraron usuarios habilitados.</td></tr>`;
-                    return;
-                }
-                
-                let html = '';
-                data.voters.forEach(voter => {
-                    html += `<tr style="color: navy;">
-                        <td><code>${voter.rut}</code></td>
-                        <td class="fw-bold">${voter.nombre}</td>
-                        <td class="text-center">
-                            ${voter.has_voted ? 
-                                '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Sí, Votó</span>' : 
-                                '<span class="badge bg-secondary"><i class="bi bi-dash-circle me-1"></i>No</span>'
-                            }
-                        </td>
-                        <td class="text-end d-print-none">
-                            <button class="btn btn-sm btn-outline-primary" onclick="showUserInfo('${voter.rut}')" title="Ver Detalles">
-                                <i class="bi bi-person-lines-fill"></i> Detalles
-                            </button>
-                        </td>
-                    </tr>`;
-                });
-                tableBody.innerHTML = html;
+                allVoters = data.voters || [];
+                currentPage = 1;
+                renderTable();
             })
             .catch(err => {
                 console.error(err);
                 tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle"></i> Error al cargar los datos.</td></tr>`;
+                paginationControls.innerHTML = '';
+                paginationInfo.innerText = '';
+                allVoters = [];
             });
     }
 
