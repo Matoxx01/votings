@@ -86,8 +86,16 @@ class UserDataUploadForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        choices = []
+        for v in Voting.objects.all():
+            region = v.id_region.name if v.id_region else "Nacional"
+            text = f"{v.title} - {region}"
+            if len(text) > 60:
+                text = text[:57] + "..."
+            choices.append((v.id, text))
+            
         self.fields['voting_id'].widget = forms.Select(
-            choices=[(v.id, v.title) for v in Voting.objects.all()],
+            choices=choices,
             attrs={'class': 'form-control'}
         )
 
