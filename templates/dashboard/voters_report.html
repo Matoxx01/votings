@@ -11,7 +11,7 @@
                 <h1>Reporte de Votantes</h1>
                 <p class="mb-0">Listado de militantes y estado de sufragio</p>
             </div>
-            <button onclick="window.print()" class="btn btn-outline-light">
+            <button onclick="printFullReport()" class="btn btn-outline-light">
                 <i class="bi bi-printer me-2"></i>Imprimir Reporte
             </button>
         </div>
@@ -164,7 +164,7 @@
     const paginationControls = document.getElementById('paginationControls');
     const paginationInfo = document.getElementById('paginationInfo');
 
-    function renderTable() {
+    function renderTable(showAll = false) {
         if (allVoters.length === 0) {
             tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No se encontraron usuarios habilitados.</td></tr>`;
             paginationInfo.innerText = "Mostrando 0 de 0";
@@ -192,7 +192,7 @@
         if (currentPage < 1) currentPage = 1;
 
         const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedVoters = sortedVoters.slice(startIndex, startIndex + itemsPerPage);
+        const paginatedVoters = showAll ? sortedVoters : sortedVoters.slice(startIndex, startIndex + itemsPerPage);
 
         // Update Icons
         ['rut', 'nombre', 'has_voted'].forEach(col => {
@@ -247,6 +247,20 @@
     window.changePage = function(page) {
         currentPage = page;
         renderTable();
+    };
+
+    window.printFullReport = function() {
+        if (allVoters.length === 0) {
+            window.print();
+            return;
+        }
+        // Temporarily render all for printing
+        renderTable(true);
+        setTimeout(() => {
+            window.print();
+            // Restore pagination immediately after printing dialog is closed/launched
+            renderTable(false);
+        }, 100);
     };
 
     window.toggleSort = function(col) {
