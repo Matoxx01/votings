@@ -249,4 +249,5 @@ CACHES = {
 }
 
 # Site Configuration
-SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
+HOST = os.getenv('HOST', 'http://localhost:8000')
+SITE_URL = os.getenv('SITE_URL', HOST)
