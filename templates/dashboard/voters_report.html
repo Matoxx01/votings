@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reporte de Votantes{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1>Reporte de Votantes</h1>
+                <p class="mb-0">Listado de militantes y estado de sufragio</p>
+            </div>
+            <button onclick="window.print()" class="btn btn-outline-light">
+                <i class="bi bi-printer me-2"></i>Imprimir Reporte
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+
+<!-- Controles (No se imprimen) -->
+<div class="card shadow-sm mb-4 d-print-none">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Seleccionar Votación</label>
+                <select id="votingSelect" class="form-select">
+                    <option value="">-- Seleccione una votación --</option>
+                    {% for v in votings %}
+                    <option value="{{ v.id }}">{{ v.title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Buscar Usuario</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar por RUT o Nombre..." disabled>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contenedor del Reporte para Impresión -->
+<div id="printArea" class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-none d-print-block text-center border-bottom">
+        <h3 class="mb-1" style="color: navy;">Partido Republicano de Chile</h3>
+        <h4 id="printVotingTitle" class="text-muted">Reporte de Votantes</h4>
+        <p class="small mb-0">Generado el {% now "d/m/Y H:i" %}</p>
+    </div>
+    
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="color: navy !important;">RUT</th>
+                        <th style="color: navy !important;">NOMBRE</th>
+                        <th style="color: navy !important;" class="text-center">VOTO (SÍ/NO)</th>
+                        <th style="color: navy !important;" class="text-end d-print-none">ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody id="votersTableBody">
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class="bi bi-card-checklist" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <p class="mb-0 mt-2">Seleccione una votación para ver los usuarios habilitados.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Info de Usuario (Militante) -->
+<div class="modal fade" id="userInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-person-lines-fill me-2"></i>Información del Usuario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userInfoContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Cargando información...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos para impresión profesional */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #printArea, #printArea * {
+        visibility: visible;
+    }
+    #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    .d-print-none {
+        display: none !important;
+    }
+    .d-print-block {
+        display: block !important;
+    }
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .table th, .table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+    .table th {
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+    }
+}
+</style>
+
+<script>
+    let searchTimeout = null;
+    
+    const votingSelect = document.getElementById('votingSelect');
+    const searchInput = document.getElementById('searchInput');
+    const tableBody = document.getElementById('votersTableBody');
+    const printTitle = document.getElementById('printVotingTitle');
+
+    function loadData() {
+        const votingId = votingSelect.value;
+        const search = searchInput.value;
+        
+        if (!votingId) {
+            tableBody.innerHTML = `<tr>
+                <td colspan="4" class="text-center py-5 text-muted">
+                    <i class="bi bi-card-checklist" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p class="mb-0 mt-2">Seleccione una votación para ver los usuarios habilitados.</p>
+                </td>
+            </tr>`;
+            searchInput.disabled = true;
+            printTitle.innerText = "Reporte de Votantes";
+            return;
+        }
+        
+        searchInput.disabled = false;
+        printTitle.innerText = "Reporte de Votantes: " + votingSelect.options[votingSelect.selectedIndex].text;
+        
+        tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 mb-0">Cargando datos...</p></td></tr>`;
+        
+        fetch(`{% url 'dashboard:voters_report_data_api' %}?voting_id=${votingId}&search=${encodeURIComponent(search)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.voters.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">No se encontraron usuarios habilitados.</td></tr>`;
+                    return;
+                }
+                
+                let html = '';
+                data.voters.forEach(voter => {
+                    html += `<tr style="color: navy;">
+                        <td><code>${voter.rut}</code></td>
+                        <td class="fw-bold">${voter.nombre}</td>
+                        <td class="text-center">
+                            ${voter.has_voted ? 
+                                '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Sí, Votó</span>' : 
+                                '<span class="badge bg-secondary"><i class="bi bi-dash-circle me-1"></i>No</span>'
+                            }
+                        </td>
+                        <td class="text-end d-print-none">
+                            <button class="btn btn-sm btn-outline-primary" onclick="showUserInfo('${voter.rut}')" title="Ver Detalles">
+                                <i class="bi bi-person-lines-fill"></i> Detalles
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+                tableBody.innerHTML = html;
+            })
+            .catch(err => {
+                console.error(err);
+                tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle"></i> Error al cargar los datos.</td></tr>`;
+            });
+    }
+
+    votingSelect.addEventListener('change', loadData);
+    
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(loadData, 400); // 400ms debounce
+    });
+
+    // Reutilizando la función del modal de Security Center
+    function showUserInfo(rut) {
+        const modal = new bootstrap.Modal(document.getElementById('userInfoModal'));
+        const content = document.getElementById('userInfoContent');
+        content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Cargando...</p></div>';
+        modal.show();
+        
+        fetch(`{% url 'dashboard:security_user_info_api' %}?rut=${encodeURIComponent(rut)}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.found) {
+                let html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Datos del Militante</h6>
+                            <table class="table table-sm">
+                                <tr><td class="text-muted">Nombre</td><td><strong>${data.nombre}</strong></td></tr>
+                                <tr><td class="text-muted">RUT</td><td><code>${data.rut}</code></td></tr>
+                                <tr><td class="text-muted">Correo</td><td>${data.mail}</td></tr>
+                                <tr><td class="text-muted">Región</td><td>${data.region || '-'}</td></tr>
+                                <tr><td class="text-muted">Estado</td><td>${data.is_active ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Inactivo</span>'}</td></tr>
+                                <tr><td class="text-muted">Fecha Registro</td><td>${data.created_at}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Actividad en Votaciones</h6>
+                            <table class="table table-sm">
+                                <thead><tr><th>Votación</th><th>¿Votó?</th></tr></thead>
+                                <tbody>`;
+                if (data.votaciones && data.votaciones.length > 0) {
+                    data.votaciones.forEach(v => {
+                        html += `<tr><td class="small">${v.title}</td><td>${v.has_voted ? '<i class="bi bi-check-circle text-success"></i> Sí' : '<i class="bi bi-x-circle text-danger"></i> No'}</td></tr>`;
+                    });
+                } else {
+                    html += '<tr><td colspan="2" class="text-muted small">Sin votaciones asignadas</td></tr>';
+                }
+                html += `</tbody></table>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="text-primary">Últimos Eventos de Seguridad</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead><tr><th>Fecha</th><th>Tipo</th><th>IP</th></tr></thead>
+                            <tbody>`;
+                if (data.eventos && data.eventos.length > 0) {
+                    data.eventos.forEach(e => {
+                        html += `<tr><td class="small">${e.fecha}</td><td class="small">${e.tipo}</td><td class="small"><code>${e.ip}</code></td></tr>`;
+                    });
+                } else {
+                    html += '<tr><td colspan="3" class="text-muted text-center small py-3">Sin eventos registrados</td></tr>';
+                }
+                html += `</tbody></table></div>`;
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Usuario no encontrado</div>';
+            }
+        })
+        .catch(err => {
+            content.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Error al cargar datos</div>';
+        });
+    }
+</script>
+</div>
+{% endblock %}

@@ -1727,5 +1727,71 @@ def export_security_events(request):
             e.description,
             str(e.details)
         ])
-        
     return response
+
+@maintainer_login_required
+def voters_report(request):
+    """Renderiza la vista principal del reporte de votantes"""
+    maintainer = Maintainer.objects.get(id=request.session['maintainer_id'])
+    # Admin roles or those with stats permission can view this report
+    if not (maintainer.id_role.name == 'Admin' or maintainer.perm_ver_estadisticas):
+        messages.error(request, "No tienes permisos para ver reportes.")
+        return redirect('dashboard:dashboard')
+
+    votings = Voting.objects.all().order_by('-created_at')
+    
+    context = {
+        'votings': votings,
+        'active_menu': 'voters_report'
+    }
+    return render(request, 'dashboard/voters_report.html', context)
+
+@maintainer_login_required
+def voters_report_data_api(request):
+    """Devuelve los datos de votantes para el reporte en JSON"""
+    maintainer = Maintainer.objects.get(id=request.session['maintainer_id'])
+    if not (maintainer.id_role.name == 'Admin' or maintainer.perm_ver_estadisticas):
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+        
+    voting_id = request.GET.get('voting_id')
+    search = request.GET.get('search', '').strip().lower()
+    
+    if not voting_id:
+        return JsonResponse({'voters': []})
+        
+    try:
+        voting = Voting.objects.get(id=voting_id)
+    except Voting.DoesNotExist:
+        return JsonResponse({'voters': []})
+        
+    # Obtener UserData de la votación
+    user_data_qs = UserData.objects.filter(id_voting=voting)
+    
+    # Obtener RUTs
+    ruts = list(user_data_qs.values_list('rut', flat=True))
+    
+    # Filtrar militantes que están en la lista de ruts
+    militantes = Militante.objects.filter(rut__in=ruts)
+    
+    if search:
+        militantes = militantes.filter(
+            Q(rut__icontains=search) | 
+            Q(nombre__icontains=search) |
+            Q(mail__icontains=search)
+        )
+        
+    militantes_dict = {m.rut: m.nombre for m in militantes}
+    
+    voters = []
+    for ud in user_data_qs:
+        if ud.rut in militantes_dict: 
+            voters.append({
+                'rut': ud.rut,
+                'nombre': militantes_dict[ud.rut],
+                'has_voted': ud.has_voted
+            })
+            
+    # Ordenar por nombre
+    voters.sort(key=lambda x: x['nombre'])
+            
+    return JsonResponse({'voters': voters})
