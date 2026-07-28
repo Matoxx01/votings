@@ -55,6 +55,7 @@
                         <thead>
                             <tr>
                                 <th>Título</th>
+                                <th>Región</th>
                                 <th>Estado</th>
                                 <th>Inicio</th>
                                 <th>Fin</th>
@@ -64,6 +65,7 @@
                             {% for voting in votings %}
                                 <tr style="cursor: pointer;" onclick="window.location='{% url 'dashboard:voting_detail' voting.id %}';">
                                     <td><strong>{{ voting.title }}</strong></td>
+                                    <td>{{ voting.id_region.name|default:"Nacional" }}</td>
                                     <td>
                                         {% if voting.is_open %}
                                             <span class="badge bg-success">Activa</span>
