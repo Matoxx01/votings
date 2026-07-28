@@ -229,6 +229,9 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+# Permitir que enlaces desde correos/otros sitios abran la página.
+# Django 5.x por defecto usa 'same-origin' lo que bloquea navegación desde Gmail, Outlook, etc.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
 # En producción (cuando DEBUG=False), activar cookies seguras y HTTPS
 if not DEBUG:
