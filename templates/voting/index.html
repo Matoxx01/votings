@@ -144,21 +144,21 @@
 
 <div class="container py-4">
     <div class="row justify-content-center align-items-stretch">
-      <!-- Tarjeta Normativa y Resoluciones -->
+      <!-- Tarjeta Realiza tu registro -->
       <div class="col-md-5 col-lg-4 mb-4 d-flex flex-column">
         <div class="card h-100 shadow flex-grow-1">
           <div class="card-img-top ratio ratio-16x9" style="background: #f8f9fa;">
-            <img src="{% static 'images/boton-biblioteca.png' %}" alt="Normativa y Resoluciones" style="width: 100%; height: 100%; object-fit: cover;">
+            <img src="{% static 'images/boton-registro.png' %}" alt="Realiza tu registro" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
           <div class="card-body d-flex flex-column justify-content-between">
             <div>
-              <h5 class="card-title">Normativa y Resoluciones</h5>
+              <h5 class="card-title">Realiza tu registro</h5>
               <p class="card-text text-muted" style="font-size: 0.93rem;">
-                Accede a normativas, resoluciones y documentos oficiales organizados por secciones.
+                Si estás en el padrón de militantes, regístrate aquí para crear tu cuenta y participar en las votaciones.
               </p>
             </div>
-            <a href="{% url 'voting:biblioteca' %}" class="btn btn-postulacion mt-3">
-              Ver Documentos
+            <a href="{% url 'voting:reenviar_registro' %}" class="btn btn-postulacion mt-3">
+              Registrarse
             </a>
           </div>
         </div>
@@ -178,25 +178,6 @@
             </div>
             <a href="{% url 'voting:militante_general_login' %}" class="btn btn-postulacion mt-3">
               Iniciar Sesión
-            </a>
-          </div>
-        </div>
-      </div>
-      <!-- Tarjeta Reenvío de Registro -->
-      <div class="col-md-5 col-lg-4 mb-4 d-flex flex-column">
-        <div class="card h-100 shadow flex-grow-1">
-          <div class="card-img-top ratio ratio-16x9" style="background: #f8f9fa;">
-            <img src="{% static 'images/boton-registro.png' %}" alt="Reenvío de registro" style="width: 100%; height: 100%; object-fit: cover;">
-          </div>
-          <div class="card-body d-flex flex-column justify-content-between">
-            <div>
-              <h5 class="card-title">Regístrate y crea tu cuenta</h5>
-              <p class="card-text text-muted" style="font-size: 0.93rem;">
-                Si estás en el padrón de militantes, regístrate aquí para crear tu cuenta y participar en las votaciones.
-              </p>
-            </div>
-            <a href="{% url 'voting:reenviar_registro' %}" class="btn btn-postulacion mt-3">
-              Registrarse
             </a>
           </div>
         </div>
@@ -235,6 +216,25 @@
             </div>
             <a href="{% url 'voting:candidatos' %}" class="btn btn-postulacion mt-3">
               Ver Candidatos
+            </a>
+          </div>
+        </div>
+      </div>
+      <!-- Tarjeta Normativa y Resoluciones -->
+      <div class="col-md-5 col-lg-4 mb-4 d-flex flex-column">
+        <div class="card h-100 shadow flex-grow-1">
+          <div class="card-img-top ratio ratio-16x9" style="background: #f8f9fa;">
+            <img src="{% static 'images/boton-biblioteca.png' %}" alt="Normativa y Resoluciones" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div>
+              <h5 class="card-title">Normativa y Resoluciones</h5>
+              <p class="card-text text-muted" style="font-size: 0.93rem;">
+                Accede a normativas, resoluciones y documentos oficiales organizados por secciones.
+              </p>
+            </div>
+            <a href="{% url 'voting:biblioteca' %}" class="btn btn-postulacion mt-3">
+              Ver Documentos
             </a>
           </div>
         </div>
