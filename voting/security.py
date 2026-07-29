@@ -12,11 +12,17 @@ logger = logging.getLogger(__name__)
 
 
 def _get_client_ip(request):
-    """Obtiene la IP real del cliente (compatible con el rate_limit.py corregido)."""
+    """Obtiene la IP real del cliente (compatible con rate_limit.py)."""
+    x_real_ip = request.META.get('HTTP_X_REAL_IP')
+    if x_real_ip:
+        return x_real_ip.strip()
+
     xff = request.META.get('HTTP_X_FORWARDED_FOR')
     if xff:
-        ips = [ip.strip() for ip in xff.split(',')]
-        return ips[-2] if len(ips) >= 2 else ips[0]
+        ips = [ip.strip() for ip in xff.split(',') if ip.strip()]
+        if ips:
+            return ips[0]
+            
     return request.META.get('REMOTE_ADDR', '0.0.0.0')
 
 

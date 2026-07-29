@@ -244,11 +244,11 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-# Cache backend para rate limiting (usa memoria local, no requiere Redis)
+# Cache backend en BD para rate limiting persistente y compartido entre workers
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'rate-limit-cache',
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'rate_limit_cache_table',
     }
 }
 

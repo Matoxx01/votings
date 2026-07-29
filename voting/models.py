@@ -5,6 +5,7 @@ import secrets
 import datetime
 import hmac
 import hashlib
+import uuid
 from .time_utils import get_real_now
 
 
@@ -186,16 +187,18 @@ class VotingRecord(models.Model):
     Registro inmutable de un voto (ANÓNIMO).
     
     Protecciones:
+    - id: UUID aleatorio (v4) para evitar trazabilidad secuencial por ID
     - integrity_hash: HMAC del contenido del registro, impide modificar campos
-    - chain_hash: incluye el hash del registro anterior de la misma votación (cadena)
-      → cualquier INSERT/DELETE en medio de la cadena la rompe y es detectable
+    - chain_hash: incluye el hash del registro anterior (cadena), único para evitar duplicados
     - save() rechaza actualizaciones posteriores a la creación
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     id_voting = models.ForeignKey(Voting, on_delete=models.CASCADE)
     id_subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     integrity_hash = models.CharField(max_length=64, blank=True)
-    chain_hash = models.CharField(max_length=64, blank=True,
+    chain_hash = models.CharField(max_length=64, blank=True, null=True, unique=True,
                                    help_text='Hash encadenado con el voto anterior de esta votación')
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Voting Record"
@@ -210,8 +213,8 @@ class VotingRecord(models.Model):
         qs = VotingRecord.objects.filter(id_voting_id=voting_id)
         if exclude_pk:
             qs = qs.exclude(pk=exclude_pk)
-        prev = qs.order_by('pk').last()
-        return prev.chain_hash if prev else '0' * 64
+        prev = qs.order_by('created_at').last()
+        return prev.chain_hash if prev and prev.chain_hash else '0' * 64
 
     def generate_hash(self, prev_chain_hash=None):
         """
@@ -237,9 +240,9 @@ class VotingRecord(models.Model):
     def verify_chain(voting_id):
         """
         Verifica la integridad de toda la cadena de votos de una votación.
-        Retorna (ok: bool, broken_at: int|None) donde broken_at es el pk del primer fallo.
+        Retorna (ok: bool, broken_at: str|None) donde broken_at es el pk del primer fallo.
         """
-        records = list(VotingRecord.objects.filter(id_voting_id=voting_id).order_by('pk'))
+        records = list(VotingRecord.objects.filter(id_voting_id=voting_id).order_by('created_at'))
         prev_hash = '0' * 64
         for record in records:
             expected = hmac.new(
@@ -248,19 +251,19 @@ class VotingRecord(models.Model):
                 hashlib.sha256
             ).hexdigest()
             if not hmac.compare_digest(record.integrity_hash, expected):
-                return False, record.pk
+                return False, str(record.pk)
             prev_hash = record.integrity_hash
         return True, None
 
     def save(self, *args, **kwargs):
+        is_new = self._state.adding
         # Bloquear cualquier actualización posterior a la creación inicial
-        if self.pk and not kwargs.get('update_fields') == ['integrity_hash']:
+        if not is_new and not kwargs.get('update_fields') == ['integrity_hash']:
             existing = VotingRecord.objects.filter(pk=self.pk).exists()
             if existing:
                 raise PermissionError(
                     "Los registros de votos son inmutables y no pueden ser modificados."
                 )
-        is_new = not self.pk
         super().save(*args, **kwargs)
         if is_new and not self.integrity_hash:
             prev_chain_hash = VotingRecord._get_prev_chain_hash(self.id_voting_id, exclude_pk=self.pk)

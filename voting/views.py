@@ -17,6 +17,7 @@ from voting.services import EmailService
 from voting.time_utils import get_real_now
 from voting.rate_limit import rate_limit_check, record_attempt, rate_limit_json
 from voting.security import SecurityService
+from dashboard.decorators import maintainer_login_required
 
 
 @require_http_methods(["GET", "POST"])
@@ -1225,6 +1226,7 @@ def candidatos(request):
 # VISTAS DE DESBLOQUEO POR USB
 # ============================================
 
+@maintainer_login_required
 def unlock_report(request, voting_id):
     """Vista de pantalla negra con estrellas para desbloquear el reporte"""
     voting = get_object_or_404(Voting, id=voting_id)
@@ -1253,6 +1255,7 @@ def unlock_report(request, voting_id):
     }
     return render(request, 'voting/unlock_report.html', context)
 
+@maintainer_login_required
 @require_http_methods(["POST"])
 def api_validate_keys(request, voting_id):
     """API para validar las llaves conectadas reportadas por el Agente USB"""

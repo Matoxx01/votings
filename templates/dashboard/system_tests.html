@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-header bg-dark text-white py-4 mb-4">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h2 mb-1"><i class="bi bi-gear-wide-connected text-warning me-2"></i>Pruebas del Sistema</h1>
+            <p class="lead text-white-50 mb-0">Módulo exclusivo de diagnóstico e integración de APIs del sistema</p>
+        </div>
+        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    <!-- Fila de Estado del Entorno -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3 mb-md-0">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="card-title fw-bold text-muted mb-3">
+                        <i class="bi bi-key-fill text-primary me-2"></i> Credenciales API Registro Civil
+                    </h6>
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="me-3 text-secondary small">API USER:</span>
+                        {% if api_user_configured %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Configurado</span>
+                        {% else %}
+                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i> No configurado</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="me-3 text-secondary small">API PASS:</span>
+                        {% if api_pass_configured %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Configurado</span>
+                        {% else %}
+                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i> No configurado</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="card-title fw-bold text-muted mb-3">
+                        <i class="bi bi-shield-lock-fill text-primary me-2"></i> Certificados TLS Locales (<code>/cert/</code>)
+                    </h6>
+                    {% if cert_files %}
+                        <ul class="list-unstyled mb-0 small">
+                            {% for cert in cert_files %}
+                                <li class="text-success mb-1">
+                                    <i class="bi bi-file-earmark-check-fill me-1"></i> <code>{{ cert }}</code> (Cargado en SSL Context)
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-warning small mb-0"><i class="bi bi-exclamation-triangle me-1"></i> No se encontraron archivos de certificado en <code>/cert/</code>.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestañas de Pruebas -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-bottom">
+            <ul class="nav nav-tabs card-header-tabs" id="testTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="rc-tab" data-bs-toggle="tab" data-bs-target="#rc-test" type="button" role="tab">
+                        <i class="bi bi-card-heading me-2"></i> API Registro Civil (Cédula)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-muted disabled" id="future-tab" type="button">
+                        <i class="bi bi-plus-circle me-2"></i> Próximas Pruebas (SMTP / BD)
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="tab-content" id="testTabsContent">
+                <!-- Tab: Registro Civil API -->
+                <div class="tab-pane fade show active" id="rc-test" role="tabpanel">
+                    <div class="row">
+                        <div class="col-lg-5 mb-4 mb-lg-0 border-end-lg">
+                            <h5 class="fw-bold mb-3">Prueba de Integración Cédula</h5>
+                            <p class="text-muted small mb-4">
+                                Ingresa un RUT y un Número de Documento de Cédula de Identidad para realizar una llamada en vivo a la API del Registro Civil y verificar la respuesta TLS y estado del servicio.
+                            </p>
+
+                            <form id="rcTestForm">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="testRut" class="form-label fw-bold small">RUT a consultar:</label>
+                                    <input type="text" class="form-control" id="testRut" placeholder="Ej: 12345678-9" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="testDocNum" class="form-label fw-bold small">Número de Documento / Serie:</label>
+                                    <input type="text" class="form-control" id="testDocNum" placeholder="Ej: 123456789" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 fw-bold" id="btnRunRcTest">
+                                    <i class="bi bi-play-fill me-1"></i> Ejecutar Prueba de API
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="col-lg-7">
+                            <h5 class="fw-bold mb-3">Resultado de la Prueba</h5>
+                            
+                            <!-- Loader -->
+                            <div id="testSpinner" class="text-center py-5 d-none">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <p class="text-muted small mt-2">Conectando con el servicio del Registro Civil con verificación TLS...</p>
+                            </div>
+
+                            <!-- Mensaje por defecto -->
+                            <div id="testPlaceholder" class="text-center py-5 text-muted">
+                                <i class="bi bi-terminal fs-1 d-block mb-2"></i>
+                                Complétalo los datos a la izquierda y presiona "Ejecutar Prueba de API" para ver los resultados técnicos.
+                            </div>
+
+                            <!-- Card de Resultado -->
+                            <div id="testResultCard" class="d-none">
+                                <div class="alert alert-dismissible fade show" id="testResultAlert" role="alert">
+                                    <h6 class="alert-heading fw-bold" id="testResultHeading"></h6>
+                                    <p class="mb-0 small" id="testResultText"></p>
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6 col-sm-3">
+                                        <div class="p-2 border rounded text-center bg-light">
+                                            <span class="d-block text-muted small">Código HTTP</span>
+                                            <strong id="resStatusCode" class="fs-6">-</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-sm-3">
+                                        <div class="p-2 border rounded text-center bg-light">
+                                            <span class="d-block text-muted small">Latencia</span>
+                                            <strong id="resLatency" class="fs-6">-</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-sm-3">
+                                        <div class="p-2 border rounded text-center bg-light">
+                                            <span class="d-block text-muted small">Estado API</span>
+                                            <strong id="resEstado" class="fs-6">-</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-sm-3">
+                                        <div class="p-2 border rounded text-center bg-light">
+                                            <span class="d-block text-muted small">Estado Cédula</span>
+                                            <strong id="resEstadoCedula" class="fs-6">-</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion" id="jsonAccordion">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed py-2 small" type="button" data-bs-toggle="collapse" data-bs-target="#collapseJson">
+                                                <i class="bi bi-code-slash me-2"></i> Respuesta JSON Completa
+                                            </button>
+                                        </h2>
+                                        <div id="collapseJson" class="accordion-collapse collapse">
+                                            <div class="accordion-body p-2">
+                                                <pre id="rawJsonResponse" class="bg-dark text-success p-3 rounded mb-0 small" style="max-height: 250px; overflow-y: auto; font-family: monospace;"></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('rcTestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const rut = document.getElementById('testRut').value.trim();
+    const docNum = document.getElementById('testDocNum').value.trim();
+    const btn = document.getElementById('btnRunRcTest');
+    const spinner = document.getElementById('testSpinner');
+    const placeholder = document.getElementById('testPlaceholder');
+    const resultCard = document.getElementById('testResultCard');
+
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    placeholder.classList.add('d-none');
+    resultCard.classList.add('d-none');
+
+    fetch("{% url 'dashboard:test_registro_civil_api' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ rut: rut, numero_documento: docNum })
+    })
+    .then(response => response.json().then(data => ({ status: response.status, body: data })))
+    .then(res => {
+        spinner.classList.add('d-none');
+        btn.disabled = false;
+        resultCard.classList.remove('d-none');
+
+        const data = res.body;
+        const alertBox = document.getElementById('testResultAlert');
+        const heading = document.getElementById('testResultHeading');
+        const text = document.getElementById('testResultText');
+
+        if (data.success) {
+            if (data.is_valid) {
+                alertBox.className = 'alert alert-success border-0 shadow-sm';
+                heading.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Validación Exitosa';
+                text.innerText = `RUT ${data.rut_tested} con Cédula ${data.doc_tested} se encuentra VIGENTE en el Registro Civil.`;
+            } else {
+                alertBox.className = 'alert alert-warning border-0 shadow-sm';
+                heading.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i> Cédula No Vigente / Invalida';
+                text.innerText = `El servicio respondió pero la cédula no figura vigente. ${data.message}`;
+            }
+            document.getElementById('resStatusCode').innerText = data.status_code || 200;
+            document.getElementById('resLatency').innerText = `${data.latency_ms} ms`;
+            document.getElementById('resEstado').innerText = data.estado || '-';
+            document.getElementById('resEstadoCedula').innerText = data.estado_cedula || '-';
+            document.getElementById('rawJsonResponse').innerText = JSON.stringify(data.raw_response, null, 2);
+        } else {
+            alertBox.className = 'alert alert-danger border-0 shadow-sm';
+            heading.innerHTML = '<i class="bi bi-x-circle-fill me-2"></i> Error en la Prueba';
+            text.innerText = data.error || 'Ocurrió un error al intentar comunicar con la API.';
+            document.getElementById('resStatusCode').innerText = res.status;
+            document.getElementById('resLatency').innerText = 'N/A';
+            document.getElementById('resEstado').innerText = 'ERROR';
+            document.getElementById('resEstadoCedula').innerText = 'ERROR';
+            document.getElementById('rawJsonResponse').innerText = JSON.stringify(data, null, 2);
+        }
+    })
+    .catch(err => {
+        spinner.classList.add('d-none');
+        btn.disabled = false;
+        resultCard.classList.remove('d-none');
+
+        const alertBox = document.getElementById('testResultAlert');
+        alertBox.className = 'alert alert-danger border-0 shadow-sm';
+        document.getElementById('testResultHeading').innerHTML = '<i class="bi bi-x-circle-fill me-2"></i> Error Inesperado';
+        document.getElementById('testResultText').innerText = err.message || 'No se pudo procesar la solicitud.';
+        document.getElementById('rawJsonResponse').innerText = err.toString();
+    });
+});
+</script>
+{% endblock %}

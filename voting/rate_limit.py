@@ -15,18 +15,20 @@ logger = logging.getLogger(__name__)
 
 def _get_client_ip(request):
     """
-    Obtiene la IP real del cliente, considerando proxies.
-    
-    Railway (proxy único) envía X-Forwarded-For como: [IP-cliente], [IP-proxy].
-    Tomamos la penúltima IP (la que inyecta el proxy confiable), no la primera
-    que es controlable por el atacante y permitiría evadir el rate limiting.
+    Obtiene la IP real del cliente considerando proxies (Railway/Edge).
+    Preferimos HTTP_X_REAL_IP si está presente. En X-Forwarded-For,
+    la IP original del cliente siempre es la primera (ips[0]).
     """
+    x_real_ip = request.META.get('HTTP_X_REAL_IP')
+    if x_real_ip:
+        return x_real_ip.strip()
+
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
-        ips = [ip.strip() for ip in x_forwarded_for.split(',')]
-        # Con 1 proxy confiable (Railway): la IP real es la penúltima
-        # Si solo hay 1 IP, es directamente la del cliente
-        return ips[-2] if len(ips) >= 2 else ips[0]
+        ips = [ip.strip() for ip in x_forwarded_for.split(',') if ip.strip()]
+        if ips:
+            return ips[0]
+            
     return request.META.get('REMOTE_ADDR', '0.0.0.0')
 
 

@@ -3,6 +3,26 @@ from django.core.exceptions import ValidationError
 from voting.models import UserData, VotingRecord, APICounter
 from voting.rate_limit import is_rate_limited, record_attempt, get_wait_seconds
 import re
+import os
+import ssl
+import json
+import urllib.request
+from django.conf import settings
+
+
+def _get_rc_ssl_context():
+    """Crea un contexto SSL cargando los certificados de la carpeta cert/."""
+    ctx = ssl.create_default_context()
+    cert_dir = os.path.join(settings.BASE_DIR, 'cert')
+    if os.path.exists(cert_dir):
+        for f in os.listdir(cert_dir):
+            if f.endswith(('.pem', '.crt')):
+                cert_path = os.path.join(cert_dir, f)
+                try:
+                    ctx.load_verify_locations(cafile=cert_path)
+                except Exception:
+                    pass
+    return ctx
 
 
 def format_rut(rut_raw):
@@ -215,10 +235,7 @@ class MilitanteRegistrationForm(forms.Form):
             req = urllib.request.Request(url, json.dumps(data).encode('utf-8'), {'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'})
             
             try:
-                ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-                with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+                with urllib.request.urlopen(req, context=_get_rc_ssl_context(), timeout=10) as response:
                     res_data = json.loads(response.read().decode())
                     estado = res_data.get('estado')
                     estado_cedula = res_data.get('estadoCedula')
@@ -578,10 +595,7 @@ class RegistroPublicoEtapa2Form(forms.Form):
             req = urllib.request.Request(url, json.dumps(data).encode('utf-8'), {'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'})
 
             try:
-                ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-                with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+                with urllib.request.urlopen(req, context=_get_rc_ssl_context(), timeout=10) as response:
                     res_data = json.loads(response.read().decode())
                     estado = res_data.get('estado')
                     estado_cedula = res_data.get('estadoCedula')

@@ -18,6 +18,12 @@ from voting.security import SecurityService
 from datetime import timedelta
 import json
 import logging
+import urllib.request
+import urllib.error
+import time
+import os
+from django.conf import settings
+from voting.forms import _get_rc_ssl_context, format_rut
 import secrets
 import hmac
 
@@ -1795,3 +1801,100 @@ def voters_report_data_api(request):
     voters.sort(key=lambda x: x['nombre'])
             
     return JsonResponse({'voters': voters})
+
+
+# ============================================
+# MÓDULO DE PRUEBAS DEL SISTEMA (SOLO ADMINS)
+# ============================================
+
+@admin_required
+def system_tests(request):
+    """Vista principal del módulo de Pruebas del Sistema"""
+    maintainer = Maintainer.objects.get(id=request.session['maintainer_id'])
+    
+    cert_dir = os.path.join(settings.BASE_DIR, 'cert')
+    cert_files = []
+    if os.path.exists(cert_dir):
+        cert_files = [f for f in os.listdir(cert_dir) if f.endswith(('.pem', '.crt'))]
+
+    context = {
+        'maintainer': maintainer,
+        'is_admin': maintainer.id_role.name.lower() in ['admin', 'administrador'],
+        'api_user_configured': bool(settings.API_USER),
+        'api_pass_configured': bool(settings.API_PASS),
+        'cert_files': cert_files,
+    }
+    return render(request, 'dashboard/system_tests.html', context)
+
+
+@admin_required
+@require_http_methods(["POST"])
+def test_registro_civil_api(request):
+    """API endpoint para probar la conexión y validación contra la API del Registro Civil"""
+    try:
+        data = json.loads(request.body)
+        rut_raw = data.get('rut', '').strip()
+        numero_documento = data.get('numero_documento', '').strip()
+
+        if not rut_raw or not numero_documento:
+            return JsonResponse({'success': False, 'error': 'Debe ingresar RUT y Número de Documento'}, status=400)
+
+        rut_formatted = format_rut(rut_raw)
+
+        url = "https://smartinvoice2.certificadoradelsur.cl/checkidentitycard/rest-services/public/validacion/validarCedula"
+        payload = {
+            "rut": rut_formatted,
+            "numeroDocumento": numero_documento,
+            "usuario": settings.API_USER,
+            "clave": settings.API_PASS
+        }
+
+        req = urllib.request.Request(
+            url,
+            json.dumps(payload).encode('utf-8'),
+            {'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
+        )
+
+        start_time = time.time()
+        ctx = _get_rc_ssl_context()
+
+        with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+            latency_ms = round((time.time() - start_time) * 1000, 2)
+            raw_body = response.read().decode('utf-8')
+            res_data = json.loads(raw_body)
+
+            estado = res_data.get('estado')
+            estado_cedula = res_data.get('estadoCedula')
+
+            is_valid = (estado == 'OK' and estado_cedula == 'Vigente')
+
+            return JsonResponse({
+                'success': True,
+                'is_valid': is_valid,
+                'rut_tested': rut_formatted,
+                'doc_tested': numero_documento,
+                'latency_ms': latency_ms,
+                'status_code': response.status,
+                'estado': estado,
+                'estado_cedula': estado_cedula,
+                'raw_response': res_data,
+                'message': 'Cédula Vigente y Válida' if is_valid else f"Respuesta del servicio: {estado_cedula or estado or 'Inválida'}"
+            })
+
+    except urllib.error.HTTPError as e:
+        return JsonResponse({
+            'success': False,
+            'error': f"Error HTTP {e.code}: {e.reason}",
+            'status_code': e.code
+        }, status=400)
+    except urllib.error.URLError as e:
+        return JsonResponse({
+            'success': False,
+            'error': f"Error de conexión TLS/SSL: {str(e.reason)}"
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f"Error inesperado: {str(e)}"
+        }, status=500)
+
