@@ -21,3 +21,30 @@ class SecurityBlockMiddleware(MiddlewareMixin):
             )
         
         return None
+
+
+class UserTimezoneMiddleware(MiddlewareMixin):
+    """
+    Middleware que activa la zona horaria del usuario según la cookie `django_timezone`
+    enviada por el navegador. Si no existe la cookie, se desactiva y usa la predeterminada.
+    """
+
+    def process_request(self, request):
+        import zoneinfo
+        import pytz
+        from django.utils import timezone
+
+        tzname = request.COOKIES.get('django_timezone')
+        if tzname:
+            try:
+                try:
+                    tz = zoneinfo.ZoneInfo(tzname)
+                except Exception:
+                    tz = pytz.timezone(tzname)
+                timezone.activate(tz)
+            except Exception:
+                timezone.deactivate()
+        else:
+            timezone.deactivate()
+        return None
+

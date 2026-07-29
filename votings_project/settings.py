@@ -71,6 +71,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "voting.middleware.SecurityBlockMiddleware",
+    "voting.middleware.UserTimezoneMiddleware",
 ]
 
 ROOT_URLCONF = "votings_project.urls"

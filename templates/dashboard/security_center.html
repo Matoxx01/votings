@@ -108,7 +108,7 @@
             {% if last_chain_check %}
             <div class="mt-3">
                 <small class="text-muted">
-                    <i class="bi bi-clock me-1"></i>Última verificación automática: {{ last_chain_check.created_at|date:"d/m/Y H:i:s" }}
+                    <i class="bi bi-clock me-1"></i>Última verificación automática: <span class="local-datetime" data-utc="{{ last_chain_check.created_at|date:'c' }}">{{ last_chain_check.created_at|date:"d/m/Y H:i:s" }}</span>
                     {% if last_chain_check.event_type == 'CHAIN_INTEGRITY_OK' %}
                     — <span class="text-success"><i class="bi bi-check-circle"></i> Íntegra</span>
                     {% else %}
@@ -193,7 +193,7 @@
                 <tbody id="eventsTableBody">
                     {% for event in page_obj %}
                     <tr class="{% if event.severity == 'CRITICAL' %}table-danger{% elif event.severity == 'HIGH' %}table-warning{% endif %}">
-                        <td class="text-nowrap small">{{ event.created_at|date:"d/m/Y H:i:s" }}</td>
+                        <td class="text-nowrap small local-datetime" data-utc="{{ event.created_at|date:'c' }}">{{ event.created_at|date:"d/m/Y H:i:s" }}</td>
                         <td>
                             {% if event.severity == 'CRITICAL' %}
                             <span class="badge bg-danger">Crítica</span>
@@ -285,7 +285,7 @@
                         <td><code>{{ block.ip_address }}</code></td>
                         <td class="small">{{ block.reason }}</td>
                         <td>{{ block.blocked_by.name|default:"Sistema" }} {{ block.blocked_by.lastname|default:"" }}</td>
-                        <td class="small">{{ block.created_at|date:"d/m/Y H:i" }}</td>
+                        <td class="small local-datetime-short" data-utc="{{ block.created_at|date:'c' }}">{{ block.created_at|date:"d/m/Y H:i" }}</td>
                         <td class="text-end">
                             <form method="POST" action="{% url 'dashboard:unblock_ip_api' block.id %}" class="d-inline" onsubmit="return confirm('¿Desbloquear la IP {{ block.ip_address }}?');">
                                 {% csrf_token %}
@@ -454,7 +454,8 @@
                             <tbody>`;
                 if (data.eventos && data.eventos.length > 0) {
                     data.eventos.forEach(e => {
-                        html += `<tr><td class="small">${e.fecha}</td><td class="small">${e.tipo}</td><td class="small"><code>${e.ip || '-'}</code></td></tr>`;
+                        const localFecha = (typeof formatSingleLocalDate === 'function' && e.iso) ? formatSingleLocalDate(e.iso, true) : e.fecha;
+                        html += `<tr><td class="small">${localFecha}</td><td class="small">${e.tipo}</td><td class="small"><code>${e.ip || '-'}</code></td></tr>`;
                     });
                 } else {
                     html += '<tr><td colspan="3" class="text-muted small">Sin eventos registrados</td></tr>';
@@ -494,6 +495,7 @@
             const newTableBody = doc.getElementById('eventsTableBody');
             if (newTableBody) {
                 document.getElementById('eventsTableBody').innerHTML = newTableBody.innerHTML;
+                if (typeof formatLocalDates === 'function') formatLocalDates();
             }
             
             // Actualizar Resumen (Totales)

@@ -1665,8 +1665,10 @@ def security_user_info_api(request):
         events = SecurityEvent.objects.filter(militante_rut=rut).order_by('-created_at')[:10]
         eventos = []
         for e in events:
+            local_dt = timezone.localtime(e.created_at)
             eventos.append({
-                'fecha': e.created_at.strftime("%d/%m/%Y %H:%M:%S"),
+                'fecha': local_dt.strftime("%d/%m/%Y %H:%M:%S"),
+                'iso': e.created_at.isoformat(),
                 'tipo': e.get_event_type_display(),
                 'ip': e.ip_address
             })
@@ -1678,7 +1680,7 @@ def security_user_info_api(request):
             'mail': militante.mail,
             'region': region_name,
             'is_active': militante.is_active,
-            'created_at': militante.created_at.strftime("%d/%m/%Y"),
+            'created_at': timezone.localtime(militante.created_at).strftime("%d/%m/%Y"),
             'votaciones': votaciones,
             'eventos': eventos
         })
@@ -1722,8 +1724,9 @@ def export_security_events(request):
     writer.writerow(['Fecha', 'Severidad', 'Tipo', 'IP', 'RUT Militante', 'Maintainer', 'Votacion', 'Descripcion', 'Detalles'])
     
     for e in events:
+        local_dt = timezone.localtime(e.created_at)
         writer.writerow([
-            e.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            local_dt.strftime("%Y-%m-%d %H:%M:%S"),
             e.get_severity_display(),
             e.get_event_type_display(),
             e.ip_address,

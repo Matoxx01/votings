@@ -646,6 +646,47 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Detección y Sincronización de Zona Horaria del Navegador
+    (function() {
+      try {
+        const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (userTz) {
+          const match = document.cookie.match(/(?:^|; )django_timezone=([^;]*)/);
+          const currentTz = match ? decodeURIComponent(match[1]) : null;
+          if (currentTz !== userTz) {
+            document.cookie = 'django_timezone=' + encodeURIComponent(userTz) + '; path=/; max-age=31536000; SameSite=Lax';
+            if (!currentTz) {
+              window.location.reload();
+            }
+          }
+        }
+      } catch(e) {}
+    })();
+
+    // Formateador de Fechas acorde a la localización del usuario
+    function formatSingleLocalDate(isoStr, includeSeconds = true) {
+      if (!isoStr) return '';
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return isoStr;
+      const pad = n => String(n).padStart(2, '0');
+      const datePart = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+      const timePart = includeSeconds 
+        ? `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+        : `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return `${datePart} ${timePart}`;
+    }
+
+    function formatLocalDates() {
+      document.querySelectorAll('.local-datetime[data-utc]').forEach(el => {
+        const utcStr = el.getAttribute('data-utc');
+        if (utcStr) el.textContent = formatSingleLocalDate(utcStr, true);
+      });
+      document.querySelectorAll('.local-datetime-short[data-utc]').forEach(el => {
+        const utcStr = el.getAttribute('data-utc');
+        if (utcStr) el.textContent = formatSingleLocalDate(utcStr, false);
+      });
+    }
+
     function dismissToast(btn) {
       var toast = btn.closest('.toast-notification');
       if (toast) {
@@ -654,6 +695,7 @@
       }
     }
     document.addEventListener('DOMContentLoaded', function() {
+      formatLocalDates();
       var toasts = document.querySelectorAll('.toast-notification');
       toasts.forEach(function(toast) {
         setTimeout(function() {
