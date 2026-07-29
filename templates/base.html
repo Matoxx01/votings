@@ -650,7 +650,7 @@
     (function() {
       try {
         const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (userTz) {
+        if (userTz && userTz !== 'UTC' && userTz !== 'Etc/UTC' && userTz !== 'GMT') {
           const match = document.cookie.match(/(?:^|; )django_timezone=([^;]*)/);
           const currentTz = match ? decodeURIComponent(match[1]) : null;
           if (currentTz !== userTz) {
@@ -663,17 +663,65 @@
       } catch(e) {}
     })();
 
+    function getAppTimezone() {
+      try {
+        const match = document.cookie.match(/(?:^|; )django_timezone=([^;]*)/);
+        if (match && match[1]) {
+          const tz = decodeURIComponent(match[1]);
+          if (tz && tz !== 'UTC' && tz !== 'Etc/UTC' && tz !== 'GMT') {
+            return tz;
+          }
+        }
+        const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (browserTz && browserTz !== 'UTC' && browserTz !== 'Etc/UTC' && browserTz !== 'GMT') {
+          return browserTz;
+        }
+      } catch(e) {}
+      return 'America/Santiago';
+    }
+
     // Formateador de Fechas acorde a la localización del usuario
     function formatSingleLocalDate(isoStr, includeSeconds = true) {
       if (!isoStr) return '';
       const d = new Date(isoStr);
       if (isNaN(d.getTime())) return isoStr;
-      const pad = n => String(n).padStart(2, '0');
-      const datePart = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-      const timePart = includeSeconds 
-        ? `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-        : `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      return `${datePart} ${timePart}`;
+
+      const timeZone = getAppTimezone();
+
+      try {
+        const options = {
+          timeZone: timeZone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        };
+        if (includeSeconds) {
+          options.second = '2-digit';
+        }
+
+        const formatter = new Intl.DateTimeFormat('es-CL', options);
+        const parts = formatter.formatToParts(d);
+
+        let day = '', month = '', year = '', hour = '', minute = '', second = '';
+        for (const part of parts) {
+          if (part.type === 'day') day = part.value;
+          if (part.type === 'month') month = part.value;
+          if (part.type === 'year') year = part.value;
+          if (part.type === 'hour') hour = part.value;
+          if (part.type === 'minute') minute = part.value;
+          if (part.type === 'second') second = part.value;
+        }
+
+        const datePart = `${day}/${month}/${year}`;
+        const timePart = includeSeconds ? `${hour}:${minute}:${second}` : `${hour}:${minute}`;
+        return `${datePart} ${timePart}`;
+      } catch (e) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}${includeSeconds ? ':' + pad(d.getSeconds()) : ''}`;
+      }
     }
 
     function formatLocalDates() {
