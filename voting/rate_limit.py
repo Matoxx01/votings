@@ -46,21 +46,24 @@ def record_attempt(request, action, window_seconds):
         action: Nombre de la acción (ej: 'login_militante')
         window_seconds: Ventana de tiempo en segundos
     """
-    ip = _get_client_ip(request)
-    key = _make_cache_key(ip, action)
-    now = time.time()
+    try:
+        ip = _get_client_ip(request)
+        key = _make_cache_key(ip, action)
+        now = time.time()
 
-    # Obtener lista de timestamps de intentos anteriores
-    attempts = cache.get(key, [])
+        # Obtener lista de timestamps de intentos anteriores
+        attempts = cache.get(key, [])
 
-    # Filtrar solo los intentos dentro de la ventana
-    attempts = [t for t in attempts if now - t < window_seconds]
+        # Filtrar solo los intentos dentro de la ventana
+        attempts = [t for t in attempts if now - t < window_seconds]
 
-    # Agregar el intento actual
-    attempts.append(now)
+        # Agregar el intento actual
+        attempts.append(now)
 
-    # Guardar con TTL igual a la ventana
-    cache.set(key, attempts, window_seconds)
+        # Guardar con TTL igual a la ventana
+        cache.set(key, attempts, window_seconds)
+    except Exception as e:
+        logger.error(f"Error en record_attempt rate limit: {e}")
 
 
 def is_rate_limited(request, action, max_attempts, window_seconds):
@@ -76,16 +79,20 @@ def is_rate_limited(request, action, max_attempts, window_seconds):
     Returns:
         bool: True si está limitado, False si puede continuar
     """
-    ip = _get_client_ip(request)
-    key = _make_cache_key(ip, action)
-    now = time.time()
+    try:
+        ip = _get_client_ip(request)
+        key = _make_cache_key(ip, action)
+        now = time.time()
 
-    attempts = cache.get(key, [])
+        attempts = cache.get(key, [])
 
-    # Filtrar solo los intentos dentro de la ventana
-    valid_attempts = [t for t in attempts if now - t < window_seconds]
+        # Filtrar solo los intentos dentro de la ventana
+        valid_attempts = [t for t in attempts if now - t < window_seconds]
 
-    return len(valid_attempts) >= max_attempts
+        return len(valid_attempts) >= max_attempts
+    except Exception as e:
+        logger.error(f"Error en is_rate_limited rate limit: {e}")
+        return False
 
 
 def get_wait_seconds(request, action, window_seconds):
@@ -100,22 +107,26 @@ def get_wait_seconds(request, action, window_seconds):
     Returns:
         int: Segundos restantes (0 si no está bloqueado)
     """
-    ip = _get_client_ip(request)
-    key = _make_cache_key(ip, action)
-    now = time.time()
+    try:
+        ip = _get_client_ip(request)
+        key = _make_cache_key(ip, action)
+        now = time.time()
 
-    attempts = cache.get(key, [])
-    if not attempts:
+        attempts = cache.get(key, [])
+        if not attempts:
+            return 0
+
+        # El intento más antiguo dentro de la ventana determina cuándo se libera
+        valid_attempts = [t for t in attempts if now - t < window_seconds]
+        if not valid_attempts:
+            return 0
+
+        oldest = min(valid_attempts)
+        remaining = window_seconds - (now - oldest)
+        return max(0, int(remaining))
+    except Exception as e:
+        logger.error(f"Error en get_wait_seconds rate limit: {e}")
         return 0
-
-    # El intento más antiguo dentro de la ventana determina cuándo se libera
-    valid_attempts = [t for t in attempts if now - t < window_seconds]
-    if not valid_attempts:
-        return 0
-
-    oldest = min(valid_attempts)
-    remaining = window_seconds - (now - oldest)
-    return max(0, int(remaining))
 
 
 def rate_limit_check(request, action, max_attempts, window_seconds):
