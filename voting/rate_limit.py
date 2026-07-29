@@ -37,6 +37,15 @@ def _make_cache_key(ip, action):
     return f"ratelimit:{action}:{ip}"
 
 
+def _ensure_cache_table():
+    """Intenta crear la tabla de caché de forma dinámica si no existe."""
+    try:
+        from django.core.management import call_command
+        call_command('createcachetable')
+    except Exception:
+        pass
+
+
 def record_attempt(request, action, window_seconds):
     """
     Registra un intento para la IP del request en la acción dada.
@@ -52,7 +61,14 @@ def record_attempt(request, action, window_seconds):
         now = time.time()
 
         # Obtener lista de timestamps de intentos anteriores
-        attempts = cache.get(key, [])
+        try:
+            attempts = cache.get(key, [])
+        except Exception as cache_err:
+            if "1146" in str(cache_err) or "doesn't exist" in str(cache_err):
+                _ensure_cache_table()
+                attempts = cache.get(key, [])
+            else:
+                raise cache_err
 
         # Filtrar solo los intentos dentro de la ventana
         attempts = [t for t in attempts if now - t < window_seconds]
@@ -84,7 +100,14 @@ def is_rate_limited(request, action, max_attempts, window_seconds):
         key = _make_cache_key(ip, action)
         now = time.time()
 
-        attempts = cache.get(key, [])
+        try:
+            attempts = cache.get(key, [])
+        except Exception as cache_err:
+            if "1146" in str(cache_err) or "doesn't exist" in str(cache_err):
+                _ensure_cache_table()
+                attempts = cache.get(key, [])
+            else:
+                raise cache_err
 
         # Filtrar solo los intentos dentro de la ventana
         valid_attempts = [t for t in attempts if now - t < window_seconds]
@@ -112,7 +135,15 @@ def get_wait_seconds(request, action, window_seconds):
         key = _make_cache_key(ip, action)
         now = time.time()
 
-        attempts = cache.get(key, [])
+        try:
+            attempts = cache.get(key, [])
+        except Exception as cache_err:
+            if "1146" in str(cache_err) or "doesn't exist" in str(cache_err):
+                _ensure_cache_table()
+                attempts = cache.get(key, [])
+            else:
+                raise cache_err
+
         if not attempts:
             return 0
 
