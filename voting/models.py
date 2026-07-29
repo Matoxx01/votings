@@ -198,7 +198,7 @@ class VotingRecord(models.Model):
     integrity_hash = models.CharField(max_length=64, blank=True)
     chain_hash = models.CharField(max_length=64, blank=True, null=True, unique=True,
                                    help_text='Hash encadenado con el voto anterior de esta votación')
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         verbose_name = "Voting Record"
