@@ -18,8 +18,9 @@ pip install -r requirements.txt
 
 # Paso 3: Migrar la base de datos
 echo ""
-echo "Paso 3: Ejecutando migraciones..."
+echo "Paso 3: Ejecutando migraciones y creando tabla de cache..."
 python manage.py migrate
+python manage.py createcachetable
 
 # Paso 4: Crear superusuario (opcional)
 echo ""
