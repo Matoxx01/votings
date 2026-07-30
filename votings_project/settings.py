@@ -231,8 +231,9 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
-# 'same-origin-allow-popups' aísla las ventanas del navegador manteniendo compatibilidad.
-SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+# None elimina el header Cross-Origin-Opener-Policy para evitar que clientes de correo web (Gmail, Outlook)
+# bloqueen la navegación de entrada a los militantes con ERR_BLOCKED_BY_RESPONSE.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
 # En producción (cuando DEBUG=False), activar cookies seguras y HTTPS
 if not DEBUG:
