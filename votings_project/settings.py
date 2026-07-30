@@ -231,10 +231,8 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'
-# None elimina el header Cross-Origin-Opener-Policy completamente.
-# 'same-origin' y 'same-origin-allow-popups' bloquean navegación desde
-# clientes de correo (Gmail, Outlook) con ERR_BLOCKED_BY_RESPONSE.
-SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+# 'same-origin-allow-popups' aísla las ventanas del navegador manteniendo compatibilidad.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
 # En producción (cuando DEBUG=False), activar cookies seguras y HTTPS
 if not DEBUG:

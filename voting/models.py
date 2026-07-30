@@ -184,21 +184,24 @@ class UserData(models.Model):
 
 class VotingRecord(models.Model):
     """
-    Registro inmutable de un voto (ANÓNIMO).
+    Registro inmutable y 100% ANÓNIMO de un voto (Lista Enlazada Criptográfica).
     
-    Protecciones:
-    - id: UUID aleatorio (v4) para evitar trazabilidad secuencial por ID
-    - integrity_hash: HMAC del contenido del registro, impide modificar campos
-    - chain_hash: incluye el hash del registro anterior (cadena), único para evitar duplicados
-    - save() rechaza actualizaciones posteriores a la creación
+    Protecciones de Secreto e Integridad:
+    - id: UUID aleatorio (v4) para evitar trazabilidad secuencial por ID.
+    - SIN marcas de tiempo (sin created_at), eliminando la correlación temporal con logs.
+    - previous_hash: Hash del voto anterior en la misma votación (enlace de cadena).
+    - integrity_hash: HMAC del contenido del registro.
+    - chain_hash: Hash de la cadena con restricción UNIQUE, impidiendo duplicados.
+    - save() rechaza actualizaciones posteriores a la creación inicial.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     id_voting = models.ForeignKey(Voting, on_delete=models.CASCADE)
     id_subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    previous_hash = models.CharField(max_length=64, blank=True, default='', db_index=True,
+                                    help_text='Hash del voto anterior en la cadena')
     integrity_hash = models.CharField(max_length=64, blank=True)
     chain_hash = models.CharField(max_length=64, blank=True, null=True, unique=True,
-                                   help_text='Hash encadenado con el voto anterior de esta votación')
-    created_at = models.DateTimeField(default=timezone.now)
+                                   help_text='Hash encadenado único del voto')
 
     class Meta:
         verbose_name = "Voting Record"
@@ -209,22 +212,30 @@ class VotingRecord(models.Model):
 
     @staticmethod
     def _get_prev_chain_hash(voting_id, exclude_pk=None):
-        """Obtiene el chain_hash del último registro de la votación (eslabón anterior)."""
+        """
+        Obtiene el chain_hash del último registro de la votación (eslabón anterior).
+        Busca el registro cuya chain_hash aún no ha sido referenciada como previous_hash.
+        """
         qs = VotingRecord.objects.filter(id_voting_id=voting_id)
         if exclude_pk:
             qs = qs.exclude(pk=exclude_pk)
-        prev = qs.order_by('created_at').last()
-        return prev.chain_hash if prev and prev.chain_hash else '0' * 64
+        
+        used_prev_hashes = set(qs.exclude(previous_hash='').values_list('previous_hash', flat=True))
+        
+        for rec in qs.exclude(chain_hash__isnull=True).exclude(chain_hash=''):
+            if rec.chain_hash not in used_prev_hashes:
+                return rec.chain_hash
+                
+        last_rec = qs.order_by().first()
+        return last_rec.chain_hash if (last_rec and last_rec.chain_hash) else '0' * 64
 
     def generate_hash(self, prev_chain_hash=None):
         """
         Genera el HMAC del registro.
-        Incluye el hash encadenado del registro anterior, de modo que:
-        - Modificar cualquier campo invalida este hash
-        - Insertar/borrar un registro en la cadena invalida todos los hashes posteriores
+        Incluye el hash encadenado del registro anterior.
         """
         if prev_chain_hash is None:
-            prev_chain_hash = VotingRecord._get_prev_chain_hash(self.id_voting_id, exclude_pk=self.pk)
+            prev_chain_hash = self.previous_hash or VotingRecord._get_prev_chain_hash(self.id_voting_id, exclude_pk=self.pk)
         message = f"{self.id_voting_id}:{self.id_subject_id}:{self.pk}:{prev_chain_hash}"
         return hmac.new(
             settings.VOTE_HMAC_KEY.encode(),
@@ -234,48 +245,67 @@ class VotingRecord(models.Model):
 
     def verify_integrity(self):
         """Verifica que el registro no ha sido alterado."""
-        return hmac.compare_digest(self.integrity_hash, self.generate_hash())
+        return hmac.compare_digest(self.integrity_hash, self.generate_hash(self.previous_hash))
 
     @staticmethod
     def verify_chain(voting_id):
         """
-        Verifica la integridad de toda la cadena de votos de una votación.
-        Retorna (ok: bool, broken_at: str|None) donde broken_at es el pk del primer fallo.
+        Verifica la integridad recorriendo la lista enlazada desde el bloque génesis.
+        Retorna (ok: bool, broken_at: str|None).
         """
-        records = list(VotingRecord.objects.filter(id_voting_id=voting_id).order_by('created_at'))
-        prev_hash = '0' * 64
-        for record in records:
+        records = list(VotingRecord.objects.filter(id_voting_id=voting_id))
+        if not records:
+            return True, None
+            
+        record_map = {r.previous_hash or ('0' * 64): r for r in records if r.integrity_hash}
+        
+        current_prev_hash = '0' * 64
+        visited_count = 0
+        
+        while current_prev_hash in record_map:
+            record = record_map[current_prev_hash]
             expected = hmac.new(
                 settings.VOTE_HMAC_KEY.encode(),
-                f"{record.id_voting_id}:{record.id_subject_id}:{record.pk}:{prev_hash}".encode(),
+                f"{record.id_voting_id}:{record.id_subject_id}:{record.pk}:{current_prev_hash}".encode(),
                 hashlib.sha256
             ).hexdigest()
+            
             if not hmac.compare_digest(record.integrity_hash, expected):
                 return False, str(record.pk)
-            prev_hash = record.integrity_hash
+                
+            current_prev_hash = record.chain_hash
+            visited_count += 1
+            
+        if visited_count != len(records):
+            return False, "Cadena ramificada, incompleta o con bloques huérfanos"
+            
         return True, None
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         # Bloquear cualquier actualización posterior a la creación inicial
-        if not is_new and not kwargs.get('update_fields') == ['integrity_hash']:
+        if not is_new and not kwargs.get('update_fields') in [['integrity_hash'], ['integrity_hash', 'chain_hash', 'previous_hash']]:
             existing = VotingRecord.objects.filter(pk=self.pk).exists()
             if existing:
                 raise PermissionError(
                     "Los registros de votos son inmutables y no pueden ser modificados."
                 )
+        
+        if is_new and not self.previous_hash:
+            self.previous_hash = VotingRecord._get_prev_chain_hash(self.id_voting_id, exclude_pk=self.pk)
+            
         super().save(*args, **kwargs)
+        
         if is_new and not self.integrity_hash:
-            prev_chain_hash = VotingRecord._get_prev_chain_hash(self.id_voting_id, exclude_pk=self.pk)
-            self.integrity_hash = self.generate_hash(prev_chain_hash=prev_chain_hash)
+            self.integrity_hash = self.generate_hash(prev_chain_hash=self.previous_hash)
             self.chain_hash = self.integrity_hash
-            # Usamos update() para no disparar el save() recursivo con restricción.
-            # En MySQL/MariaDB habilitamos una bandera SQL de autorización temporal.
+            
             if connection.vendor == 'mysql':
                 with connection.cursor() as cursor:
                     cursor.execute("SET @allow_votingrecord_update = 1")
                 try:
                     VotingRecord.objects.filter(pk=self.pk).update(
+                        previous_hash=self.previous_hash,
                         integrity_hash=self.integrity_hash,
                         chain_hash=self.chain_hash,
                     )
@@ -284,6 +314,7 @@ class VotingRecord(models.Model):
                         cursor.execute("SET @allow_votingrecord_update = 0")
             else:
                 VotingRecord.objects.filter(pk=self.pk).update(
+                    previous_hash=self.previous_hash,
                     integrity_hash=self.integrity_hash,
                     chain_hash=self.chain_hash,
                 )
