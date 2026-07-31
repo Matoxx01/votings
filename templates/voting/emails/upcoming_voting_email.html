@@ -110,7 +110,7 @@
                     <div style="background-color: #fcfcfc; border: 1px solid #eee; padding: 12px; border-radius: 4px;">
                         <div style="font-weight: bold; color: #1B2A4A; font-size: 16px;">{{ candidate.name }}</div>
                         {% if candidate.description %}
-                        <div style="font-size: 13px; color: #666; margin-top: 4px;">{{ candidate.description }}</div>
+                        <div style="font-size: 13px; color: #666; margin-top: 4px; white-space: pre-line;">{{ candidate.description|linebreaksbr }}</div>
                         {% endif %}
                     </div>
                     {% endfor %}

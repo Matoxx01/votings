@@ -307,7 +307,7 @@ class VoteAnonymityTest(TestCase):
         allowed_fields = {
             'id', 'id_voting', 'id_voting_id',
             'id_subject', 'id_subject_id',
-            'integrity_hash', 'chain_hash', 'created_at',
+            'integrity_hash', 'chain_hash', 'previous_hash', 'created_at',
         }
         actual_fields = {f.name for f in VotingRecord._meta.get_fields()
                          if hasattr(f, 'name')}

@@ -31,7 +31,7 @@
                                         <input type="radio" name="subject_choice" value="{{ subject.id }}" id="subject_{{ subject.id }}" class="form-check-input mt-1" style="min-width:18px;">
                                         <label for="subject_{{ subject.id }}" class="w-100" style="cursor:pointer;">
                                             <h5 class="card-title mb-1">{{ subject.name }}</h5>
-                                            <p class="card-text text-muted mb-0">{{ subject.description|truncatewords:15 }}</p>
+                                            <p class="card-text text-muted mb-0" style="white-space: pre-line;">{{ subject.description|linebreaksbr }}</p>
                                         </label>
                                     </div>
                                 </div>
