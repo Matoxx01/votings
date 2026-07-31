@@ -50,6 +50,17 @@ def write_key(drive_letter, token_data):
     
     key_path = Path(drive_letter) / KEY_FILE_NAME
     try:
+        # En Windows, si el archivo ya existe y tiene el atributo OCULTO (HIDDEN) o SOLO LECTURA,
+        # open(..., 'w') arroja [Errno 13] Permission denied.
+        if os.name == 'nt' and key_path.exists():
+            import ctypes
+            FILE_ATTRIBUTE_NORMAL = 0x80
+            ctypes.windll.kernel32.SetFileAttributesW(str(key_path), FILE_ATTRIBUTE_NORMAL)
+            try:
+                os.remove(key_path)
+            except Exception as e_rem:
+                print(f"Aviso al remover archivo previo: {e_rem}")
+
         with open(key_path, 'w', encoding='utf-8') as f:
             json.dump({"token": token_data}, f)
         

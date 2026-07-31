@@ -24,12 +24,53 @@
     </div>
 </div>
 
+<style>
+    .led-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        background-color: #adb5bd;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+        vertical-align: middle;
+    }
+
+    .key-row {
+        transition: background-color 0.4s ease, border-left 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .tr-connected {
+        background-color: rgba(25, 135, 84, 0.15) !important;
+        border-left: 5px solid #198754 !important;
+        box-shadow: inset 0 0 10px rgba(25, 135, 84, 0.2), 0 0 12px rgba(25, 135, 84, 0.3);
+    }
+
+    .tr-connected .led-indicator {
+        background-color: #28a745;
+        box-shadow: 0 0 6px #28a745, 0 0 12px #28a745, 0 0 18px #28a745;
+        animation: pulse-led-green 1.5s infinite alternate;
+    }
+
+    @keyframes pulse-led-green {
+        0% {
+            box-shadow: 0 0 4px #28a745, 0 0 8px #28a745;
+            transform: scale(1);
+        }
+        100% {
+            box-shadow: 0 0 10px #28a745, 0 0 18px #28a745, 0 0 24px #28a745;
+            transform: scale(1.25);
+        }
+    }
+</style>
+
 <div class="card shadow-sm">
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr style="color: navy !important;">
+                        <th style="color: navy !important;" class="text-center" style="width: 70px;">Estado</th>
                         <th style="color: navy !important;">Nombre</th>
                         <th style="color: navy !important;">Token Público</th>
                         <th style="color: navy !important;">Fecha de Creación</th>
@@ -38,8 +79,14 @@
                 </thead>
                 <tbody>
                     {% for key in keys %}
-                    <tr>
-                        <td><strong>{{ key.name }}</strong></td>
+                    <tr data-key-token="{{ key.public_token }}" class="key-row">
+                        <td class="text-center align-middle">
+                            <span class="led-indicator" title="Desconectado"></span>
+                        </td>
+                        <td>
+                            <strong>{{ key.name }}</strong>
+                            <span class="badge bg-secondary opacity-50 ms-2 key-status-badge">Desconectado</span>
+                        </td>
                         <td><code class="text-muted">{{ key.public_token }}</code></td>
                         <td>{{ key.created_at|date:"d/m/Y H:i" }}</td>
                         <td class="text-end">
@@ -53,7 +100,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center py-4 text-muted">
+                        <td colspan="5" class="text-center py-4 text-muted">
                             <i class="fas fa-usb fa-3x mb-3 opacity-50"></i>
                             <p class="mb-0">No hay llaves configuradas. Los reportes se desbloquearán automáticamente.</p>
                         </td>
@@ -110,66 +157,124 @@
     const csrfToken = '{{ csrf_token }}';
     
     let ws;
+    let pollInterval = null;
     const agentStatus = document.getElementById('agentStatus');
     const usbSelect = document.getElementById('usbSelect');
     const btnScan = document.getElementById('btnScan');
     const btnAssign = document.getElementById('btnAssign');
     const keyNameInput = document.getElementById('keyName');
     
+    function updateKeyRowsStatus(connectedKeys) {
+        const connectedSet = new Set(connectedKeys || []);
+        document.querySelectorAll('.key-row').forEach(row => {
+            const token = row.getAttribute('data-key-token');
+            const led = row.querySelector('.led-indicator');
+            const badge = row.querySelector('.key-status-badge');
+            
+            if (token && connectedSet.has(token)) {
+                row.classList.add('tr-connected');
+                if (led) led.setAttribute('title', 'Llave USB Conectada');
+                if (badge) {
+                    badge.textContent = 'Conectado';
+                    badge.className = 'badge bg-success ms-2 key-status-badge';
+                }
+            } else {
+                row.classList.remove('tr-connected');
+                if (led) led.setAttribute('title', 'Desconectado');
+                if (badge) {
+                    badge.textContent = 'Desconectado';
+                    badge.className = 'badge bg-secondary opacity-50 ms-2 key-status-badge';
+                }
+            }
+        });
+    }
+
     function connectAgent() {
+        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+            return;
+        }
+
         ws = new WebSocket('ws://localhost:8765');
 
         ws.onopen = function() {
-            agentStatus.className = 'alert alert-success';
-            agentStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>Agente Conectado. Listo para operar.';
-            btnScan.disabled = false;
-            scanUSB();
+            if (agentStatus) {
+                agentStatus.className = 'alert alert-success';
+                agentStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>Agente Conectado. Listo para operar.';
+            }
+            if (btnScan) btnScan.disabled = false;
+            
+            // Iniciar escaneo periódico de llaves (cada 1.5s)
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ action: 'POLL_KEYS' }));
+                }
+            }, 1500);
+
+            ws.send(JSON.stringify({ action: 'POLL_KEYS' }));
         };
 
         ws.onmessage = function(event) {
             const data = JSON.parse(event.data);
             
-            if (data.action === 'SCAN_RESULT') {
-                usbSelect.innerHTML = '';
-                if (data.drives.length === 0) {
-                    usbSelect.innerHTML = '<option value="">No se encontraron pendrives</option>';
-                    btnAssign.disabled = true;
-                } else {
-                    data.drives.forEach(drive => {
-                        const opt = document.createElement('option');
-                        opt.value = drive;
-                        opt.text = drive;
-                        usbSelect.appendChild(opt);
-                    });
-                    btnAssign.disabled = false;
+            if (data.action === 'KEYS_RESULT') {
+                updateKeyRowsStatus(data.keys);
+            } else if (data.action === 'SCAN_RESULT') {
+                if (usbSelect) {
+                    usbSelect.innerHTML = '';
+                    if (!data.drives || data.drives.length === 0) {
+                        usbSelect.innerHTML = '<option value="">No se encontraron pendrives</option>';
+                        if (btnAssign) btnAssign.disabled = true;
+                    } else {
+                        data.drives.forEach(drive => {
+                            const opt = document.createElement('option');
+                            opt.value = drive;
+                            opt.text = drive;
+                            usbSelect.appendChild(opt);
+                        });
+                        if (btnAssign) btnAssign.disabled = false;
+                    }
+                    usbSelect.disabled = false;
                 }
-                usbSelect.disabled = false;
             } else if (data.action === 'WRITE_RESULT') {
                 if (data.success) {
                     alert('Llave escrita exitosamente en el pendrive.');
                     window.location.reload();
                 } else {
                     alert('Error escribiendo en el USB: ' + data.error);
-                    btnAssign.disabled = false;
-                    btnAssign.innerHTML = '<i class="fas fa-save me-1"></i> Asignar Llave';
+                    if (btnAssign) {
+                        btnAssign.disabled = false;
+                        btnAssign.innerHTML = '<i class="fas fa-save me-1"></i> Asignar Llave';
+                    }
                 }
             }
         };
 
         ws.onerror = function() {
-            agentStatus.className = 'alert alert-danger';
-            agentStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error: No se pudo conectar al Agente USB. Asegúrate de ejecutar <code>python usb_agent.py</code> en tu PC.';
-            usbSelect.disabled = true;
-            btnScan.disabled = true;
-            btnAssign.disabled = true;
+            if (agentStatus) {
+                agentStatus.className = 'alert alert-danger';
+                agentStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error: No se pudo conectar al Agente USB. Asegúrate de ejecutar <code>python usb_agent.py</code> en tu PC.';
+            }
+            if (usbSelect) usbSelect.disabled = true;
+            if (btnScan) btnScan.disabled = true;
+            if (btnAssign) btnAssign.disabled = true;
+            updateKeyRowsStatus([]);
+        };
+
+        ws.onclose = function() {
+            if (pollInterval) clearInterval(pollInterval);
+            updateKeyRowsStatus([]);
+            setTimeout(connectAgent, 4000);
         };
     }
 
     function scanUSB() {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            usbSelect.innerHTML = '<option>Escaneando...</option>';
-            usbSelect.disabled = true;
-            btnAssign.disabled = true;
+            if (usbSelect) {
+                usbSelect.innerHTML = '<option>Escaneando...</option>';
+                usbSelect.disabled = true;
+            }
+            if (btnAssign) btnAssign.disabled = true;
             ws.send(JSON.stringify({ action: 'SCAN' }));
         }
     }
@@ -190,7 +295,6 @@
         btnAssign.disabled = true;
         btnAssign.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generando...';
         
-        // 1. Pedir al backend generar y registrar la llave
         fetch(generateUrl, {
             method: 'POST',
             headers: {
@@ -202,7 +306,6 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // 2. Enviar el token generado al Agente Local para escribirlo en el USB
                 btnAssign.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Escribiendo USB...';
                 ws.send(JSON.stringify({
                     action: 'WRITE',
@@ -223,7 +326,10 @@
         });
     }
 
-    // Intentar conectar cuando se abre el modal
+    document.addEventListener('DOMContentLoaded', function() {
+        connectAgent();
+    });
+
     document.getElementById('newKeyModal').addEventListener('show.bs.modal', function () {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             connectAgent();
