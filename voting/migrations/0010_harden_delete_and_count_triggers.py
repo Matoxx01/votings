@@ -20,7 +20,7 @@ CREATE TRIGGER trg_count_block_update
 BEFORE UPDATE ON voting_count
 FOR EACH ROW
 BEGIN
-    IF NOT (NEW.id_subject_id = OLD.id_subject_id AND NEW.number = OLD.number + 1) THEN
+    IF COALESCE(@allow_count_update, 0) <> 1 AND NOT (NEW.id_subject_id = OLD.id_subject_id AND NEW.number = OLD.number + 1) THEN
         SIGNAL SQLSTATE '45000'
             SET MESSAGE_TEXT = 'El contador de votos solo permite incrementos de +1.';
     END IF;

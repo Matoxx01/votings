@@ -151,6 +151,19 @@ class VotingRecordImmutabilityTest(TestCase):
 # 2. Integridad HMAC de los registros
 # ---------------------------------------------------------------------------
 
+def _force_update_votingrecord(pk, **kwargs):
+    if connection.vendor == 'mysql':
+        with connection.cursor() as cursor:
+            cursor.execute("SET @allow_votingrecord_update = 1")
+        try:
+            VotingRecord.objects.filter(pk=pk).update(**kwargs)
+        finally:
+            with connection.cursor() as cursor:
+                cursor.execute("SET @allow_votingrecord_update = 0")
+    else:
+        VotingRecord.objects.filter(pk=pk).update(**kwargs)
+
+
 class VotingRecordIntegrityTest(TestCase):
     """
     GARANTÍA: El HMAC de cada registro detecta cualquier modificación
@@ -177,9 +190,7 @@ class VotingRecordIntegrityTest(TestCase):
         record.refresh_from_db()
 
         # Simular manipulación directa en BD (sin pasar por save())
-        VotingRecord.objects.filter(pk=record.pk).update(
-            id_subject=self.subject_b
-        )
+        _force_update_votingrecord(record.pk, id_subject=self.subject_b)
         record.refresh_from_db()
 
         # El hash debe FALLAR porque el contenido fue alterado
@@ -202,9 +213,7 @@ class VotingRecordIntegrityTest(TestCase):
         records = [_make_record(self.voting, self.subject_a) for _ in range(3)]
 
         # Manipulación directa del segundo registro (bypass del ORM)
-        VotingRecord.objects.filter(pk=records[1].pk).update(
-            id_subject=self.subject_b  # cambiamos el subject
-        )
+        _force_update_votingrecord(records[1].pk, id_subject=self.subject_b)
 
         ok, broken_at = VotingRecord.verify_chain(self.voting.id)
         self.assertFalse(ok)
@@ -215,6 +224,19 @@ class VotingRecordIntegrityTest(TestCase):
 # ---------------------------------------------------------------------------
 # 3. Tabla Count: fuente de verdad es VotingRecord
 # ---------------------------------------------------------------------------
+
+def _force_update_count(id_subject, **kwargs):
+    if connection.vendor == 'mysql':
+        with connection.cursor() as cursor:
+            cursor.execute("SET @allow_count_update = 1")
+        try:
+            Count.objects.filter(id_subject=id_subject).update(**kwargs)
+        finally:
+            with connection.cursor() as cursor:
+                cursor.execute("SET @allow_count_update = 0")
+    else:
+        Count.objects.filter(id_subject=id_subject).update(**kwargs)
+
 
 class CountTableIntegrityTest(TestCase):
     """
@@ -238,7 +260,8 @@ class CountTableIntegrityTest(TestCase):
         for _ in range(3):
             _make_record(self.voting, self.subject)
             Count.objects.get_or_create(id_subject=self.subject)
-            Count.objects.filter(id_subject=self.subject).update(
+            _force_update_count(
+                self.subject,
                 number=VotingRecord.objects.filter(id_subject=self.subject).count()
             )
 
@@ -254,10 +277,10 @@ class CountTableIntegrityTest(TestCase):
         """
         _make_record(self.voting, self.subject)
         count_obj, _ = Count.objects.get_or_create(id_subject=self.subject)
-        Count.objects.filter(id_subject=self.subject).update(number=1)
+        _force_update_count(self.subject, number=1)
 
         # Manipulación: inflamos el contador manualmente
-        Count.objects.filter(id_subject=self.subject).update(number=999)
+        _force_update_count(self.subject, number=999)
         count_obj.refresh_from_db()
 
         # get_verified_count sigue retornando el número real
@@ -275,7 +298,7 @@ class CountTableIntegrityTest(TestCase):
 
         count_obj, _ = Count.objects.get_or_create(id_subject=self.subject)
         # Poner un valor falso en Count.number
-        Count.objects.filter(id_subject=self.subject).update(number=0)
+        _force_update_count(self.subject, number=0)
         count_obj.refresh_from_db()
 
         self.assertEqual(count_obj.get_verified_count(), 7)
